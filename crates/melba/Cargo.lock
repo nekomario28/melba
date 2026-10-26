@@ -243,7 +243,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.60.2",
+ "windows-sys 0.52.0",
  "x11rb",
 ]
 
@@ -1651,7 +1651,7 @@ dependencies = [
  "serde_json",
  "sha2 0.11.0",
  "url",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2840,7 +2840,7 @@ dependencies = [
  "tiny-skia",
  "tokio",
  "unicode-bidi",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
  "winresource",
  "zbus",
 ]
