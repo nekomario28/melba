@@ -108,7 +108,7 @@ http = "1"
 # dependency happens to turn it on, which is why leaving it out built
 # there and nowhere else. `net` is the local HTTP-proxy tests.
 tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros", "fs", "net", "io-util"] }
-sha1 = "0.10"
+sha1 = "0.11"
 sha2 = "0.10"
 base64 = "0.22"
 # Native asynchronous file selection on macOS, Windows and Linux desktop portals.
