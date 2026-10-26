@@ -47,6 +47,14 @@ affiliation, authorization, or a guarantee for every track or account.
 Performance and losslessness descriptions follow
 [materials/README.md](materials/README.md) and `NOTICE.md`.
 
+## Generating the source export
+
+Run `python3 ci/export-public.py DEST` from a clean worktree. It reads `HEAD`
+only, withholds nonempty extracted-string outputs, records their identities in
+`public_exclusions`, rewrites repository metadata to the clean `melba` name,
+and leaves the result uncommitted for review. It never pushes or changes
+visibility.
+
 ## Decisions still requiring separate action
 
 Visibility changes, pushes to another remote, release uploads, binary signing
