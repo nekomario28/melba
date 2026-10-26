@@ -33,9 +33,11 @@ equivalents:
 | self-made protocol shell | playback possible; native GUI login ABI is missing |
 
 Acquiring or installing the service is explicit and never automatic. The
-staging script is also maintained in the separate `melba-wrapper-bootstrap`
-project; this table is about compatibility, not permission. That project has
-its own README, license and security notes.
+source-only bootstrap is at
+<https://github.com/nekomario28/melba-wrapper-bootstrap>; it fetches the
+upstream bundle locally and does not redistribute it. This table is about
+compatibility, not permission. That project has its own README, license and
+security notes.
 
 ## Runtime flow
 
