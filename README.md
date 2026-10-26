@@ -38,6 +38,38 @@ not bit-perfect. Use an explicit `hw:X,Y` for the exact path, and
 picker and can refresh the device list. A 24-bit source needs an output that
 accepts S24/S32; S/PDIF interfaces that expose S16 only cannot carry it.
 
+### Bit-perfect, precisely
+
+Bit-perfect is a property of the **whole output path**, not of the ALAC label.
+Melba claims it only when the opened device is a direct `hw:` PCM and the
+kernel-granted rate and channel count equal the source, with at least as many
+valid sample bits. It does not claim it for `default`, PipeWire or Pulse,
+because those paths may resample or mix after ALSA opens them.
+
+| Verdict | Meaning |
+|---|---|
+| `BITPERFECT` | Direct `hw:` open; rate/channels match and `msbits >= source bits`. Playback proceeds. |
+| `SHARED` | The device is not a direct `hw:` path (for example `default`). Never claimed as bit-perfect. |
+| `MISMATCH` | Granted rate or valid sample bits are below the source. Playback is refused as bit-perfect. |
+| `CLAMPED` | An exact open was not available: for example an S16-only S/PDIF path for a 24-bit source, a channel mismatch, or no exact device. The receipt is negative. |
+
+Check before trusting a setting:
+
+```sh
+melbad probe --json                  # devices and capability bounds
+melbad setup                         # choose an output; saves audio_device
+melbad play fixtures/96k-24bit.flac --device hw:3,1   --require-bitperfect --verify      # JSON receipt; exit 0 only on BITPERFECT
+```
+
+`auto` prefers a USB/analog `hw:` device over HDMI and never selects the OS
+mixer, but it is still a preference order, not a guarantee for an arbitrary
+DAC. Use an explicit `hw:X,Y` when the exact path matters. In `serve`,
+`--require-bitperfect` waits for a compatible device/queue change instead of
+silently falling back through a shared mixer. The receipt records source and
+granted formats; `MELBA_EVIDENCE_DIR` optionally persists it. An ALAC stream
+that plays is not by itself evidence of bit-perfect output — the verdict is.
+HDMI/AVR verification still depends on a connected ELD/sink.
+
 The decrypt service for ALAC remains external: sign in through the GUI (the
 runtime's native prompt when configured, otherwise the browser flow), and
 Melba never downloads or bundles that service. See
