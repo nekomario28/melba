@@ -2,6 +2,9 @@
 
 [English](README.md) | **日本語**
 
+> この日本語 README は要約ガイドです。詳細・更新の正本は
+> [English README](README.md) です。
+
 Rust 製のネイティブ Linux クライアントです。ALSA の `hw:` を使った
 bit-perfect なローカル再生、MusicKit のカタログメタデータ、プレビュー、
 購読によるフルトラック再生に対応します。AAC は Widevine CDM、ALAC は
@@ -70,6 +73,7 @@ melbad play fixtures/96k-24bit.flac --device hw:3,1 \
 
 - [English README](README.md)
 - [Wrapper の制御とトラブルシューティング](docs/wrapper.md)
+- [ロードマップ / ステータス](docs/roadmap.md)
 - [公開スコープ](PUBLICATION.md)
 - [ライセンス / third-party notices](NOTICE.md)
 
