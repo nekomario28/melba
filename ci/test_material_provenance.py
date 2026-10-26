@@ -74,6 +74,31 @@ def verify_alac_recipes(root, ledger):
             raise ValueError('ALAC_RECIPE_SHA_MISMATCH')
 
 
+def verify_flac_recipes(root, ledger):
+    """FLAC fixtures and the cover must be reproduced by the recorded recipe."""
+    source = ledger.get('sources', {}).get('flac_recipe') or {}
+    path = source.get('path')
+    if not path or not source.get('ffmpeg_version'):
+        raise ValueError('FLAC_RECIPE_NOT_RECORDED')
+    script = local_file(root, path)
+    if hashlib.sha256(script.read_bytes()).hexdigest() != source.get('script_sha256'):
+        raise ValueError('FLAC_RECIPE_SCRIPT_MISMATCH')
+    flac = [r for r in ledger['records']
+            if r.get('category') == 'audio' and (r.get('audio') or {}).get('codec') == 'flac']
+    if not flac:
+        raise ValueError('FLAC_FIXTURES_MISSING')
+    for entry in flac:
+        if (entry.get('origin_status') != 'synthetic_recipe_reproduced'
+                or entry.get('source') != 'flac_recipe'
+                or entry.get('unresolved')):
+            raise ValueError('FLAC_RECIPE_NOT_RECORDED')
+        if (source.get('regenerated_sha256') or {}).get(entry['path']) != entry['sha256']:
+            raise ValueError('FLAC_RECIPE_SHA_MISMATCH')
+    cover = next((s for s in ledger.get('supporting_files', []) if s['path'] == 'fixtures/cover.png'), None)
+    if cover is None or cover.get('sha256') != (source.get('regenerated_sha256') or {}).get('fixtures/cover.png'):
+        raise ValueError('FLAC_RECIPE_SHA_MISMATCH')
+
+
 def declared_paths(root):
     paths = {str(p.relative_to(root)) for p in (root / 'fixtures').rglob('*')
              if p.is_file() and p.suffix in {'.m4a', '.flac'}}
@@ -157,6 +182,24 @@ class MaterialProvenance(unittest.TestCase):
         broken['sources']['alac_recipe']['script_sha256'] = '0' * 64
         with self.assertRaisesRegex(ValueError, '^ALAC_RECIPE_SCRIPT_MISMATCH$'):
             verify_alac_recipes(ROOT, broken)
+
+    def test_flac_fixtures_bind_to_the_recorded_recipe(self):
+        verify_flac_recipes(ROOT, self.ledger)
+        broken = copy.deepcopy(self.ledger)
+        entry = next(r for r in broken['records']
+                     if (r.get('audio') or {}).get('codec') == 'flac')
+        entry['source'] = 'local_history'
+        entry['origin_status'] = 'local_history_recipe_missing'
+        with self.assertRaisesRegex(ValueError, '^FLAC_RECIPE_NOT_RECORDED$'):
+            verify_flac_recipes(ROOT, broken)
+        broken = copy.deepcopy(self.ledger)
+        broken['sources']['flac_recipe']['script_sha256'] = '0' * 64
+        with self.assertRaisesRegex(ValueError, '^FLAC_RECIPE_SCRIPT_MISMATCH$'):
+            verify_flac_recipes(ROOT, broken)
+        broken = copy.deepcopy(self.ledger)
+        broken['sources']['flac_recipe']['regenerated_sha256'].pop('fixtures/cover.png')
+        with self.assertRaisesRegex(ValueError, '^FLAC_RECIPE_SHA_MISMATCH$'):
+            verify_flac_recipes(ROOT, broken)
 
     def test_flac_depth_guess_is_rejected_by_the_actual_header(self):
         entry = copy.deepcopy(next(r for r in self.ledger['records'] if r['path'] == 'fixtures/176k-24bit.flac'))

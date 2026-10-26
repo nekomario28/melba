@@ -46,12 +46,32 @@
       },
       "result": "EXACT_BYTE_MATCH_ON_REPEAT",
       "scope": "Same recorded tool/version and recipe. A different ffmpeg must be reviewed; no claim of cross-version identical encoding or of rights to any Apple Music content."
+    },
+    "flac_recipe": {
+      "path": "materials/recipes/flac-fixtures.sh",
+      "script_sha256": "3d201e55a2286e2d2dd494747ad4ac13f1f0bf992e3953b6efdd4d1cb5ad57d1",
+      "method": "lavfi sine (fixed-seed noise floor for 24-bit precision); FLAC encoder; deterministic 128x128 cover PNG via Python zlib; no media input, account or audio device.",
+      "ffmpeg_version": "ffmpeg version n9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+      "regenerated_sha256": {
+        "fixtures/176k-24bit.flac": "f2e83d6351d2302970b6528df9cfaaeae842da9239c03b09d60de62844bdf5f9",
+        "fixtures/44k-16bit.flac": "2e2927acc333cbbdc467bc600f527b5ec5573e428d323f8e16d0b1545ce2772c",
+        "fixtures/96k-24bit.flac": "0a9b7f40fc69672582c94ed7eac1fc808fca0b6f46e43c28f474e99a67ff15b2",
+        "fixtures/96k-mono.flac": "41d6e5aa896f15493967c6e7bb867f7b70a061ea0e3a3baf8a09a17a55dc6771",
+        "fixtures/96k-quad.flac": "3babf02a7343da974cda4897883d880d18b84c1fee50b79929e27609056324af",
+        "fixtures/lib/trackA.flac": "0a9b7f40fc69672582c94ed7eac1fc808fca0b6f46e43c28f474e99a67ff15b2",
+        "fixtures/lib/trackB.flac": "2e2927acc333cbbdc467bc600f527b5ec5573e428d323f8e16d0b1545ce2772c",
+        "fixtures/cover.png": "c5114f7fe205fe8e510f532f631bc1d5e7388eed19f9c030ce72058bfe557066"
+      },
+      "result": "EXACT_BYTE_MATCH_ON_REPEAT",
+      "scope": "Same recorded tool/version and recipe. A different ffmpeg must be reviewed; no claim of cross-version identical encoding or rights to any recording."
     }
   },
   "supporting_files": [
     {
       "path": "fixtures/cover.png",
-      "sha256": "ac225540b23e1495d468a8006598847b3b984ce7851c533210a759716add397e"
+      "sha256": "c5114f7fe205fe8e510f532f631bc1d5e7388eed19f9c030ce72058bfe557066",
+      "origin_status": "synthetic_recipe_reproduced",
+      "source": "flac_recipe"
     },
     {
       "path": "crates/melba/src/testdata/cast/device.der",
@@ -512,15 +532,13 @@
     },
     {
       "path": "fixtures/176k-24bit.flac",
-      "sha256": "80749d33d7ca5ab35298e2596a36ced6bd008f8935c7e49f7a075fa58737914b",
-      "git_blob": "4bab937b6e1308887a6b38ae48083a4088d99a35",
-      "bytes": 102356,
-      "first_addition_commits": [
-        "309b95dd92a376594146f104ca44be26b88aee97"
-      ],
+      "sha256": "f2e83d6351d2302970b6528df9cfaaeae842da9239c03b09d60de62844bdf5f9",
+      "git_blob": "341b043c247d95e2bcc1a86dd36c10d435635a70",
+      "bytes": 241494,
+      "first_addition_commits": [],
       "category": "audio",
-      "origin_status": "local_history_recipe_missing",
-      "source": "local_history",
+      "origin_status": "synthetic_recipe_reproduced",
+      "source": "flac_recipe",
       "audio": {
         "codec": "flac",
         "sample_rate": 176400,
@@ -529,10 +547,14 @@
         "duration_seconds": "2.000000",
         "attached_picture": false
       },
-      "unresolved": [
-        "Original PCM generation or recording source and its applicable license are not established."
-      ],
-      "legacy_name_misstates_depth": true
+      "unresolved": [],
+      "legacy_name_misstates_depth": true,
+      "previous_sha256": "f2e83d6351d2302970b6528df9cfaaeae842da9239c03b09d60de62844bdf5f9",
+      "previous_git_blob": "341b043c247d95e2bcc1a86dd36c10d435635a70",
+      "previous_bytes": 241494,
+      "previous_first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ]
     },
     {
       "path": "fixtures/44k-16bit-art.m4a",
@@ -556,15 +578,13 @@
     },
     {
       "path": "fixtures/44k-16bit.flac",
-      "sha256": "cd34c5fd7aac746d1f84ef7e22b71cf36a473d1eccdfac472bccbe321054ac41",
-      "git_blob": "faf398343b1b9df0d7787dc892ad0b13b2b5c292",
-      "bytes": 156472,
-      "first_addition_commits": [
-        "309b95dd92a376594146f104ca44be26b88aee97"
-      ],
+      "sha256": "2e2927acc333cbbdc467bc600f527b5ec5573e428d323f8e16d0b1545ce2772c",
+      "git_blob": "b2cee679970aba48dc693c347d995c54f018c0b8",
+      "bytes": 110533,
+      "first_addition_commits": [],
       "category": "audio",
-      "origin_status": "local_history_recipe_missing",
-      "source": "local_history",
+      "origin_status": "synthetic_recipe_reproduced",
+      "source": "flac_recipe",
       "audio": {
         "codec": "flac",
         "sample_rate": 44100,
@@ -573,8 +593,12 @@
         "duration_seconds": "3.000000",
         "attached_picture": false
       },
-      "unresolved": [
-        "Original PCM generation or recording source and its applicable license are not established."
+      "unresolved": [],
+      "previous_sha256": "2e2927acc333cbbdc467bc600f527b5ec5573e428d323f8e16d0b1545ce2772c",
+      "previous_git_blob": "b2cee679970aba48dc693c347d995c54f018c0b8",
+      "previous_bytes": 110533,
+      "previous_first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
       ]
     },
     {
@@ -618,15 +642,13 @@
     },
     {
       "path": "fixtures/96k-24bit.flac",
-      "sha256": "7495a5ca463f28ed206423a429d7d8906344f7c5202d04db18311053334c7a10",
-      "git_blob": "f07d90244c731521dc3f7370493ae818a05900fd",
-      "bytes": 1218414,
-      "first_addition_commits": [
-        "309b95dd92a376594146f104ca44be26b88aee97"
-      ],
+      "sha256": "0a9b7f40fc69672582c94ed7eac1fc808fca0b6f46e43c28f474e99a67ff15b2",
+      "git_blob": "ce6db620d8ad5c4999cb8643c2797647c7a2f760",
+      "bytes": 743462,
+      "first_addition_commits": [],
       "category": "audio",
-      "origin_status": "local_history_recipe_missing",
-      "source": "local_history",
+      "origin_status": "synthetic_recipe_reproduced",
+      "source": "flac_recipe",
       "audio": {
         "codec": "flac",
         "sample_rate": 96000,
@@ -635,8 +657,12 @@
         "duration_seconds": "3.000000",
         "attached_picture": false
       },
-      "unresolved": [
-        "Original PCM generation or recording source and its applicable license are not established."
+      "unresolved": [],
+      "previous_sha256": "0a9b7f40fc69672582c94ed7eac1fc808fca0b6f46e43c28f474e99a67ff15b2",
+      "previous_git_blob": "ce6db620d8ad5c4999cb8643c2797647c7a2f760",
+      "previous_bytes": 743462,
+      "previous_first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
       ]
     },
     {
@@ -661,15 +687,13 @@
     },
     {
       "path": "fixtures/96k-mono.flac",
-      "sha256": "dc7f310606e1e53b07e363a86ea60bc6be37549b7dd3a46d2268ac29edee0a10",
-      "git_blob": "646fe67a07f281c43100dc976e85fd504546a571",
-      "bytes": 82547,
-      "first_addition_commits": [
-        "309b95dd92a376594146f104ca44be26b88aee97"
-      ],
+      "sha256": "41d6e5aa896f15493967c6e7bb867f7b70a061ea0e3a3baf8a09a17a55dc6771",
+      "git_blob": "89c7b70daf4a1750c0c262a97887bce2a99fe7d0",
+      "bytes": 41367,
+      "first_addition_commits": [],
       "category": "audio",
-      "origin_status": "local_history_recipe_missing",
-      "source": "local_history",
+      "origin_status": "synthetic_recipe_reproduced",
+      "source": "flac_recipe",
       "audio": {
         "codec": "flac",
         "sample_rate": 96000,
@@ -678,21 +702,23 @@
         "duration_seconds": "1.000000",
         "attached_picture": false
       },
-      "unresolved": [
-        "Original PCM generation or recording source and its applicable license are not established."
+      "unresolved": [],
+      "previous_sha256": "41d6e5aa896f15493967c6e7bb867f7b70a061ea0e3a3baf8a09a17a55dc6771",
+      "previous_git_blob": "89c7b70daf4a1750c0c262a97887bce2a99fe7d0",
+      "previous_bytes": 41367,
+      "previous_first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
       ]
     },
     {
       "path": "fixtures/96k-quad.flac",
-      "sha256": "3f9f04149a53ed6ad65f7923ec2b2b4c5981e9c816704b2ba9ef906b4ac89eab",
-      "git_blob": "cb415cd5342396b4e1d7560a2c76a4d8d7e6bf18",
-      "bytes": 286418,
-      "first_addition_commits": [
-        "309b95dd92a376594146f104ca44be26b88aee97"
-      ],
+      "sha256": "3babf02a7343da974cda4897883d880d18b84c1fee50b79929e27609056324af",
+      "git_blob": "a19a650da454532584771441fb44cbe91c90058d",
+      "bytes": 269810,
+      "first_addition_commits": [],
       "category": "audio",
-      "origin_status": "local_history_recipe_missing",
-      "source": "local_history",
+      "origin_status": "synthetic_recipe_reproduced",
+      "source": "flac_recipe",
       "audio": {
         "codec": "flac",
         "sample_rate": 96000,
@@ -701,21 +727,23 @@
         "duration_seconds": "2.000000",
         "attached_picture": false
       },
-      "unresolved": [
-        "Original PCM generation or recording source and its applicable license are not established."
+      "unresolved": [],
+      "previous_sha256": "3babf02a7343da974cda4897883d880d18b84c1fee50b79929e27609056324af",
+      "previous_git_blob": "a19a650da454532584771441fb44cbe91c90058d",
+      "previous_bytes": 269810,
+      "previous_first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
       ]
     },
     {
       "path": "fixtures/lib/trackA.flac",
-      "sha256": "7495a5ca463f28ed206423a429d7d8906344f7c5202d04db18311053334c7a10",
-      "git_blob": "f07d90244c731521dc3f7370493ae818a05900fd",
-      "bytes": 1218414,
-      "first_addition_commits": [
-        "309b95dd92a376594146f104ca44be26b88aee97"
-      ],
+      "sha256": "0a9b7f40fc69672582c94ed7eac1fc808fca0b6f46e43c28f474e99a67ff15b2",
+      "git_blob": "ce6db620d8ad5c4999cb8643c2797647c7a2f760",
+      "bytes": 743462,
+      "first_addition_commits": [],
       "category": "audio",
-      "origin_status": "local_history_recipe_missing",
-      "source": "local_history",
+      "origin_status": "synthetic_recipe_reproduced",
+      "source": "flac_recipe",
       "audio": {
         "codec": "flac",
         "sample_rate": 96000,
@@ -724,22 +752,24 @@
         "duration_seconds": "3.000000",
         "attached_picture": false
       },
-      "unresolved": [
-        "Original PCM generation or recording source and its applicable license are not established."
-      ],
-      "byte_identical_to": "fixtures/96k-24bit.flac"
+      "unresolved": [],
+      "byte_identical_to": "fixtures/96k-24bit.flac",
+      "previous_sha256": "0a9b7f40fc69672582c94ed7eac1fc808fca0b6f46e43c28f474e99a67ff15b2",
+      "previous_git_blob": "ce6db620d8ad5c4999cb8643c2797647c7a2f760",
+      "previous_bytes": 743462,
+      "previous_first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ]
     },
     {
       "path": "fixtures/lib/trackB.flac",
-      "sha256": "cd34c5fd7aac746d1f84ef7e22b71cf36a473d1eccdfac472bccbe321054ac41",
-      "git_blob": "faf398343b1b9df0d7787dc892ad0b13b2b5c292",
-      "bytes": 156472,
-      "first_addition_commits": [
-        "309b95dd92a376594146f104ca44be26b88aee97"
-      ],
+      "sha256": "2e2927acc333cbbdc467bc600f527b5ec5573e428d323f8e16d0b1545ce2772c",
+      "git_blob": "b2cee679970aba48dc693c347d995c54f018c0b8",
+      "bytes": 110533,
+      "first_addition_commits": [],
       "category": "audio",
-      "origin_status": "local_history_recipe_missing",
-      "source": "local_history",
+      "origin_status": "synthetic_recipe_reproduced",
+      "source": "flac_recipe",
       "audio": {
         "codec": "flac",
         "sample_rate": 44100,
@@ -748,10 +778,14 @@
         "duration_seconds": "3.000000",
         "attached_picture": false
       },
-      "unresolved": [
-        "Original PCM generation or recording source and its applicable license are not established."
-      ],
-      "byte_identical_to": "fixtures/44k-16bit.flac"
+      "unresolved": [],
+      "byte_identical_to": "fixtures/44k-16bit.flac",
+      "previous_sha256": "2e2927acc333cbbdc467bc600f527b5ec5573e428d323f8e16d0b1545ce2772c",
+      "previous_git_blob": "b2cee679970aba48dc693c347d995c54f018c0b8",
+      "previous_bytes": 110533,
+      "previous_first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ]
     }
   ]
 }
