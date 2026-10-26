@@ -7,7 +7,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 serde_json = "1"
-base64 = "0.22"
+base64 = "0.23"
 ureq = { version = "2", features = ["json"] }
 aes = "0.8" # local AES-128-CBC for cbcs samples keyed by the wrapper service
 
