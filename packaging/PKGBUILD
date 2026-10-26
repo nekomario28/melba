@@ -3,7 +3,7 @@
 # Builds the source repository's default branch, not this local checkout.
 
 pkgname=melba-git
-pkgver=0.3.2
+pkgver=0.3.3
 pkgrel=1
 pkgdesc="Apple Music, native and fast — melbad playback daemon + egui client"
 arch=('x86_64' 'aarch64')
