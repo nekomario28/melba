@@ -18,7 +18,7 @@ curl -fsSL https://raw.githubusercontent.com/nekomario28/melba-wrapper-bootstrap
 
 Melba が未導入なら source からビルドし、upstream wrapper をローカルに
 staging して GUI を起動します。`sudo`、Apple の規約同意、Apple ID /
-パスワードの入力、wrapper payload の再配布は行いません。ビルド依存は
+パスワードの入力、wrapper の payload 再配布は行いません。ビルド依存は
 [English README の Install](README.md#install) を参照してください。GUI を
 起動しない場合は末尾に `-s -- --no-launch` を付けます。
 
@@ -62,8 +62,8 @@ melbad play fixtures/96k-24bit.flac --device hw:3,1 \
 `de-DE`, `es`, `fr`, `it`, `ja`, `ko`, `nl`, `pl`, `pt-BR`, `pt-PT`, `ru`,
 `sv`, `tr`, `uk`, `zh-Hans`, `zh-Hant`
 
-日本語はこのリビジョンで complete、他のカタログには 1〜2 個の未翻訳
-フォールバックがあります。翻訳は gettext で、`melba.pot` / `POTFILES` が
+日本語カタログはこのリビジョンで完成しています。他のカタログには
+未翻訳のフォールバック文字列が 1〜2 個あります。翻訳は gettext で、`melba.pot` / `POTFILES` が
 更新の起点です。
 
 ## ドキュメント
