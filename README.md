@@ -250,7 +250,7 @@ and need live revalidation after security changes.
 ## Updates
 
 **Check for updates** (in Settings → About, and the app menu) asks
-`github.com/nekomario28/melba` for its latest release. Nothing is
+`github.com/nekomario28/apple-music-linux` for its latest release. Nothing is
 downloaded unless that release carries `checksums.txt.sig`: a raw 64-byte
 Ed25519 signature over `checksums.txt`, made with the private half of the key
 committed as `crates/melba/assets/update-public-key.hex`. Dropping the key
@@ -271,12 +271,18 @@ openssl pkeyutl -sign -rawin -inkey "$MELBA_SIGNING_KEY" \
 
 A release check and an installable update are different things. A newer
 source-only tag may be reported, but installation requires signed binary
-assets and a supported installation. The current updater replaces the GUI,
-not its companion daemon: a GUI-only replacement is refused unless the
-co-installed `melbad` already matches the target version. Package-manager or
-source updates must install both together. A complete paired-package
-self-update with rollback remains a release gate; an unavailable package or a
-failed check must not be reported as a successful update.
+assets and a supported installation. The GUI updater replaces only the
+`melba` archive and requires `melba-portable.txt` beside the executable; a
+copy installed under `~/.cargo/` (including `cargo install`) is intentionally
+refused. The companion `melbad` must already match the target version, so
+package-manager or source updates install both together. A complete
+paired-package self-update with rollback remains a release gate; an unavailable
+package or a failed check must not be reported as a successful update.
+
+The v0.3.2 → v0.3.3 portable GUI update was exercised end to end on
+2026-10-26: update check, signed download, install, helper restart, and
+`melba 0.3.3` startup. The installed `~/.cargo/bin` copy remains a manual
+install, not a GUI-updatable portable installation.
 
 Rotate or add keys with `additional_publisher_keys` in
 `crates/melba/src/updates.rs`. v0.3.2 adopts the verified local publisher key

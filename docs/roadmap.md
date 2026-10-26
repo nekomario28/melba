@@ -39,13 +39,13 @@ and the actual playback path understandable.
 - [ ] **Paired signed self-update** — publish installable frontend/daemon
   packages and prove replacement, rollback and restart as one transaction.
   A real release check alone is not a working whole-client installer.
-- [ ] **GUI update button acceptance** — with a newer signed release, drive
-  the installed Settings → About "Check for updates / Update" button (not a
-  test harness), verify signature and download, confirm `melbed` matches the
-  target version before replacing the GUI, restart the app, and prove rollback
-  on failure. Current v0.3.2 verifies signed assets but this end-to-end button
-  path is unverified; v0.3.1 cannot auto-update because it trusts only the old
-  publisher key.
+- [~] **GUI update button acceptance** — portable v0.3.2 → v0.3.3 was driven
+  through Settings → About and the update modal on 2026-10-26: signed download,
+  install, helper restart and `melba 0.3.3` startup succeeded. The marker
+  (`melba-portable.txt`) is required. A `~/.cargo/bin`/`cargo install` copy is
+  intentionally refused by fastframe's Cargo installation check; migrating
+  the normal install to a portable layout and proving rollback remain open.
+  v0.3.1 cannot auto-update because it trusts only the old publisher key.
 - [x] **Choose the output from the app, over PipeWire** — `audio_device` in
   `~/.config/melba/config.json` selects `auto`, `default` or `hw:X,Y`;
   `auto` prefers a USB/analog hw device over HDMI, the Settings page lists
