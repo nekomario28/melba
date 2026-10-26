@@ -1,40 +1,42 @@
-# melba — Apple Music, native and fast, on Linux
+<p align="center">
+  <a href="#quick-start">
+    <img width="1100" src="docs/assets/project-map.svg" alt="Melba project map: GUI and MPRIS daemon, direct ALSA hw: output, MusicKit and Widevine AAC, optional user-supplied ALAC wrapper, and signed portable releases." />
+  </a>
+</p>
 
-**English** | [日本語](README.ja.md)
+<h1 align="center">melba</h1>
 
-Native Linux Apple Music client in Rust: bit-perfect local hi-res playback
-over ALSA `hw:`, catalog metadata via public MusicKit endpoints, preview
-streaming, and full-track subscription playback — AAC-256 decoded in-process
-through your installed Widevine CDM (`crates/melba-cdm`), ALAC lossless
-through an optional user-supplied local decrypt service.
+<p align="center">
+  <strong>Apple Music, native and fast, on Linux.</strong><br/>
+  Bit-perfect ALSA playback, a real queue and library, and one signed portable install.
+</p>
 
-The project has two binaries:
+<p align="center">
+  <a href="https://github.com/nekomario28/melba/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/nekomario28/melba/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
+  <a href="https://github.com/nekomario28/melba/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/nekomario28/melba?style=flat-square&label=release" /></a>
+  <img alt="License: MIT / Apache-2.0" src="https://img.shields.io/badge/license-MIT%20%2F%20Apache--2.0-2f81f7?style=flat-square" />
+  <img alt="Platform: Linux x86_64 and arm64" src="https://img.shields.io/badge/platform-Linux%20x86__64%20%2F%20arm64-1f6feb?style=flat-square" />
+</p>
 
-- **`melba`** — the desktop app (`crates/melba`): Home, Browse, Search,
-  Library, playlists, lyrics, queue, MPRIS media controls, a tray icon,
-  themes, and a `melba <verb>` command line. This is the product you open.
-- **`melbad`** — the playback daemon (repository root): the ALSA playback
-  engine, the MusicKit/streaming plumbing, and the MPRIS endpoint the UI
-  talks to.
-
-Docs, spec, feature matrix, and agent-native surface: `specs/README.md`.
-
-```
-melbad probe [--json]            # PCM devices + capability bounds
-melbad setup                     # pick an output and save audio_device
-melbad config audio-device hw:3,3 # or auto/default
-melbad play <file> --require-bitperfect --verify  # refuse the OS mixer; receipt JSON
-melbad serve <files|collection>  # daemon + MPRIS; honours audio_device from config
-melbad ctl / melbad now / melbad about   # transport + JSON state + manifest
-melbad mk search "<q>" --collection | melbad serve /dev/stdin
-melbad ctl open stream:1490256995        # full-track subscription stream
-```
+<p align="center">
+  <a href="#quick-start"><strong>Quick start</strong></a>
+  &nbsp;·&nbsp;
+  <a href="#the-map">The map</a>
+  &nbsp;·&nbsp;
+  <a href="#bit-perfect-precisely">Bit-perfect</a>
+  &nbsp;·&nbsp;
+  <a href="#install">Install</a>
+  &nbsp;·&nbsp;
+  <a href="#documentation">Docs</a>
+  &nbsp;·&nbsp;
+  <a href="README.ja.md">日本語</a>
+</p>
 
 ## Quick start
 
 Melba is a Linux client; ALAC needs an Apple Music subscription and a
 user-supplied local wrapper. If the build dependencies are installed, the
-separate source-only bootstrap can install Melba and stage the wrapper in one
+separate source-only bootstrap installs Melba and stages the wrapper in one
 command:
 
 ```sh
@@ -44,11 +46,8 @@ curl -fsSL https://raw.githubusercontent.com/nekomario28/melba-wrapper-bootstrap
 It installs Melba from source when absent, stages the upstream wrapper locally,
 and launches the GUI. It does not run `sudo`, accept Apple terms, handle an
 Apple ID/password, or redistribute the wrapper/rootfs. Build dependencies are
-listed under [Install](#install). To install without launching the GUI:
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/nekomario28/melba-wrapper-bootstrap/v1.2.3/install.sh | bash -s -- --no-launch
-```
+listed under [Install](#install). To install without launching the GUI, append
+`-s -- --no-launch`.
 
 Already have a source checkout:
 
@@ -57,6 +56,47 @@ sh packaging/install.sh
 ```
 
 UI: 16 languages, following the system locale; see [Languages](#languages).
+
+## The map
+
+The picture above is the system boundary, not a screenshot. Click it for the
+quick start; the table is the same map in a form a screen reader and a narrow
+window can follow.
+
+| Node | Owns | Where |
+|---|---|---|
+| **GUI** | Home, Search, Library, playlists, lyrics, queue, MPRIS, tray, themes | [`crates/melba`](crates/melba) |
+| **`melbad`** | ALSA engine, queue, MPRIS endpoint, MusicKit streams, updater companion | [repository root](src/main.rs) |
+| **MusicKit** | Catalog metadata, previews, subscription AAC-256 through system Widevine | [`src/musickit.rs`](src/musickit.rs) |
+| **ALAC** | Optional user-supplied local decrypt service; GUI/browser sign-in | [`docs/wrapper.md`](docs/wrapper.md) |
+| **ALSA** | Direct `hw:X,Y` output and the `BITPERFECT` receipt | [Audio output](#audio-output) |
+| **Signed releases** | `melba` + `melbad` together, portable marker, Ed25519 manifest, rollback | [Releases](https://github.com/nekomario28/melba/releases) |
+
+The map is generated from [`docs/assets/project-map.py`](docs/assets/project-map.py);
+the checked-in SVG is reproducible from that script.
+
+## Proof, not a codec label
+
+The fixture receipt is real output from the same conversion path. It is
+abbreviated; the full receipt lives in
+[`evidence/slice01-format.json`](evidence/slice01-format.json).
+
+```sh
+melbad play fixtures/96k-24bit.flac --device hw:0,0 --require-bitperfect --verify
+```
+
+```json
+{
+  "source":  { "rate": 96000, "bits": 24, "channels": 2 },
+  "granted": { "device": "hw:0,0", "format": "S32LE", "msbits": 32 },
+  "verdict": "BITPERFECT"
+}
+```
+
+Bit-perfect is a property of the whole output path. `default`, PipeWire and
+Pulse are deliberately reported as shared; they never earn a `BITPERFECT`
+label. See [Bit-perfect, precisely](#bit-perfect-precisely) for the verdict
+table and the `probe` / `setup` commands.
 
 ## Audio output
 
@@ -284,7 +324,7 @@ new GUI fails to start. Package-manager or source updates install both by
 construction. A missing package, bad signature or failed startup must not be
 reported as a successful update.
 
-Signed v0.3.4 assets are published for **x86_64 and aarch64** from the same
+Signed v0.3.5 assets are published for **x86_64 and aarch64** from the same
 source tag. The arm64 build is produced on an arm64 GitHub runner and is
 build-verified, not run on arm64 hardware. The native SDK presentation bridge
 is x86_64-only; arm64 uses the browser sign-in path. The optional
@@ -425,6 +465,14 @@ contracts, not live Apple sign-in acceptance or the final GPU/audio output.
 Release readiness, remaining hardware/legal gates and engineering debt are
 tracked in [docs/roadmap.md](docs/roadmap.md). The source tree and source-only
 release are usable; start with [Quick start](#quick-start).
+
+## Documentation
+
+- [Wrapper control and troubleshooting](docs/wrapper.md) · [日本語](docs/wrapper.ja.md)
+- [Roadmap and project status](docs/roadmap.md)
+- [Publication scope and boundaries](PUBLICATION.md)
+- [Third-party notices](NOTICE.md)
+- [Agent-native surface](specs/README.md)
 
 ## Legal / disclaimer
 
