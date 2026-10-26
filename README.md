@@ -1,7 +1,8 @@
 <p align="center">
   <a href="#quick-start">
-    <img width="1100" src="docs/assets/project-map.svg" alt="Melba project map: GUI and MPRIS daemon, direct ALSA hw: output, MusicKit and Widevine AAC, optional user-supplied ALAC wrapper, and signed portable releases." />
-  </a>
+    <img width="740" src="docs/assets/melba-album.png" alt="Melba on Linux showing an album view with its track list and player controls, using the demo library." />
+  </a><br/>
+  <sub>Actual app capture · demo library · no account data</sub>
 </p>
 
 <h1 align="center">melba</h1>
@@ -20,8 +21,6 @@
 
 <p align="center">
   <a href="#quick-start"><strong>Quick start</strong></a>
-  &nbsp;·&nbsp;
-  <a href="#the-map">The map</a>
   &nbsp;·&nbsp;
   <a href="#bit-perfect-precisely">Bit-perfect</a>
   &nbsp;·&nbsp;
@@ -56,23 +55,6 @@ sh packaging/install.sh
 ```
 
 UI: 16 languages, following the system locale; see [Languages](#languages).
-
-## The map
-
-The picture above is the system boundary, not a screenshot. Click it for the
-quick start; the table is the same map in a form a screen reader and a narrow
-window can follow.
-
-| Node | Owns | Where |
-|---|---|---|
-| **GUI** | Home, Search, Library, playlists, lyrics, queue, MPRIS, tray, themes | [`crates/melba`](crates/melba) |
-| **`melbad`** | ALSA engine, queue, MPRIS endpoint, MusicKit streams, updater companion | [repository root](src/main.rs) |
-| **MusicKit** | Catalog metadata, previews, subscription AAC-256 through system Widevine | [`src/musickit.rs`](src/musickit.rs) |
-| **ALAC** | Optional user-supplied local decrypt service; GUI/browser sign-in | [`docs/wrapper.md`](docs/wrapper.md) |
-| **ALSA** | Direct `hw:X,Y` output and the `BITPERFECT` receipt | [Audio output](#audio-output) |
-| **Signed releases** | `melba` + `melbad` together, portable marker, Ed25519 manifest, rollback | [Releases](https://github.com/nekomario28/melba/releases) |
-
-<p align="center"><sub><a href="docs/assets/project-map.svg">Open the full map</a> · generated from <a href="docs/assets/project-map.py"><code>docs/assets/project-map.py</code></a>; the checked-in SVG is reproducible from that script.</sub></p>
 
 ## Proof, not a codec label
 

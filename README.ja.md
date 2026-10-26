@@ -1,7 +1,8 @@
 <p align="center">
   <a href="README.md#quick-start">
-    <img width="1100" src="docs/assets/project-map.svg" alt="Melba のプロジェクトマップ: GUI と MPRIS デーモン、ALSA hw: 出力、MusicKit と Widevine AAC、任意のローカル ALAC wrapper、署名付き portable release。" />
-  </a>
+    <img width="740" src="docs/assets/melba-album.png" alt="Melba のアルバム画面。デモ用ライブラリのトラック一覧とプレイヤー操作を表示。" />
+  </a><br/>
+  <sub>実際のアプリ画面 · デモ用ライブラリ · アカウントデータなし</sub>
 </p>
 
 # melba — Linux 向け Apple Music クライアント
