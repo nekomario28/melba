@@ -13,7 +13,7 @@ FORBIDDEN_SUFFIXES = {'.so', '.apk', '.xapk', '.zip', '.exe', '.dll', '.dylib',
 # anything. Check content, not only the extension.
 EXECUTABLE_MAGICS = (b'\x7fELF', b'MZ', b'\xfe\xed\xfa\xce', b'\xfe\xed\xfa\xcf',
                      b'\xce\xfa\xed\xfe', b'\xcf\xfa\xed\xfe', b'\xca\xfe\xba\xbe')
-FRONT_DOCS = ('README.md', 'PUBLICATION.md', 'NOTICE.md', 'crates/melba/PACKAGING.md')
+FRONT_DOCS = ('README.md', 'README.ja.md', 'PUBLICATION.md', 'NOTICE.md', 'crates/melba/PACKAGING.md')
 OPERATIONAL_PHRASES = ('melbad wrapper setup', '--apk', '40020', '10020',
                        '20020', '30020', 'contentKey', 'skd://')
 

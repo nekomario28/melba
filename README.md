@@ -1,5 +1,7 @@
 # melba — Apple Music, native and fast, on Linux
 
+**English** | [日本語](README.ja.md)
+
 Native Linux Apple Music client in Rust: bit-perfect local hi-res playback
 over ALSA `hw:`, catalog metadata via public MusicKit endpoints, preview
 streaming, and full-track subscription playback — AAC-256 decoded in-process
@@ -27,6 +29,34 @@ melbad ctl / melbad now / melbad about   # transport + JSON state + manifest
 melbad mk search "<q>" --collection | melbad serve /dev/stdin
 melbad ctl open stream:1490256995        # full-track subscription stream
 ```
+
+## Quick start
+
+Melba is a Linux client; ALAC needs an Apple Music subscription and a
+user-supplied local wrapper. If the build dependencies are installed, the
+separate source-only bootstrap can install Melba and stage the wrapper in one
+command:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nekomario28/melba-wrapper-bootstrap/v1.2.2/install.sh | bash
+```
+
+It installs Melba from source when absent, stages the upstream wrapper locally,
+and launches the GUI. It does not run `sudo`, accept Apple terms, handle an
+Apple ID/password, or redistribute the wrapper/rootfs. Build dependencies are
+listed under [Install](#install). To install without launching the GUI:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nekomario28/melba-wrapper-bootstrap/v1.2.2/install.sh | bash -s -- --no-launch
+```
+
+Already have a source checkout:
+
+```sh
+sh packaging/install.sh
+```
+
+UI: 16 languages, following the system locale; see [Languages](#languages).
 
 ## Audio output
 
@@ -78,6 +108,8 @@ Melba never downloads or bundles that service. See
 that document deliberately does not describe acquiring a runtime.
 
 ## Install
+
+### From source
 
 Build needs Rust 1.98 or newer, Python 3.9+, a C/C++ toolchain, CMake, `pkg-config`,
 and dev headers for D-Bus, ALSA, and WebKitGTK 4.1 (used by the `auth open`
@@ -301,10 +333,19 @@ melbad serve &
 python3 tools/sidra-bridge.py --scheme stream   # or: preview
 ```
 
-## i18n
+## Languages
 
-`melba` ships complete translations under `crates/melba/assets/i18n/`
-(16+ languages, gettext catalogs); it follows the system locale.
+The UI follows the system locale by default and can be changed in
+**Settings → Language**. The choice is persisted per user. Catalogs live under
+`crates/melba/assets/i18n/`:
+
+`de-DE`, `es`, `fr`, `it`, `ja`, `ko`, `nl`, `pl`, `pt-BR`, `pt-PT`, `ru`,
+`sv`, `tr`, `uk`, `zh-Hans`, `zh-Hant`
+
+Japanese is complete at this revision; the other catalogs currently have one
+or two untranslated fallback strings. Missing strings fall back to English.
+Translations are gettext catalogs; `melba.pot` and `POTFILES` are the source
+for updates.
 
 ### Playback quality and desktop control
 
