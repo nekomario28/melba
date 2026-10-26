@@ -235,6 +235,7 @@ class InstallerTests(unittest.TestCase):
             "CARGO_INSTALL_ROOT": str(self.root),
             "XDG_DATA_HOME": str(self.work / "data"),
             "XDG_CONFIG_HOME": str(self.work / "config"),
+            "XDG_BIN_HOME": str(self.work / "bin"),
             "CARGO_TRACE": str(self.work / "cargo.log"),
             "SYSTEMCTL_TRACE": str(self.work / "systemctl.log"),
         }
@@ -265,8 +266,16 @@ binary.chmod(0o755)
         path.chmod(0o755)
 
     def install(self, *args):
+        # Existing assertions pin the Cargo development mode; the default
+        # portable path has its own test below.
         return subprocess.run(
-            ["/bin/sh", str(ROOT / "packaging/install.sh"), *args],
+            ["/bin/sh", str(ROOT / "packaging/install.sh"), "--cargo", *args],
+            cwd=self.work, env=self.env, text=True, capture_output=True,
+        )
+
+    def install_portable(self, *args):
+        return subprocess.run(
+            ["/bin/sh", str(ROOT / "packaging/install.sh"), "--portable", *args],
             cwd=self.work, env=self.env, text=True, capture_output=True,
         )
 
@@ -341,6 +350,20 @@ binary.chmod(0o755)
             self.assertEqual(shlex.split(command), ["/usr/bin/env", str(self.root / "bin/melba"), "%u"])
         calls = (self.work / "systemctl.log").read_text().splitlines()
         self.assertEqual(calls, ["--user daemon-reload"] * 2, "the desktop owns daemon startup; installation must not autoplay or create a login player")
+
+    def test_default_portable_install_writes_marker_and_paths(self):
+        portable = self.work / "portable"
+        self.env["MELBA_PORTABLE_DIR"] = str(portable)
+        result = self.install_portable("--no-unit")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for name in ("melba", "melbad", "melba-portable.txt"):
+            self.assertTrue((portable / name).exists(), name)
+        self.assertEqual((portable / "melba-portable.txt").read_text(), "melba-portable-v1\n")
+        desktop = (self.work / "data/applications/melba.desktop").read_text()
+        command = next(line.removeprefix("Exec=") for line in desktop.splitlines() if line.startswith("Exec="))
+        self.assertEqual(shlex.split(command), ["/usr/bin/env", str(portable / "melba"), "%u"])
+        self.assertEqual((self.work / "bin/melba").resolve(), portable / "melba")
+        self.assertEqual((self.work / "bin/melbad").resolve(), portable / "melbad")
 
     def test_invalid_options_fail_before_build(self):
         for args in (("--unknown",), ("--no-unit", "extra")):

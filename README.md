@@ -129,21 +129,22 @@ a build dependency):
 cargo install cargo-about --version 0.8.4 --locked
 ```
 
-The installer builds both binaries, installs the desktop files, and registers
-an optional standalone user daemon unit without enabling or starting it.
-The desktop starts its companion when needed (re-run the installer after
-`git pull` to install source updates):
+The installer builds both binaries and installs a **portable** copy under
+`~/.local/opt/melba` by default: `melba`, `melbad`, `melba-portable.txt`,
+licenses, a desktop entry and an optional user unit. The desktop entry and
+unit point at that directory; `~/.local/bin` gets stable command symlinks.
+The desktop starts its companion when needed. Re-run the installer after
+`git pull` to install source updates:
 
 ```
-sh packaging/install.sh            # add --no-unit to skip systemd setup
+sh packaging/install.sh             # portable; add --no-unit to skip the unit
+sh packaging/install.sh --cargo     # developer Cargo-root install (no GUI update)
+sh packaging/install.sh --portable-dir DIR
 ```
 
-It installs under `CARGO_INSTALL_ROOT` (default: `CARGO_HOME` or `~/.cargo`)
-and records absolute executable paths, so desktop launch and the daemon do
-not depend on Cargo's bin directory being on your session's PATH. For
-sign-in, the GUI prefers the daemon beside its own executable and falls
-back to PATH only when it is installed separately. `--no-unit` skips the
-standalone systemd unit; the desktop can still start its companion directly.
+The default portable layout is the shape the GUI updater accepts. Cargo-mode
+installs are intentionally not GUI-updatable. The installer does not enable
+the standalone unit or start playback; `--no-unit` omits it entirely.
 
 Or by hand (default Cargo paths, with `~/.cargo/bin` on your session's PATH):
 
@@ -250,7 +251,7 @@ and need live revalidation after security changes.
 ## Updates
 
 **Check for updates** (in Settings → About, and the app menu) asks
-`github.com/nekomario28/apple-music-linux` for its latest release. Nothing is
+`github.com/nekomario28/melba` for its latest release. Nothing is
 downloaded unless that release carries `checksums.txt.sig`: a raw 64-byte
 Ed25519 signature over `checksums.txt`, made with the private half of the key
 committed as `crates/melba/assets/update-public-key.hex`. Dropping the key
