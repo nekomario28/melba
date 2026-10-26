@@ -55,8 +55,12 @@ def original_files(package):
     # a neighbouring registry package's license.
     if package["source"] is None or package["source"].startswith("git+"):
         parents = (directory, *directory.parents)
-        if package["source"] is None and directory.is_relative_to(ROOT):
-            boundary = ROOT
+        if package["source"] is None:
+            # Local workspace subcrates share this checkout's notices. A
+            # local path dependency outside the checkout owns only its own
+            # directory; an unrelated .git ancestor (for example a temporary
+            # fixture) must not lend the project root's LICENSE to it.
+            boundary = ROOT if directory.is_relative_to(ROOT) else directory
         else:
             boundary = next((p for p in parents if (p / ".git").exists()), directory)
         for parent in parents:
@@ -90,8 +94,15 @@ def render(report, supplements, data_dir=DATA):
     source_files = {}
     for license in report["licenses"]:
         if license.get("source_path"):
+            source_path = Path(license["source_path"])
             for use in license["used_by"]:
-                source_files.setdefault(use["crate"]["id"], set()).add(Path(license["source_path"]))
+                # cargo-about may group several packages under one license
+                # entry. A source notice belongs only to the package whose
+                # checkout contains it; the root project's LICENSE must not
+                # become an upstream dependency's original notice.
+                package_dir = Path(packages[use["crate"]["id"]]["manifest_path"]).parent
+                if source_path.is_relative_to(package_dir):
+                    source_files.setdefault(use["crate"]["id"], set()).add(source_path)
     # Keep the whole source notice, even when a scanner selected only one
     # clause of a combined license (notably AWS-LC, ring and font notices).
     for identifier, package in sorted(packages.items()):

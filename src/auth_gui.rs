@@ -1,4 +1,5 @@
 //! A GUI attempt owns its native child and accepts only that child's result.
+#[cfg(target_arch = "x86_64")]
 mod native;
 use melba_auth::{Event, Proof, PROOF_FILE};
 use sha2::{Digest, Sha256};
@@ -140,24 +141,38 @@ fn token_digest(token: &str) -> String {
     digest_hex(token.as_bytes())
 }
 fn native_required() -> bool {
-    crate::wrapper::managed()
-        || (crate::config::wrapper_url().is_none() && crate::wrapper::installed().is_some())
+    #[cfg(target_arch = "x86_64")]
+    {
+        crate::wrapper::managed()
+            || (crate::config::wrapper_url().is_none() && crate::wrapper::installed().is_some())
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    {
+        false
+    }
 }
 
 /// A cached binding only. It must never stand in for successful NEW login.
 fn has_native_binding() -> bool {
-    let Some(token) = crate::auth::get() else {
-        return false;
-    };
-    read_binding()
-        .ok()
-        .flatten()
-        .and_then(|text| serde_json::from_str::<Proof>(&text).ok())
-        .is_some_and(|p| {
-            p.version == 1
-                && p.token_sha256 == token_digest(&token)
-                && native::matches_current_account(&token)
-        })
+    #[cfg(target_arch = "x86_64")]
+    {
+        let Some(token) = crate::auth::get() else {
+            return false;
+        };
+        read_binding()
+            .ok()
+            .flatten()
+            .and_then(|text| serde_json::from_str::<Proof>(&text).ok())
+            .is_some_and(|p| {
+                p.version == 1
+                    && p.token_sha256 == token_digest(&token)
+                    && native::matches_current_account(&token)
+            })
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    {
+        false
+    }
 }
 fn emit(event: Event) -> Result<(), String> {
     let mut bytes = serde_json::to_vec(&event).map_err(|_| "cannot encode sign-in event")?;
@@ -241,17 +256,38 @@ pub fn run(restore: bool) -> Result<(), String> {
         // a native restore attempt cannot take that lock and used to leave the
         // whole interface signed out with no library, artwork or playback.
         // Only a missing or rejected token falls through to the native flow.
-        if !restore {
-            native::run(emit, publish, false, true)
-        } else {
-            match crate::auth::get().filter(|token| crate::musickit::validate_token(token).is_ok())
-            {
-                Some(token) => {
-                    publish(&token)?;
-                    emit(Event::Complete)
+        #[cfg(target_arch = "x86_64")]
+        {
+            if !restore {
+                native::run(emit, publish, false, true)
+            } else {
+                match crate::auth::get()
+                    .filter(|token| crate::musickit::validate_token(token).is_ok())
+                {
+                    Some(token) => {
+                        publish(&token)?;
+                        emit(Event::Complete)
+                    }
+                    None => native::run(emit, publish, true, false),
                 }
-                None => native::run(emit, publish, true, false),
             }
+        }
+        #[cfg(not(target_arch = "x86_64"))]
+        {
+            let _ = restore;
+            emit(Event::Browser {
+                url: "https://music.apple.com".into(),
+            })?;
+            let _ = std::process::Command::new("xdg-open")
+                .arg("https://music.apple.com")
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .spawn();
+            crate::auth::watch_browser(std::time::Duration::from_secs(600), |token| {
+                crate::musickit::validate_token(token)?;
+                emit(Event::ReadyToCommit)
+            })
+            .and_then(|_| emit(Event::Complete))
         }
     } else if restore {
         let valid =
