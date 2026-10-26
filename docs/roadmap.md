@@ -44,9 +44,14 @@ and the actual playback path understandable.
   install, helper restart and `melba 0.3.3` startup succeeded. The marker
   (`melba-portable.txt`) is required. The default installer now installs that
   portable layout, and `packaging/package-portable.sh` checks the marker.
-- [ ] **Paired update rollback** — prove a failed GUI/daemon update restores
-  the previous pair; the current helper still replaces only the GUI and
-  requires the co-installed `melbad` to match the target first.
+- [ ] **Paired update rollback** — the current fastframe helper replaces only
+  the GUI and requires the co-installed `melbad` to match the target first.
+  A failed GUI replacement restores the old GUI, but the daemon is not part of
+  the transaction. A custom paired installer/helper is still required; do not
+  claim a paired rollback until it is exercised.
+- [x] **arm64 build path** — aarch64 release archives are built on the
+  `ubuntu-24.04-arm` runner. The x86_64-only native auth bridge is disabled on
+  arm64 (browser sign-in); arm64 binaries are build-verified, not hardware-run.
 - [x] **Choose the output from the app, over PipeWire** — `audio_device` in
   `~/.config/melba/config.json` selects `auto`, `default` or `hw:X,Y`;
   `auto` prefers a USB/analog hw device over HDMI, the Settings page lists

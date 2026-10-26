@@ -280,6 +280,12 @@ package-manager or source updates install both together. A complete
 paired-package self-update with rollback remains a release gate; an unavailable
 package or a failed check must not be reported as a successful update.
 
+Signed v0.3.3 assets are published for **x86_64 and aarch64**. The arm64
+build is produced on an arm64 GitHub runner and is build-verified, not run on
+arm64 hardware. The native SDK presentation bridge is x86_64-only; arm64 uses
+the browser sign-in path. The optional wrapper/rootfs remains user-supplied and
+architecture-specific.
+
 The v0.3.2 → v0.3.3 portable GUI update was exercised end to end on
 2026-10-26: update check, signed download, install, helper restart, and
 `melba 0.3.3` startup. The installed `~/.cargo/bin` copy remains a manual
