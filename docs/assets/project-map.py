@@ -45,9 +45,9 @@ def card(x, y, w, h, title, subtitle, lines, accent, *,
         mono(tx, y + 36, title, 18, TEXT)
     else:
         text(tx, y + 36, title, title_size, TEXT, 700)
-    text(tx, y + 62, subtitle, 17, SECONDARY)
+    text(tx, y + 62, subtitle, 19, SECONDARY)
     for i, line in enumerate(lines):
-        mono(tx, y + 90 + i * 24, line, 17, SECONDARY if i else TEXT)
+        mono(tx, y + 92 + i * 28, line, 20, SECONDARY if i else TEXT)
 
 
 def connector(points, color, label=None, label_at=None, dash=False):
@@ -55,7 +55,7 @@ def connector(points, color, label=None, label_at=None, dash=False):
     dash_attr = ' stroke-dasharray="5 7"' if dash else ""
     add(f'<path d="{d}" fill="none" stroke="{color}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"{dash_attr} opacity="0.72" marker-end="url(#arrow-{color[1:]})"/>')
     if label and label_at:
-        text(label_at[0], label_at[1], label, 15, DIM, 500, "middle")
+        text(label_at[0], label_at[1], label, 16, DIM, 500, "middle")
 
 
 add(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" role="img" aria-labelledby="title desc">')
@@ -76,9 +76,9 @@ add(f'<rect x="1" y="1" width="{W-2}" height="{H-2}" rx="27" fill="none" stroke=
 add(f'<circle cx="58" cy="54" r="13" fill="{ACCENT}"/>')
 add(f'<path d="M54 46 L67 54 L54 62 Z" fill="#ffffff"/>')
 text(84, 62, "MELBA", 34, TEXT, 800, spacing="1.5")
-text(84, 86, "native Apple Music for Linux", 18, SECONDARY)
-mono(1116, 54, "v0.3.5", 18, TEXT, "end")
-mono(1116, 76, "signed · x86_64 / arm64", 15, DIM, "end")
+text(84, 86, "native Apple Music for Linux", 20, SECONDARY)
+mono(1116, 54, "v0.3.5", 20, TEXT, "end")
+mono(1116, 76, "signed · x86_64 / arm64", 16, DIM, "end")
 
 # Left: GUI
 card(48, 126, 286, 210, "GUI", "crates/melba · egui", [
@@ -138,7 +138,7 @@ connector([(970, 432), (970, 396)], DIM, "", None, dash=True)
 add(f'<line x1="48" y1="584" x2="1152" y2="584" stroke="{OUTLINE}" stroke-width="1"/>')
 for x, color, label in [(48, ACCENT, "GUI / release"), (228, CYAN, "daemon"), (356, GREEN, "MusicKit"), (500, PURPLE, "ALAC"), (620, AMBER, "ALSA"), (716, DIM, "external boundary")]:
     add(f'<circle cx="{x}" cy="608" r="5" fill="{color}"/>')
-    text(x + 14, 613, label, 15, SECONDARY, 500)
+    text(x + 14, 613, label, 16, SECONDARY, 500)
 mono(1152, 613, "bit-perfect is a path property, not a codec label", 14, DIM, "end")
 
 add('</svg>')

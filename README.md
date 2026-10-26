@@ -72,8 +72,7 @@ window can follow.
 | **ALSA** | Direct `hw:X,Y` output and the `BITPERFECT` receipt | [Audio output](#audio-output) |
 | **Signed releases** | `melba` + `melbad` together, portable marker, Ed25519 manifest, rollback | [Releases](https://github.com/nekomario28/melba/releases) |
 
-The map is generated from [`docs/assets/project-map.py`](docs/assets/project-map.py);
-the checked-in SVG is reproducible from that script.
+<p align="center"><sub><a href="docs/assets/project-map.svg">Open the full map</a> · generated from <a href="docs/assets/project-map.py"><code>docs/assets/project-map.py</code></a>; the checked-in SVG is reproducible from that script.</sub></p>
 
 ## Proof, not a codec label
 

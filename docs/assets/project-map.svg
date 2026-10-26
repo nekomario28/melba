@@ -17,78 +17,78 @@
 <circle cx="58" cy="54" r="13" fill="#fa243c"/>
 <path d="M54 46 L67 54 L54 62 Z" fill="#ffffff"/>
 <text x="84" y="62" fill="#f2f4f6" font-family="Inter, ui-sans-serif, sans-serif" font-size="34" font-weight="800" text-anchor="start" letter-spacing="1.5">MELBA</text>
-<text x="84" y="86" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="18" font-weight="400" text-anchor="start">native Apple Music for Linux</text>
-<text x="1116" y="54" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="500" text-anchor="end">v0.3.5</text>
-<text x="1116" y="76" fill="#6e7784" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="500" text-anchor="end">signed · x86_64 / arm64</text>
+<text x="84" y="86" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="20" font-weight="400" text-anchor="start">native Apple Music for Linux</text>
+<text x="1116" y="54" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="end">v0.3.5</text>
+<text x="1116" y="76" fill="#6e7784" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" font-weight="500" text-anchor="end">signed · x86_64 / arm64</text>
 <rect x="48" y="126" width="286" height="210" rx="16" fill="#1d2127" stroke="#2a3038" stroke-width="1"/>
 <rect x="48" y="126" width="5" height="210" rx="2.5" fill="#fa243c"/>
 <text x="72" y="162" fill="#f2f4f6" font-family="Inter, ui-sans-serif, sans-serif" font-size="22" font-weight="700" text-anchor="start">GUI</text>
-<text x="72" y="188" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="17" font-weight="400" text-anchor="start">crates/melba · egui</text>
-<text x="72" y="216" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">Home · Search · Library</text>
-<text x="72" y="240" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">Queue · Lyrics · MPRIS</text>
-<text x="72" y="264" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">16 locales · themes</text>
+<text x="72" y="188" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="19" font-weight="400" text-anchor="start">crates/melba · egui</text>
+<text x="72" y="218" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">Home · Search · Library</text>
+<text x="72" y="246" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">Queue · Lyrics · MPRIS</text>
+<text x="72" y="274" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">16 locales · themes</text>
 <rect x="404" y="126" width="292" height="210" rx="16" fill="#1d2127" stroke="#2a3038" stroke-width="1"/>
 <rect x="404" y="126" width="5" height="210" rx="2.5" fill="#6ee7f2"/>
 <text x="428" y="162" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="500" text-anchor="start">melbad</text>
-<text x="428" y="188" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="17" font-weight="400" text-anchor="start">playback daemon</text>
-<text x="428" y="216" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">ALSA · MPRIS endpoint</text>
-<text x="428" y="240" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">MusicKit streams · queue</text>
-<text x="428" y="264" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">Widevine AAC · updater</text>
+<text x="428" y="188" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="19" font-weight="400" text-anchor="start">playback daemon</text>
+<text x="428" y="218" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">ALSA · MPRIS endpoint</text>
+<text x="428" y="246" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">MusicKit streams · queue</text>
+<text x="428" y="274" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">Widevine AAC · updater</text>
 <rect x="788" y="126" width="364" height="120" rx="16" fill="#1d2127" stroke="#2a3038" stroke-width="1"/>
 <rect x="788" y="126" width="5" height="120" rx="2.5" fill="#8be28b"/>
 <text x="812" y="162" fill="#f2f4f6" font-family="Inter, ui-sans-serif, sans-serif" font-size="22" font-weight="700" text-anchor="start">MusicKit</text>
-<text x="812" y="188" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="17" font-weight="400" text-anchor="start">public catalog + subscription</text>
-<text x="812" y="216" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">catalog · previews</text>
-<text x="812" y="240" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">AAC-256 via Widevine</text>
+<text x="812" y="188" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="19" font-weight="400" text-anchor="start">public catalog + subscription</text>
+<text x="812" y="218" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">catalog · previews</text>
+<text x="812" y="246" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">AAC-256 via Widevine</text>
 <rect x="788" y="276" width="364" height="120" rx="16" fill="#1d2127" stroke="#2a3038" stroke-width="1"/>
 <rect x="788" y="276" width="5" height="120" rx="2.5" fill="#c084fc"/>
 <text x="812" y="312" fill="#f2f4f6" font-family="Inter, ui-sans-serif, sans-serif" font-size="22" font-weight="700" text-anchor="start">ALAC</text>
-<text x="812" y="338" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="17" font-weight="400" text-anchor="start">optional user-supplied wrapper</text>
-<text x="812" y="366" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">user-supplied decrypt service</text>
-<text x="812" y="390" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">browser / native sign-in</text>
+<text x="812" y="338" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="19" font-weight="400" text-anchor="start">optional user-supplied wrapper</text>
+<text x="812" y="368" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">user-supplied decrypt service</text>
+<text x="812" y="396" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">browser / native sign-in</text>
 <rect x="404" y="388" width="292" height="150" rx="16" fill="#1d2127" stroke="#2a3038" stroke-width="1"/>
 <rect x="404" y="388" width="5" height="150" rx="2.5" fill="#f2b85c"/>
 <text x="428" y="424" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="500" text-anchor="start">ALSA</text>
-<text x="428" y="450" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="17" font-weight="400" text-anchor="start">the output path</text>
-<text x="428" y="478" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">hw:X,Y direct open</text>
-<text x="428" y="502" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">BITPERFECT receipt</text>
-<text x="428" y="526" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">shared default refused</text>
+<text x="428" y="450" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="19" font-weight="400" text-anchor="start">the output path</text>
+<text x="428" y="480" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">hw:X,Y direct open</text>
+<text x="428" y="508" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">BITPERFECT receipt</text>
+<text x="428" y="536" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">shared default refused</text>
 <rect x="48" y="388" width="286" height="150" rx="16" fill="#1d2127" stroke="#2a3038" stroke-width="1"/>
 <rect x="48" y="388" width="5" height="150" rx="2.5" fill="#fa243c"/>
 <text x="72" y="424" fill="#f2f4f6" font-family="Inter, ui-sans-serif, sans-serif" font-size="22" font-weight="700" text-anchor="start">Signed releases</text>
-<text x="72" y="450" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="17" font-weight="400" text-anchor="start">portable install + updater</text>
-<text x="72" y="478" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">melba + melbad together</text>
-<text x="72" y="502" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">rollback on failed start</text>
-<text x="72" y="526" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">Ed25519 checksums</text>
+<text x="72" y="450" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="19" font-weight="400" text-anchor="start">portable install + updater</text>
+<text x="72" y="480" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">melba + melbad together</text>
+<text x="72" y="508" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">rollback on failed start</text>
+<text x="72" y="536" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">Ed25519 checksums</text>
 <rect x="788" y="432" width="364" height="106" rx="16" fill="#1d2127" stroke="#2a3038" stroke-width="1"/>
 <rect x="788" y="432" width="5" height="106" rx="2.5" fill="#6e7784"/>
 <text x="812" y="468" fill="#f2f4f6" font-family="Inter, ui-sans-serif, sans-serif" font-size="22" font-weight="700" text-anchor="start">Boundary</text>
-<text x="812" y="494" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="17" font-weight="400" text-anchor="start">what stays outside</text>
-<text x="812" y="522" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">wrapper/rootfs user-supplied</text>
-<text x="812" y="546" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="500" text-anchor="start">no keys or account data shipped</text>
+<text x="812" y="494" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="19" font-weight="400" text-anchor="start">what stays outside</text>
+<text x="812" y="524" fill="#f2f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">wrapper/rootfs user-supplied</text>
+<text x="812" y="552" fill="#a9b1bc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="500" text-anchor="start">no keys or account data shipped</text>
 <path d="M 334 232 L 404 232" fill="none" stroke="#fa243c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.72" marker-end="url(#arrow-fa243c)"/>
-<text x="368" y="218" fill="#6e7784" font-family="Inter, ui-sans-serif, sans-serif" font-size="15" font-weight="500" text-anchor="middle">MPRIS</text>
+<text x="368" y="218" fill="#6e7784" font-family="Inter, ui-sans-serif, sans-serif" font-size="16" font-weight="500" text-anchor="middle">MPRIS</text>
 <path d="M 550 336 L 550 388" fill="none" stroke="#f2b85c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.72" marker-end="url(#arrow-f2b85c)"/>
-<text x="562" y="366" fill="#6e7784" font-family="Inter, ui-sans-serif, sans-serif" font-size="15" font-weight="500" text-anchor="middle">hw:</text>
+<text x="562" y="366" fill="#6e7784" font-family="Inter, ui-sans-serif, sans-serif" font-size="16" font-weight="500" text-anchor="middle">hw:</text>
 <path d="M 550 336 L 788 232" fill="none" stroke="#8be28b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.72" marker-end="url(#arrow-8be28b)"/>
-<text x="667" y="286" fill="#6e7784" font-family="Inter, ui-sans-serif, sans-serif" font-size="15" font-weight="500" text-anchor="middle">AAC</text>
+<text x="667" y="286" fill="#6e7784" font-family="Inter, ui-sans-serif, sans-serif" font-size="16" font-weight="500" text-anchor="middle">AAC</text>
 <path d="M 788 336 L 696 336" fill="none" stroke="#c084fc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.72" marker-end="url(#arrow-c084fc)"/>
-<text x="742" y="324" fill="#6e7784" font-family="Inter, ui-sans-serif, sans-serif" font-size="15" font-weight="500" text-anchor="middle">ALAC</text>
+<text x="742" y="324" fill="#6e7784" font-family="Inter, ui-sans-serif, sans-serif" font-size="16" font-weight="500" text-anchor="middle">ALAC</text>
 <path d="M 190 388 L 190 336" fill="none" stroke="#fa243c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.72" marker-end="url(#arrow-fa243c)"/>
-<text x="216" y="366" fill="#6e7784" font-family="Inter, ui-sans-serif, sans-serif" font-size="15" font-weight="500" text-anchor="middle">update</text>
+<text x="216" y="366" fill="#6e7784" font-family="Inter, ui-sans-serif, sans-serif" font-size="16" font-weight="500" text-anchor="middle">update</text>
 <path d="M 970 432 L 970 396" fill="none" stroke="#6e7784" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 7" opacity="0.72" marker-end="url(#arrow-6e7784)"/>
 <line x1="48" y1="584" x2="1152" y2="584" stroke="#2a3038" stroke-width="1"/>
 <circle cx="48" cy="608" r="5" fill="#fa243c"/>
-<text x="62" y="613" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="15" font-weight="500" text-anchor="start">GUI / release</text>
+<text x="62" y="613" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="16" font-weight="500" text-anchor="start">GUI / release</text>
 <circle cx="228" cy="608" r="5" fill="#6ee7f2"/>
-<text x="242" y="613" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="15" font-weight="500" text-anchor="start">daemon</text>
+<text x="242" y="613" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="16" font-weight="500" text-anchor="start">daemon</text>
 <circle cx="356" cy="608" r="5" fill="#8be28b"/>
-<text x="370" y="613" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="15" font-weight="500" text-anchor="start">MusicKit</text>
+<text x="370" y="613" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="16" font-weight="500" text-anchor="start">MusicKit</text>
 <circle cx="500" cy="608" r="5" fill="#c084fc"/>
-<text x="514" y="613" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="15" font-weight="500" text-anchor="start">ALAC</text>
+<text x="514" y="613" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="16" font-weight="500" text-anchor="start">ALAC</text>
 <circle cx="620" cy="608" r="5" fill="#f2b85c"/>
-<text x="634" y="613" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="15" font-weight="500" text-anchor="start">ALSA</text>
+<text x="634" y="613" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="16" font-weight="500" text-anchor="start">ALSA</text>
 <circle cx="716" cy="608" r="5" fill="#6e7784"/>
-<text x="730" y="613" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="15" font-weight="500" text-anchor="start">external boundary</text>
+<text x="730" y="613" fill="#a9b1bc" font-family="Inter, ui-sans-serif, sans-serif" font-size="16" font-weight="500" text-anchor="start">external boundary</text>
 <text x="1152" y="613" fill="#6e7784" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="500" text-anchor="end">bit-perfect is a path property, not a codec label</text>
 </svg>
