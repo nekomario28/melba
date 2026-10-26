@@ -136,10 +136,20 @@ impl ProcessGroup {
         // The supervisor leads the group and the worker stays in it, so this
         // owner only ever signals a PID it still holds unreaped. Nothing here
         // is derived from a port scan, /proc search or a stale numeric id.
-        let child = command
-            .process_group(0)
-            .spawn()
-            .map_err(|e| e.to_string())?;
+        // The staged supervisor can be replaced by another thread in the
+        // same test process between rename and exec. A transient ETXTBSY is
+        // not a lifetime failure; retry only that errno with a bounded wait.
+        let mut attempts = 0;
+        let child = loop {
+            match command.process_group(0).spawn() {
+                Ok(child) => break child,
+                Err(error) if error.raw_os_error() == Some(libc::ETXTBSY) && attempts < 100 => {
+                    attempts += 1;
+                    std::thread::sleep(Duration::from_millis(10));
+                }
+                Err(error) => return Err(error.to_string()),
+            }
+        };
         Ok(Self {
             child,
             lost: AtomicBool::new(false),
