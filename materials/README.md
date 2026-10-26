@@ -34,12 +34,14 @@ has no lossless source bit-depth claim here. Byte-identical aliases are listed
 as aliases, not independent evidence of authorship.
 
 Extracted-string filenames do not make their contents working endpoints.
-The retained outputs include domain suffixes, certificate URLs with extraction
-noise, JNI/C++ symbols, diagnostics and SQL fragments. None was sent as a
-request in this review. An empty extraction output says nothing about the
-absence of an API in the source library. Historical reports identify an APK
-and a method, but this pass did not reacquire that APK or reproduce extraction.
-Those reports' old capability and legal conclusions are not current verdicts.
+The **nonempty** outputs (domain suffixes, certificate text, JNI/C++ symbols,
+diagnostics and SQL fragments) are withheld from this public export and retained
+privately; their identities are listed in `public_exclusions`. The ten empty
+outputs remain, but an empty extraction says nothing about the absence of an API
+in the source library. None was sent as a request. Historical reports identify an
+APK and a method, but this pass did not reacquire that APK or reproduce
+extraction. Those reports' old capability and legal conclusions are not current
+verdicts.
 Factual names and copied expressive material can require different analysis;
 neither the app license nor a proprietary source label decides every case.
 

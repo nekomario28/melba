@@ -29,6 +29,10 @@ the boundary; it is not a legal clearance and it does not authorize a release.
   installed service or a configured `wrapper_url`; neither path is legal
   clearance.
 - Real cover art, lyrics, or screenshots that need their own rights review.
+- Nonempty extracted-string outputs under `evidence/native-scan/` (URLs,
+  certificate text, SQL/JNI fragments): withheld from the public export and
+  retained privately. Empty extraction outputs may remain as evidence that a
+  library produced no matching strings.
 
 Documentation describes boundaries, not acquisition or decryption steps: the
 operational wrapper notes are kept outside the repository. This keeps the

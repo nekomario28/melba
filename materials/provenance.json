@@ -151,26 +151,6 @@
       ]
     },
     {
-      "path": "evidence/native-scan/hosts.txt",
-      "sha256": "0ad4e7b926bee0fc25860495d6e80da8c5277667dd6c854017d4beb27101dbb8",
-      "git_blob": "12ee150e3f2e3bf96606c1e18ae9ceae66d3730c",
-      "bytes": 96,
-      "first_addition_commits": [
-        "309b95dd92a376594146f104ca44be26b88aee97"
-      ],
-      "category": "extracted_strings",
-      "source": "android_scan_report",
-      "origin_status": "reported_derivation_not_reproduced",
-      "content": {
-        "lines": 5,
-        "http_like_substrings": 0
-      },
-      "unresolved": [
-        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
-        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
-      ]
-    },
-    {
       "path": "evidence/native-scan/libBlocksRuntime.so.endpoints.txt",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
@@ -211,86 +191,6 @@
       ]
     },
     {
-      "path": "evidence/native-scan/libCoreFP.so.endpoints.txt",
-      "sha256": "bb71985ce91ac637875614ded338968a7fb7b0a5c1dd08a9bdf380238d248617",
-      "git_blob": "4deb0e36f18872657b73c8ab8058a89d720a1626",
-      "bytes": 328,
-      "first_addition_commits": [
-        "309b95dd92a376594146f104ca44be26b88aee97"
-      ],
-      "category": "extracted_strings",
-      "source": "android_scan_report",
-      "origin_status": "reported_derivation_not_reproduced",
-      "content": {
-        "lines": 7,
-        "http_like_substrings": 7
-      },
-      "unresolved": [
-        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
-        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
-      ]
-    },
-    {
-      "path": "evidence/native-scan/libCoreFoundation.so.endpoints.txt",
-      "sha256": "fe79261a76f8f13f7c1251607f97c51a361b7a0efa4d5913585da2bf017ca289",
-      "git_blob": "d5bbc51e2a0e7eb9c8342792e0224919f8fa4618",
-      "bytes": 186,
-      "first_addition_commits": [
-        "309b95dd92a376594146f104ca44be26b88aee97"
-      ],
-      "category": "extracted_strings",
-      "source": "android_scan_report",
-      "origin_status": "reported_derivation_not_reproduced",
-      "content": {
-        "lines": 4,
-        "http_like_substrings": 1
-      },
-      "unresolved": [
-        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
-        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
-      ]
-    },
-    {
-      "path": "evidence/native-scan/libCoreLSKD.so.endpoints.txt",
-      "sha256": "dd57e88637de668518d1c6269e01d6293237f78e3c14233a674c96bbb5bfc36b",
-      "git_blob": "fdb3bdb5cedbc2813cc35aedeb08556cec6b22c5",
-      "bytes": 297,
-      "first_addition_commits": [
-        "309b95dd92a376594146f104ca44be26b88aee97"
-      ],
-      "category": "extracted_strings",
-      "source": "android_scan_report",
-      "origin_status": "reported_derivation_not_reproduced",
-      "content": {
-        "lines": 6,
-        "http_like_substrings": 6
-      },
-      "unresolved": [
-        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
-        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
-      ]
-    },
-    {
-      "path": "evidence/native-scan/libandroidappmusic.so.endpoints.txt",
-      "sha256": "a227b967be664c1f446ead719447a20fc6281d95c317a1265951444490540525",
-      "git_blob": "23483bfb7be01ff6a050ec6af4380c691310a7b1",
-      "bytes": 6389,
-      "first_addition_commits": [
-        "309b95dd92a376594146f104ca44be26b88aee97"
-      ],
-      "category": "extracted_strings",
-      "source": "android_scan_report",
-      "origin_status": "reported_derivation_not_reproduced",
-      "content": {
-        "lines": 69,
-        "http_like_substrings": 6
-      },
-      "unresolved": [
-        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
-        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
-      ]
-    },
-    {
       "path": "evidence/native-scan/libc++_shared.so.endpoints.txt",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
@@ -308,26 +208,6 @@
       "unresolved": [
         "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
         "An empty grep output does not prove the original library has no endpoints."
-      ]
-    },
-    {
-      "path": "evidence/native-scan/libcurl.so.endpoints.txt",
-      "sha256": "29145d3d902755b8ffa9d1b2d8c8d385f5a7c9efcd8579c948dbced6e8c9d855",
-      "git_blob": "335e08ea850c244aa8e65aa0faa3a74a57458140",
-      "bytes": 315,
-      "first_addition_commits": [
-        "309b95dd92a376594146f104ca44be26b88aee97"
-      ],
-      "category": "extracted_strings",
-      "source": "android_scan_report",
-      "origin_status": "reported_derivation_not_reproduced",
-      "content": {
-        "lines": 17,
-        "http_like_substrings": 0
-      },
-      "unresolved": [
-        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
-        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
       ]
     },
     {
@@ -431,46 +311,6 @@
       ]
     },
     {
-      "path": "evidence/native-scan/libmedialibrarycore.so.endpoints.txt",
-      "sha256": "96a2e98b1d93d332cd21b843d644f67a6620939a0f600447079273853706125c",
-      "git_blob": "f7cb52dc13877b526f1918a259914fb3ecd93469",
-      "bytes": 32984,
-      "first_addition_commits": [
-        "309b95dd92a376594146f104ca44be26b88aee97"
-      ],
-      "category": "extracted_strings",
-      "source": "android_scan_report",
-      "origin_status": "reported_derivation_not_reproduced",
-      "content": {
-        "lines": 290,
-        "http_like_substrings": 6
-      },
-      "unresolved": [
-        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
-        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
-      ]
-    },
-    {
-      "path": "evidence/native-scan/libmediaplatform.so.endpoints.txt",
-      "sha256": "8b007cbf0622f35c56235536b5a010dff7699afcc7219451804dd80061063903",
-      "git_blob": "2c036921793c31713096154ffd061dd5635ad486",
-      "bytes": 3289,
-      "first_addition_commits": [
-        "309b95dd92a376594146f104ca44be26b88aee97"
-      ],
-      "category": "extracted_strings",
-      "source": "android_scan_report",
-      "origin_status": "reported_derivation_not_reproduced",
-      "content": {
-        "lines": 30,
-        "http_like_substrings": 0
-      },
-      "unresolved": [
-        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
-        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
-      ]
-    },
-    {
       "path": "evidence/native-scan/librenderscript-toolkit.so.endpoints.txt",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
@@ -488,26 +328,6 @@
       "unresolved": [
         "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
         "An empty grep output does not prove the original library has no endpoints."
-      ]
-    },
-    {
-      "path": "evidence/native-scan/libstoreservicescore.so.endpoints.txt",
-      "sha256": "c33f29e5fe0697efd277febe2a66eaf316ac9c63c1521c8a9ca5fdceae69022e",
-      "git_blob": "4156b73ce5faff13aaea58d8c6970d6ba3a4487d",
-      "bytes": 9584,
-      "first_addition_commits": [
-        "309b95dd92a376594146f104ca44be26b88aee97"
-      ],
-      "category": "extracted_strings",
-      "source": "android_scan_report",
-      "origin_status": "reported_derivation_not_reproduced",
-      "content": {
-        "lines": 129,
-        "http_like_substrings": 8
-      },
-      "unresolved": [
-        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
-        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
       ]
     },
     {
@@ -786,6 +606,89 @@
       "previous_first_addition_commits": [
         "309b95dd92a376594146f104ca44be26b88aee97"
       ]
+    }
+  ],
+  "public_exclusions": [
+    {
+      "path": "evidence/native-scan/hosts.txt",
+      "sha256": "0ad4e7b926bee0fc25860495d6e80da8c5277667dd6c854017d4beb27101dbb8",
+      "bytes": 96,
+      "category": "extracted_strings",
+      "origin_status": "reported_derivation_not_reproduced",
+      "source": "android_scan_report",
+      "reason": "nonempty extracted library strings withheld from the public export; retained in private evidence"
+    },
+    {
+      "path": "evidence/native-scan/libCoreFP.so.endpoints.txt",
+      "sha256": "bb71985ce91ac637875614ded338968a7fb7b0a5c1dd08a9bdf380238d248617",
+      "bytes": 328,
+      "category": "extracted_strings",
+      "origin_status": "reported_derivation_not_reproduced",
+      "source": "android_scan_report",
+      "reason": "nonempty extracted library strings withheld from the public export; retained in private evidence"
+    },
+    {
+      "path": "evidence/native-scan/libCoreFoundation.so.endpoints.txt",
+      "sha256": "fe79261a76f8f13f7c1251607f97c51a361b7a0efa4d5913585da2bf017ca289",
+      "bytes": 186,
+      "category": "extracted_strings",
+      "origin_status": "reported_derivation_not_reproduced",
+      "source": "android_scan_report",
+      "reason": "nonempty extracted library strings withheld from the public export; retained in private evidence"
+    },
+    {
+      "path": "evidence/native-scan/libCoreLSKD.so.endpoints.txt",
+      "sha256": "dd57e88637de668518d1c6269e01d6293237f78e3c14233a674c96bbb5bfc36b",
+      "bytes": 297,
+      "category": "extracted_strings",
+      "origin_status": "reported_derivation_not_reproduced",
+      "source": "android_scan_report",
+      "reason": "nonempty extracted library strings withheld from the public export; retained in private evidence"
+    },
+    {
+      "path": "evidence/native-scan/libandroidappmusic.so.endpoints.txt",
+      "sha256": "a227b967be664c1f446ead719447a20fc6281d95c317a1265951444490540525",
+      "bytes": 6389,
+      "category": "extracted_strings",
+      "origin_status": "reported_derivation_not_reproduced",
+      "source": "android_scan_report",
+      "reason": "nonempty extracted library strings withheld from the public export; retained in private evidence"
+    },
+    {
+      "path": "evidence/native-scan/libcurl.so.endpoints.txt",
+      "sha256": "29145d3d902755b8ffa9d1b2d8c8d385f5a7c9efcd8579c948dbced6e8c9d855",
+      "bytes": 315,
+      "category": "extracted_strings",
+      "origin_status": "reported_derivation_not_reproduced",
+      "source": "android_scan_report",
+      "reason": "nonempty extracted library strings withheld from the public export; retained in private evidence"
+    },
+    {
+      "path": "evidence/native-scan/libmedialibrarycore.so.endpoints.txt",
+      "sha256": "96a2e98b1d93d332cd21b843d644f67a6620939a0f600447079273853706125c",
+      "bytes": 32984,
+      "category": "extracted_strings",
+      "origin_status": "reported_derivation_not_reproduced",
+      "source": "android_scan_report",
+      "reason": "nonempty extracted library strings withheld from the public export; retained in private evidence"
+    },
+    {
+      "path": "evidence/native-scan/libmediaplatform.so.endpoints.txt",
+      "sha256": "8b007cbf0622f35c56235536b5a010dff7699afcc7219451804dd80061063903",
+      "bytes": 3289,
+      "category": "extracted_strings",
+      "origin_status": "reported_derivation_not_reproduced",
+      "source": "android_scan_report",
+      "reason": "nonempty extracted library strings withheld from the public export; retained in private evidence"
+    },
+    {
+      "path": "evidence/native-scan/libstoreservicescore.so.endpoints.txt",
+      "sha256": "c33f29e5fe0697efd277febe2a66eaf316ac9c63c1521c8a9ca5fdceae69022e",
+      "bytes": 9584,
+      "category": "extracted_strings",
+      "origin_status": "reported_derivation_not_reproduced",
+      "source": "android_scan_report",
+      "reason": "nonempty extracted library strings withheld from the public export; retained in private evidence"
     }
   ]
 }
