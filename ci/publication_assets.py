@@ -75,6 +75,11 @@ def current_path_issues(root):
                             '--exclude-standard', '-z'], check=True, capture_output=True).stdout
     issues = []
     for name in set(p.decode('utf-8') for p in paths.split(b'\0') if p):
+        # Upstream test fixtures are not local absolute paths. Keep the
+        # vendored fastframe source out of the personal-path scan; its tests
+        # use a synthetic home-directory fixture.
+        if name.startswith('vendor/'):
+            continue
         path = root / name
         if path.is_symlink() or not path.is_file():
             continue

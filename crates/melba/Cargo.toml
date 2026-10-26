@@ -1,7 +1,7 @@
 [package]
 name = "melba"
 default-run = "melba"
-version = "0.3.4"
+version = "0.3.5"
 edition = "2024"
 rust-version = "1.98"
 license = "MIT"
@@ -63,7 +63,7 @@ fastframe-shell = { git = "https://github.com/crmne/fastframe", rev = "3339a8bc5
 # edges when the listener turns the platform's frame off.
 fastframe-titlebar = { git = "https://github.com/crmne/fastframe", rev = "3339a8bc524a51c47f87ca78c368dde3569d90f5" }
 # Self-update from GitHub releases, on the reqwest client below.
-fastframe-update = { git = "https://github.com/crmne/fastframe", rev = "3339a8bc524a51c47f87ca78c368dde3569d90f5", features = ["reqwest"] }
+fastframe-update = { path = "../../vendor/fastframe-update", features = ["reqwest"] }
 # Settings, the session, the history, caches and the credential markers
 # are replaced whole: a temporary file beside each, synced to the disk, then
 # moved over it (written through on Windows), so a crash never leaves half.

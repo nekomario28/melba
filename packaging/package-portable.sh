@@ -25,6 +25,9 @@ for name in melba melbad; do
     mkdir -p "$stage/$stem"
     if [ "$name" = melba ]; then
         install -m755 "$melba_bin" "$stage/$stem/melba"
+        # The GUI updater installs the daemon from this same archive, so the
+        # pair cannot be separated by a GUI-only replacement.
+        install -m755 "$melbad_bin" "$stage/$stem/melbad"
         printf 'melba-portable-v1\n' > "$stage/$stem/melba-portable.txt"
     else
         install -m755 "$melbad_bin" "$stage/$stem/melbad"

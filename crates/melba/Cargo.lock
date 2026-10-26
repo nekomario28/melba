@@ -1643,7 +1643,6 @@ dependencies = [
 [[package]]
 name = "fastframe-update"
 version = "0.6.0"
-source = "git+https://github.com/crmne/fastframe?rev=3339a8bc524a51c47f87ca78c368dde3569d90f5#3339a8bc524a51c47f87ca78c368dde3569d90f5"
 dependencies = [
  "anyhow",
  "reqwest",
@@ -2789,7 +2788,7 @@ dependencies = [
 
 [[package]]
 name = "melba"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "anyhow",
  "base64",

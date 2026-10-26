@@ -441,6 +441,7 @@ class PortableArchiveTests(unittest.TestCase):
             names = subprocess.run(["tar", "-tzf", str(archive)], check=True,
                                    text=True, capture_output=True).stdout.splitlines()
             self.assertIn("melba-v9.9.9-x86_64-unknown-linux-gnu/melba-portable.txt", names)
+            self.assertIn("melba-v9.9.9-x86_64-unknown-linux-gnu/melbad", names)
             self.assertIn("melbad-v9.9.9-x86_64-unknown-linux-gnu.tar.gz",
                           [p.name for p in out.iterdir()])
 

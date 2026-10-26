@@ -1,10 +1,11 @@
 [workspace]
 members = [".", "crates/melba-cdm", "crates/melba-auth"]
 default-members = [".", "crates/melba-cdm"]
+exclude = ["vendor/fastframe-update"]
 
 [package]
 name = "melbad"
-version = "0.3.4"
+version = "0.3.5"
 edition = "2021"
 description = "native lightweight Linux music client — bit-perfect playback core"
 license = "MIT OR Apache-2.0"

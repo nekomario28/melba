@@ -1,0 +1,34 @@
+[package]
+name = "fastframe-update"
+description = "Self-update from GitHub releases: check, detect the installation, verify, hand off to a helper, roll back"
+version = "0.6.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+authors = ["Carmine Paolino <carmine@paolino.me>"]
+repository = "https://github.com/crmne/fastframe"
+homepage = "https://github.com/crmne/fastframe"
+readme = "README.md"
+keywords = ["update", "self-update", "github", "desktop"]
+categories = ["os"]
+
+[features]
+default = []
+reqwest = ["dep:reqwest"]
+
+[dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.11"
+ring = "0.17"
+url = "2.5"
+reqwest = { version = "0.12", default-features = false, features = ["blocking"], optional = true }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.60", features = ["Win32_Foundation", "Win32_System_Threading"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[workspace]

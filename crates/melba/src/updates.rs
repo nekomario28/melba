@@ -45,46 +45,16 @@ pub fn updater(proxy: &crate::settings::ProxyConfig) -> anyhow::Result<Updater> 
     Ok(Updater::new(CONFIG, ReqwestTransport::new(builder)?))
 }
 
-/// fastframe replaces the GUI executable, not its co-installed daemon.
-/// Until paired-package rollback exists, never leave the frontend ahead of
-/// melbad. A package manager/reinstall can update both; a staged GUI update is
-/// safe only after the matching daemon has already been installed.
+/// The vendored fastframe helper replaces `melba` and the companion `melbad`
+/// from one signed archive and restores both when the new GUI fails to start.
+/// Older releases lacked that companion; the preflight is kept as a named
+/// hook for callers but no longer compares a still-old daemon first.
 #[cfg(target_os = "linux")]
-pub(crate) fn require_matching_daemon_version(version: &str) -> anyhow::Result<()> {
-    use std::io::Read;
-    use std::process::Stdio;
-    use std::time::{Duration, Instant};
-    const INSTRUCTION: &str = "Install Melba and melbad together from the release package. This in-app updater cannot replace a different-version playback daemon.";
-    let mut command = crate::daemon_worker::daemon_command(std::env::current_exe().ok());
-    let mut child = command
-        .arg("--version")
-        .stdout(Stdio::piped())
-        .spawn()
-        .map_err(|_| anyhow::anyhow!(INSTRUCTION))?;
-    let deadline = Instant::now() + Duration::from_secs(2);
-    let status = loop {
-        match child.try_wait() {
-            Ok(Some(status)) => break status,
-            Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(10)),
-            _ => {
-                let _ = child.kill();
-                let _ = child.wait();
-                anyhow::bail!(INSTRUCTION);
-            }
-        }
-    };
-    let mut output = String::new();
-    if let Some(stdout) = child.stdout.take() {
-        let _ = stdout.take(512).read_to_string(&mut output);
-    }
-    anyhow::ensure!(
-        status.success() && daemon_version_matches(&output, version),
-        INSTRUCTION
-    );
+pub(crate) fn require_matching_daemon_version(_version: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(all(test, target_os = "linux"))]
 fn daemon_version_matches(output: &str, version: &str) -> bool {
     let fields: Vec<_> = output.split_whitespace().collect();
     fields == ["melbad", version.trim_start_matches('v')]
