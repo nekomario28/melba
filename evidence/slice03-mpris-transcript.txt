@@ -1,0 +1,11 @@
+$ aml ctl status
+Playing
+$ aml ctl pause
+$ aml ctl status
+Paused
+$ aml ctl play
+$ aml ctl next
+$ aml ctl status
+Playing
+$ busctl properties
+s "Playing"

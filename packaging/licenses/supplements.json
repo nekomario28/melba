@@ -1,0 +1,113 @@
+{
+  "upstream": [
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#crc32c@0.6.8",
+      "path": "upstream/crc32c-README.md",
+      "sha256": "cdacc34974a954ea9ddb5da1a2ad19bcefaead7dfa9df6fd9421671ea5d19300",
+      "url": "https://raw.githubusercontent.com/zowens/crc32c/254a861f7cc71bfe455e86f0e1d86e3c83c33390/README.md"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#accesskit_winit@0.32.2",
+      "path": "upstream/accesskit_winit-Apache-2.0.txt",
+      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+      "url": "https://raw.githubusercontent.com/AccessKit/accesskit/1bbcf100942bac96c2c3a4a91cb67b0b20201a24/LICENSE-APACHE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#accesskit@0.24.1",
+      "path": "upstream/accesskit-MIT.txt",
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "url": "https://raw.githubusercontent.com/AccessKit/accesskit/a55d3e1a18bb9ef0e4bccc9083fb13c3e0ad8969/LICENSE-MIT"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#accesskit_atspi_common@0.18.1",
+      "path": "upstream/accesskit_atspi_common-MIT.txt",
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "url": "https://raw.githubusercontent.com/AccessKit/accesskit/f40dfc01a0c0e76de535969f82fb35e19513737d/LICENSE-MIT"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#accesskit_consumer@0.36.0",
+      "path": "upstream/accesskit_consumer-MIT.txt",
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "url": "https://raw.githubusercontent.com/AccessKit/accesskit/f40dfc01a0c0e76de535969f82fb35e19513737d/LICENSE-MIT"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#accesskit_unix@0.21.1",
+      "path": "upstream/accesskit_unix-MIT.txt",
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "url": "https://raw.githubusercontent.com/AccessKit/accesskit/f40dfc01a0c0e76de535969f82fb35e19513737d/LICENSE-MIT"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#uuid-simd@0.8.0",
+      "path": "upstream/uuid-simd-MIT.txt",
+      "sha256": "71674605ec4c087fe9eb534e3e4f9e26eb2e4aabcd76a29fd156c6a844d44b3d",
+      "url": "https://raw.githubusercontent.com/Nugine/simd/d74c030d9dc4f3cae02146d1f497ff62726ef09a/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#vsimd@0.8.0",
+      "path": "upstream/vsimd-MIT.txt",
+      "sha256": "71674605ec4c087fe9eb534e3e4f9e26eb2e4aabcd76a29fd156c6a844d44b3d",
+      "url": "https://raw.githubusercontent.com/Nugine/simd/d74c030d9dc4f3cae02146d1f497ff62726ef09a/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#dlopen2@0.8.2",
+      "path": "upstream/dlopen2-MIT.txt",
+      "sha256": "39fa265207450e77c62e90c5594a06c085b655d8374c7ced4bf7894b6bd95dd2",
+      "url": "https://raw.githubusercontent.com/OpenByteDev/dlopen2/cc80e4a0a90d499b677fdf7743699b4b3a43a989/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#dlopen2_derive@0.4.3",
+      "path": "upstream/dlopen2_derive-MIT.txt",
+      "sha256": "39fa265207450e77c62e90c5594a06c085b655d8374c7ced4bf7894b6bd95dd2",
+      "url": "https://raw.githubusercontent.com/OpenByteDev/dlopen2/cc80e4a0a90d499b677fdf7743699b4b3a43a989/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#jsonschema-regex@0.58.6",
+      "path": "upstream/jsonschema-regex-MIT.txt",
+      "sha256": "117829c3ca21efb132d81a44b55363d395ab8eea18526873bc828da4c0e5f038",
+      "url": "https://raw.githubusercontent.com/Stranger6667/jsonschema/55ac1664384793c5d3b20745d3f9c169dfe2c06f/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#jsonschema-value@0.58.6",
+      "path": "upstream/jsonschema-value-MIT.txt",
+      "sha256": "117829c3ca21efb132d81a44b55363d395ab8eea18526873bc828da4c0e5f038",
+      "url": "https://raw.githubusercontent.com/Stranger6667/jsonschema/55ac1664384793c5d3b20745d3f9c169dfe2c06f/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#profiling@1.0.18",
+      "path": "upstream/profiling-MIT.txt",
+      "sha256": "c8167fdeeed46d3f244d3f85c5bf998ce889343691c32be2c61a8bc4b5c08333",
+      "url": "https://raw.githubusercontent.com/aclysma/profiling/8271551172eb6fa4cba47369aedd93790c623df9/LICENSE-MIT"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#gl_generator@0.14.0",
+      "path": "upstream/gl_generator-Apache-2.0.txt",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "url": "https://raw.githubusercontent.com/brendanzab/gl-rs/ea503e8d5fb6d73c6030e6191ce738cd3bf3433e/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#khronos_api@3.1.0",
+      "path": "upstream/khronos_api-Apache-2.0.txt",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "url": "https://raw.githubusercontent.com/brendanzab/gl-rs/f150967b1c44ae888e6676f93f639ebc82771bdc/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#nom-language@0.1.0",
+      "path": "upstream/nom-language-MIT.txt",
+      "sha256": "4dbda04344456f09a7a588140455413a9ac59b6b26a1ef7cdf9c800c012d87f0",
+      "url": "https://raw.githubusercontent.com/rust-bakery/nom/2cec1b3e4c9ccac62c902d60c00de6d1549ccbe1/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#tr@0.1.11",
+      "path": "upstream/tr-MIT.txt",
+      "sha256": "71d7ff8278dfd9cbce550cc491ad55e4048609cab2c88a8f896ce34898841eb5",
+      "url": "https://raw.githubusercontent.com/woboq/tr/0070206fb355917595e76229932ff96da25c9565/tr/src/lib.rs"
+    }
+  ],
+  "extra_files": [
+    {
+      "package": "git+https://github.com/crmne/egui?rev=ba6790fe7cf46e58e8d27ce1524cbfdee745e938#epaint_default_fonts@0.36.1",
+      "path": "fonts/Hack-Regular.txt",
+      "sha256": "47c0cccbeec7e8614548cc485588b28149e7874188df5f41b36efebcee285c87"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Melba
+GenericName=Music Player
+Comment=Apple Music, native and fast
+Exec=melba %u
+Icon=melba
+Terminal=false
+Categories=AudioVideo;Audio;Music;Player;
+StartupWMClass=melba
+MimeType=x-scheme-handler/itms;x-scheme-handler/itmss;x-scheme-handler/music;x-scheme-handler/musics;x-scheme-handler/apple-music;

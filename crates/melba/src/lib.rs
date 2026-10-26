@@ -1,0 +1,50 @@
+//! melba's internals, exposed so diagnostics and tests can reach them.
+
+pub mod account_cache;
+pub mod api;
+pub mod app;
+#[cfg(target_os = "linux")]
+pub mod appearance;
+pub mod autoscroll;
+pub mod backend;
+pub mod bidi;
+#[cfg(target_os = "linux")]
+mod daemon_sign_in;
+#[cfg(target_os = "linux")]
+pub mod daemon_worker;
+#[cfg(any(test, feature = "demo"))]
+pub mod demo;
+pub mod emoji;
+pub mod history;
+pub mod http;
+pub mod i18n;
+pub mod images;
+pub mod liked;
+pub mod limiter;
+pub mod link;
+pub mod lyrics;
+#[cfg(target_os = "macos")]
+pub mod mac_links;
+#[cfg(target_os = "macos")]
+pub mod mac_menu;
+#[cfg(target_os = "macos")]
+pub mod mac_notch;
+#[cfg(target_os = "macos")]
+pub mod mac_touchbar_crash_guard;
+pub mod mk;
+pub mod model;
+pub mod motion;
+pub mod notch;
+pub mod opener;
+pub mod paths;
+pub mod player;
+pub mod playlist_cover;
+pub mod power;
+pub mod settings;
+pub mod single_instance;
+pub mod theme;
+pub mod thumbbar;
+pub mod ui;
+pub mod updates;
+pub mod util;
+pub mod window;

@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "note": "Static export/ABI identity only. No live Apple authentication or phone delivery has been verified.",
+  "families": [
+    {
+      "arch": "x86_64",
+      "files": {
+        "system/bin/main": "2242220d897583d7e7b52ee59f98fa47fad1449edf263e9a6a0e328fca7a10b3",
+        "system/lib64/libstoreservicescore.so": "6238261363d7943f1a0a27116b52544831f3e295e8533a634641fe5b09d92c7e",
+        "system/lib64/libandroidappmusic.so": "0a575431868e40ddb29e9e0bac7a4993d6e05971b45403cabe358c081b54a36e",
+        "system/lib64/libc++_shared.so": "82ffc20ba230bbdd031b27853d6cfaaa27079aabe6dd478cafd9b6fa866a35c2"
+      }
+    }
+  ],
+  "symbols": [
+    "_ZN17storeservicescore16AuthenticateFlow14setUseExistingEb",
+    "_ZN17storeservicescore16AuthenticateFlow3runEv",
+    "_ZN17storeservicescore19CredentialsResponse11setPasswordERKNSt6__ndk112basic_stringIcNS1_11char_traitsIcEENS1_9allocatorIcEEEE",
+    "_ZN17storeservicescore19CredentialsResponse11setUserNameERKNSt6__ndk112basic_stringIcNS1_11char_traitsIcEENS1_9allocatorIcEEEE",
+    "_ZN17storeservicescore19CredentialsResponse15setResponseTypeENS0_12ResponseTypeE",
+    "_ZN17storeservicescore19CredentialsResponseC1Ev",
+    "_ZN17storeservicescore22ProtocolDialogResponse17setSelectedButtonERKNSt6__ndk110shared_ptrINS_14ProtocolButtonEEE",
+    "_ZN17storeservicescore22ProtocolDialogResponseC1Ev",
+    "_ZN20androidstoreservices28AndroidPresentationInterface16setDialogHandlerEPFvlNSt6__ndk110shared_ptrIN17storeservicescore14ProtocolDialogEEENS2_INS_36AndroidProtocolDialogResponseHandlerEEEE",
+    "_ZN20androidstoreservices28AndroidPresentationInterface21setCredentialsHandlerEPFvNSt6__ndk110shared_ptrIN17storeservicescore18CredentialsRequestEEENS2_INS_33AndroidCredentialsResponseHandlerEEEE",
+    "_ZN20androidstoreservices28AndroidPresentationInterface25handleCredentialsResponseERKNSt6__ndk110shared_ptrIN17storeservicescore19CredentialsResponseEEE",
+    "_ZN20androidstoreservices28AndroidPresentationInterface28handleProtocolDialogResponseERKlRKNSt6__ndk110shared_ptrIN17storeservicescore22ProtocolDialogResponseEEE",
+    "_ZNK17storeservicescore14ProtocolButton5titleEv",
+    "_ZNK17storeservicescore14ProtocolDialog5titleEv",
+    "_ZNK17storeservicescore14ProtocolDialog7buttonsEv",
+    "_ZNK17storeservicescore14ProtocolDialog7messageEv",
+    "_ZNK17storeservicescore16AuthenticateFlow8responseEv",
+    "_ZNK17storeservicescore18CredentialsRequest13okButtonTitleEv",
+    "_ZNK17storeservicescore18CredentialsRequest17cancelButtonTitleEv",
+    "_ZNK17storeservicescore18CredentialsRequest28requiresHSA2VerificationCodeEv",
+    "_ZNK17storeservicescore18CredentialsRequest5titleEv",
+    "_ZNK17storeservicescore18CredentialsRequest7messageEv",
+    "_ZNK17storeservicescore20AuthenticateResponse12responseTypeEv",
+    "_ZNSt6__ndk119__shared_weak_count16__release_sharedEv",
+    "_ZTVNSt6__ndk120__shared_ptr_emplaceIN17storeservicescore19CredentialsResponseENS_9allocatorIS2_EEEE",
+    "_ZTVNSt6__ndk120__shared_ptr_emplaceIN17storeservicescore22ProtocolDialogResponseENS_9allocatorIS2_EEEE",
+    "_Znwm"
+  ]
+}

@@ -1,0 +1,2108 @@
+# Turkish translation of melba.
+# Distributed under the same MIT license as melba.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Melba\n"
+"Report-Msgid-Bugs-To: https://github.com/nekomario28/melba/issues/new\n"
+"POT-Creation-Date: 2026-10-20 02:23+0900\n"
+"PO-Revision-Date: 2026-10-02 20:30+0300\n"
+"Last-Translator: Barış Berke Çetin <brsberkectn@gmail.com>\n"
+"Language-Team: Turkish\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: src/api/models.rs:284
+msgid "Single"
+msgstr "Tekli"
+
+#: src/api/models.rs:285
+msgid "Compilation"
+msgstr "Derleme"
+
+#: src/api/models.rs:286 src/model.rs:829
+msgid "Appears On"
+msgstr "Yer Aldığı Albümler"
+
+#: src/api/models.rs:287 src/app.rs:2825 src/ui/prerelease.rs:71
+msgid "Album"
+msgstr "Albüm"
+
+#. Translators: {error} is a sentence saying why the proxy password could not be stored.
+#: src/app.rs:2079
+#, rust-format
+msgid "{error} The original settings file is kept intact; changed preferences are not saved yet."
+msgstr "{error} Orijinal ayarlar dosyası korundu; değiştirilen tercihler henüz kaydedilmedi."
+
+#. Translators: {version} is a version number such as 1.4.0.
+#: src/app.rs:2227
+#, rust-format
+msgid "Melba {version} is available"
+msgstr "Melba {version} sürümü hazır"
+
+#: src/app.rs:2244
+msgid "Melba is up to date"
+msgstr "Melba güncel"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:2252
+#, rust-format
+msgid "Couldn't check for updates: {error}"
+msgstr "Güncellemeler denetlenemedi: {error}"
+
+#. Translators: {error} is an error message from the playback engine.
+#: src/app.rs:2333
+#, rust-format
+msgid "Local playback: {error}"
+msgstr "Yerel çalma: {error}"
+
+#: src/app.rs:2340
+msgid "Opening your browser to set up local playback"
+msgstr "Yerel çalmayı ayarlamak için tarayıcınız açılıyor"
+
+#: src/app.rs:2681
+msgid "Audio disconnected. Reconnecting local playback"
+msgstr "Apple Music ses bağlantısı kesildi. Yerel çalma yeniden bağlanıyor"
+
+#: src/app.rs:2783 src/app.rs:19070 src/demo.rs:1679 src/demo.rs:1721
+#: src/demo.rs:1723 src/demo.rs:2299 src/demo.rs:2315 src/ui/collection.rs:2127
+#: src/ui/home.rs:77 src/ui/keys.rs:264 src/ui/sidebar.rs:312
+#: src/ui/winamp/playlist.rs:653
+msgid "Liked Songs"
+msgstr "Beğenilenler"
+
+#: src/app.rs:2791 src/app/radio.rs:191 src/ui/radio.rs:35 src/ui/radio.rs:77
+msgid "Radio"
+msgstr "Radyo"
+
+#: src/app.rs:2809 src/app.rs:19065 src/ui/collection.rs:1919
+#: src/ui/collection.rs:2134 src/ui/sidebar.rs:302
+msgid "Playlist"
+msgstr "Çalma listesi"
+
+#: src/app.rs:2844 src/ui/artist.rs:214 src/ui/artist.rs:357 src/ui/home.rs:440
+#: src/ui/library.rs:101 src/ui/search.rs:159 src/ui/search.rs:491
+#: src/ui/sidebar.rs:1189 src/ui/winamp/playlist.rs:746
+msgid "Artist"
+msgstr "Sanatçı"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:3597
+#, rust-format
+msgid "Proxy could not be applied: {error}. Previous connection settings are still in use."
+msgstr "Proxy uygulanamadı: {error}. Önceki bağlantı ayarları kullanılmaya devam ediyor."
+
+#: src/app.rs:5245
+msgid "Queue cleared"
+msgstr "Sıra temizlendi"
+
+#. Translators: Keep {date} unchanged. It is a date in YYYY-MM-DD form.
+#: src/app.rs:5275 src/app.rs:19055
+#, rust-format
+msgid "Queue {date}"
+msgstr "Sıra {date}"
+
+#: src/app.rs:5784
+msgid "Your Apple Music sign-in expired. Please sign in again."
+msgstr "Apple Music oturumunuzun süresi doldu. Lütfen yeniden giriş yapın."
+
+#. Translators: {error} is an error message.
+#: src/app.rs:5791
+#, rust-format
+msgid "Couldn't load your profile: {error}"
+msgstr "Profiliniz yüklenemedi: {error}"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:5852
+#, rust-format
+msgid "Couldn't list devices: {error}"
+msgstr "Cihazlar listelenemedi: {error}"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:6204
+#, rust-format
+msgid "Couldn't load more playlists: {error}"
+msgstr "Daha fazla çalma listesi yüklenemedi: {error}"
+
+#: src/app.rs:6250
+msgid "Apple Music hasn't confirmed your playlist changes yet. Try refreshing again."
+msgstr "Apple Music çalma listesi değişikliklerinizi henüz onaylamadı. Tekrar yenilemeyi deneyin."
+
+#. Translators: {name} is a playlist name.
+#: src/app.rs:6454
+#, rust-format
+msgid "Created {name}"
+msgstr "{name} oluşturuldu"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:6480
+#, rust-format
+msgid "Couldn't create the playlist: {error}"
+msgstr "Çalma listesi oluşturulamadı: {error}"
+
+#: src/app.rs:6534
+msgid "Playlist cover updated"
+msgstr "Çalma listesi kapağı güncellendi"
+
+#: src/app.rs:6543
+msgid "Playlist updated"
+msgstr "Çalma listesi güncellendi"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:6553 src/app.rs:6670
+#, rust-format
+msgid "Couldn't update the playlist: {error}"
+msgstr "Çalma listesi güncellenemedi: {error}"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:6627
+#, rust-format
+msgid "Playlist change failed: {error}"
+msgstr "Çalma listesi değişikliği başarısız oldu: {error}"
+
+#: src/app.rs:6654
+msgid "Added to Your Library"
+msgstr "Kitaplığına eklendi"
+
+#: src/app.rs:6656 src/app.rs:6861
+msgid "Removed from Your Library"
+msgstr "Kitaplığından kaldırıldı"
+
+#: src/app.rs:6854
+msgid "Added to Liked Songs"
+msgstr "Beğenilenler'e eklendi"
+
+#: src/app.rs:6856
+msgid "Removed from Liked Songs"
+msgstr "Beğenilenler'den kaldırıldı"
+
+#: src/app.rs:6858
+msgid "Following artist"
+msgstr "Sanatçı takip ediliyor"
+
+#: src/app.rs:6859
+msgid "Unfollowed artist"
+msgstr "Sanatçı takipten çıkarıldı"
+
+#: src/app.rs:6860
+msgid "Saved to Your Library"
+msgstr "Kitaplığına kaydedildi"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:6875
+#, rust-format
+msgid "Couldn't update your library: {error}"
+msgstr "Kitaplığınız güncellenemedi: {error}"
+
+#: src/app.rs:6957 src/model.rs:703 src/ui/search.rs:668 src/ui/sidebar.rs:1042
+msgid "Playlists"
+msgstr "Çalma listeleri"
+
+#: src/app.rs:6983 src/demo.rs:1675 src/ui/keys.rs:251 src/ui/sidebar.rs:926
+msgid "Search"
+msgstr "Ara"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:7179
+#, rust-format
+msgid "Cannot open this song: {error}"
+msgstr "Bu şarkı açılamıyor: {error}"
+
+#: src/app.rs:7236
+msgid "Couldn't add to queue: {error}"
+msgstr "Sıraya eklenemedi: {error}"
+
+#: src/app.rs:7386
+msgid "This song's album is not on Apple Music"
+msgstr "Bu şarkının albümü Apple Music'da bulunmuyor"
+
+#: src/app.rs:7403
+msgid "Melba cannot open this kind of Apple Music link"
+msgstr "Melba bu tür bir Apple Music bağlantısını açamaz"
+
+#: src/app.rs:7651
+msgid "Nothing is playing. Pick something first"
+msgstr "Hiçbir şey çalmıyor. Önce bir şey seçin"
+
+#: src/app.rs:8396 src/app.rs:8401
+msgid "Pick something to play"
+msgstr "Çalmak için bir şey seçin"
+
+#: src/app.rs:8413 src/ui/player_bar.rs:407
+msgid "Pick a song, album, or playlist"
+msgstr "Bir şarkı, albüm veya çalma listesi seçin"
+
+#. Translators: {name} is an album name.
+#: src/app.rs:8680
+#, rust-format
+msgid "Loading {name} to queue…"
+msgstr "{name} sıraya ekleniyor…"
+
+#: src/app.rs:8699
+msgid "Playback device changed. Add the album to queue again"
+msgstr "Çalma cihazı değişti. Albümü sıraya tekrar ekleyin"
+
+#: src/app.rs:8708 src/app.rs:8726 src/app.rs:8735
+msgid "Couldn't load the album's songs in order. Try again"
+msgstr "Albümün şarkıları sırayla yüklenemedi. Yeniden deneyin"
+
+#. Translators: {name} is an album name and {error} is an error message.
+#: src/app.rs:8715
+#, rust-format
+msgid "Couldn't add {name} to queue: {error}"
+msgstr "{name} sıraya eklenemedi: {error}"
+
+#: src/app.rs:8773
+msgid "This album has no playable songs to queue"
+msgstr "Bu albümde sıraya eklenebilecek çalınabilir şarkı yok"
+
+#. Translators: {count} is a number of songs and {name} is an album name.
+#: src/app.rs:8782
+#, rust-format
+msgid "{count} song from {name} added to queue"
+msgid_plural "{count} songs from {name} added to queue"
+msgstr[0] "{count} şarkı ({name}) sıraya eklendi"
+msgstr[1] "{count} şarkı ({name}) sıraya eklendi"
+
+#. Translators: {count} is a number of songs.
+#: src/app.rs:8826
+#, rust-format
+msgid "{count} song added to queue"
+msgid_plural "{count} songs added to queue"
+msgstr[0] "{count} şarkı sıraya eklendi"
+msgstr[1] "{count} şarkı sıraya eklendi"
+
+#. Translators: {name} is a song, episode, album, or playlist name.
+#: src/app.rs:8863
+#, rust-format
+msgid "{name} added to queue"
+msgstr "{name} sıraya eklendi"
+
+#: src/app.rs:9273
+msgid "The clipboard has no Apple Music song links"
+msgstr "Panoda Apple Music şarkı bağlantısı yok"
+
+#. Translators: {count} is the number of pasted links that failed.
+#: src/app.rs:9354
+#, rust-format
+msgid "{count} pasted link could not be added"
+msgid_plural "{count} pasted links could not be added"
+msgstr[0] "Yapıştırılan {count} bağlantı eklenemedi"
+msgstr[1] "Yapıştırılan {count} bağlantı eklenemedi"
+
+#: src/app.rs:9972
+msgid "Apple Music doesn't let apps remove a playlist description, so it was kept"
+msgstr "Apple Music uygulamaların çalma listesi açıklamasını silmesine izin vermiyor, bu nedenle korundu"
+
+#: src/app.rs:10020 src/app.rs:10033
+msgid "Link copied"
+msgstr "Bağlantı kopyalandı"
+
+#. Translators: {count} is a number of song links, always more than one.
+#: src/app.rs:10037
+#, rust-format
+msgid "{count} link copied"
+msgid_plural "{count} links copied"
+msgstr[0] "{count} bağlantı kopyalandı"
+msgstr[1] "{count} bağlantı kopyalandı"
+
+#: src/app.rs:10290
+msgid "Apple Music doesn't let apps reorder your playlists, so this order is saved on this computer"
+msgstr "Apple Music uygulamaların çalma listelerinizi yeniden sıralamasına izin vermiyor, bu nedenle bu sıra bu bilgisayara kaydedildi"
+
+#: src/app.rs:10388 src/ui/settings.rs:328
+msgid "Playback needs an Apple Music subscription"
+msgstr "Çalmak için Apple Music aboneliği gerekli"
+
+#: src/app.rs:10439
+msgid "Play history cleared"
+msgstr "Çalma geçmişi temizlendi"
+
+#. Translators: {size} is a size in megabytes, such as 12.5.
+#: src/app.rs:10450
+#, rust-format
+msgid "Cleared {size} MB of artwork"
+msgstr "{size} MB albüm kapağı temizlendi"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:10456
+#, rust-format
+msgid "Couldn't clear artwork: {error}"
+msgstr "Albüm kapakları temizlenemedi: {error}"
+
+#: src/app.rs:11580 src/demo.rs:2032 src/demo.rs:2075 src/ui/collection.rs:813
+#: src/ui/lyrics.rs:411 src/ui/widgets.rs:2638
+msgid "Loading…"
+msgstr "Yükleniyor…"
+
+#: src/app.rs:11692
+msgid "No audio output device was found. Connect or enable one, then press play again."
+msgstr "Hiçbir ses çıkış cihazı bulunamadı. Bir cihaz bağlayın veya etkinleştirin, ardından tekrar çala basın."
+
+#: src/app.rs:11751 src/app.rs:11765 src/ui/widgets.rs:2649
+msgid "Network connection error. Check your connection."
+msgstr "Ağ bağlantısı hatası. Bağlantınızı kontrol edin."
+
+#: src/app.rs:11756
+msgid "Apple Music doesn't make this playlist's songs available to third-party apps."
+msgstr "Apple Music bu çalma listesindeki şarkıları üçüncü taraf uygulamaların erişimine açmıyor."
+
+#: src/app.rs:11877
+msgid "Apple Music sign-in expired. Sign in again, then retry the cover upload."
+msgstr "Apple Music oturumunuzun süresi doldu. Tekrar giriş yapın ve kapak yüklemeyi yeniden deneyin."
+
+#: src/app.rs:11882
+msgid "Apple Music refused this cover. Check that you own the playlist, then sign in again to grant image upload permission."
+msgstr "Apple Music bu kapağı reddetti. Çalma listesinin size ait olduğunu kontrol edin ve görsel yükleme izni vermek için yeniden giriş yapın. Kişisel bir uygulama kullanıyorsanız Ayarlar'dan da yeniden bağlayın."
+
+#: src/app.rs:11886
+msgid "Apple Music rejected the image size. Choose a smaller image."
+msgstr "Apple Music görsel boyutunu reddetti. Daha küçük bir görsel seçin."
+
+#. Translators: {error} is an error message.
+#: src/app.rs:11889
+#, rust-format
+msgid "Couldn't upload the cover: {error}. Try again."
+msgstr "Kapak yüklenemedi: {error}. Yeniden deneyin."
+
+#. Translators: Keep {track} unchanged. It is the name of the song,
+#. playlist, album, or artist the radio is based on, not translated.
+#: src/app.rs:19075 src/app/radio.rs:38
+#, rust-format
+msgid "{track} Radio"
+msgstr "{track} Radyosu"
+
+#: src/demo.rs:1390 src/ui/sidebar.rs:1022
+msgid "Library"
+msgstr "Kitaplık"
+
+#: src/demo.rs:1391 src/demo.rs:1705 src/ui/sidebar.rs:1006
+msgid "Search Your Library"
+msgstr "Kitaplığında ara"
+
+#: src/demo.rs:1674 src/demo.rs:4804 src/i18n.rs:262 src/i18n.rs:265
+#: src/ui/keys.rs:260 src/ui/sidebar.rs:915 src/ui/topbar.rs:255
+msgid "Home"
+msgstr "Ana Sayfa"
+
+#: src/demo.rs:1676 src/ui/sidebar.rs:990
+msgid "Create a playlist"
+msgstr "Çalma listesi oluştur"
+
+#: src/demo.rs:1677 src/model.rs:702 src/model.rs:827 src/ui/library.rs:17
+#: src/ui/search.rs:595 src/ui/sidebar.rs:1043
+msgid "Albums"
+msgstr "Albümler"
+
+#: src/demo.rs:1678 src/model.rs:701 src/ui/library.rs:22 src/ui/search.rs:527
+#: src/ui/sidebar.rs:1044
+msgid "Artists"
+msgstr "Sanatçılar"
+
+#: src/demo.rs:1718 src/ui/sidebar.rs:1085
+msgid "Search in Your Library"
+msgstr "Kitaplığında ara"
+
+#: src/demo.rs:1784 src/demo.rs:2306 src/ui/artist.rs:388
+#: src/ui/collection.rs:260 src/ui/player_bar.rs:686 src/ui/prerelease.rs:309
+#: src/ui/search.rs:408 src/ui/show.rs:371 src/ui/sidebar.rs:1934
+#: src/ui/widgets.rs:1144
+msgid "Play"
+msgstr "Çal"
+
+#: src/demo.rs:1789 src/ui/player_bar.rs:823
+msgid "Volume (%)"
+msgstr "Ses düzeyi (%)"
+
+#: src/demo.rs:1888 src/ui/queue.rs:152
+msgid "Save as a playlist"
+msgstr "Çalma listesi olarak kaydet"
+
+#: src/demo.rs:1907 src/ui/queue.rs:169
+msgid "Clear queue"
+msgstr "Sırayı temizle"
+
+#: src/demo.rs:1916 src/ui/queue.rs:80
+msgid "Recent"
+msgstr "Geçmiş"
+
+#: src/demo.rs:1924 src/demo.rs:2004 src/ui/lyrics.rs:78 src/ui/mod.rs:465
+#: src/ui/queue.rs:92
+msgid "Close"
+msgstr "Kapat"
+
+#: src/demo.rs:1951 src/demo.rs:1970 src/ui/lyrics.rs:102 src/ui/lyrics.rs:572
+msgctxt "lyrics"
+msgid "Follow"
+msgstr "Takip et"
+
+#: src/demo.rs:1960 src/ui/keys.rs:220 src/ui/lyrics.rs:90
+msgid "Full screen lyrics"
+msgstr "Tam ekran şarkı sözleri"
+
+#: src/demo.rs:1980 src/ui/lyrics.rs:560
+msgid "Leave full screen (Esc)"
+msgstr "Tam ekrandan çık (Esc)"
+
+#: src/demo.rs:1993 src/ui/login.rs:106 src/ui/lyrics.rs:177
+#: src/ui/lyrics.rs:431 src/ui/lyrics.rs:646 src/ui/settings.rs:387
+msgid "Try again"
+msgstr "Tekrar dene"
+
+#. Translators: Keep {error} unchanged. It is the original failure detail.
+#: src/demo.rs:2037 src/ui/lyrics.rs:171 src/ui/lyrics.rs:404
+#: src/ui/lyrics.rs:640
+#, rust-format
+msgid "Couldn't fetch the lyrics: {error}"
+msgstr "Şarkı sözleri alınamadı: {error}"
+
+#: src/demo.rs:2044 src/ui/lyrics.rs:188 src/ui/lyrics.rs:397
+#: src/ui/lyrics.rs:657
+msgid "No lyrics"
+msgstr "Şarkı sözü yok"
+
+#: src/demo.rs:2045 src/ui/lyrics.rs:189 src/ui/lyrics.rs:398
+#: src/ui/lyrics.rs:658
+msgid "No lyrics found for this track."
+msgstr "Bu parça için şarkı sözü bulunamadı."
+
+#: src/demo.rs:2051 src/ui/lyrics.rs:198 src/ui/lyrics.rs:393
+#: src/ui/lyrics.rs:667
+msgid "Instrumental"
+msgstr "Enstrümantal"
+
+#: src/demo.rs:2052 src/ui/lyrics.rs:199 src/ui/lyrics.rs:394
+#: src/ui/lyrics.rs:668
+msgid "No timed lyrics for this track."
+msgstr "Bu parça için senkronize şarkı sözü yok."
+
+#: src/demo.rs:2081 src/demo.rs:2130 src/ui/collection.rs:1149
+#: src/ui/prerelease.rs:242 src/ui/queue.rs:474 src/ui/queue.rs:507
+#: src/ui/widgets.rs:2672
+msgid "Retry"
+msgstr "Yeniden dene"
+
+#: src/demo.rs:2087 src/ui/queue.rs:302
+msgid "Nothing queued"
+msgstr "Sırada şarkı yok"
+
+#: src/demo.rs:2088 src/ui/queue.rs:303
+msgid "Queued songs appear here."
+msgstr "Sıraya eklenen şarkılar burada görünür."
+
+#: src/demo.rs:2307 src/ui/sidebar.rs:1954
+msgid "Pin to top"
+msgstr "Başa sabitle"
+
+#: src/demo.rs:2322 src/ui/sidebar.rs:1952
+msgid "Unpin"
+msgstr "Sabitlemeyi kaldır"
+
+#: src/demo.rs:4805 src/ui/settings.rs:787 src/ui/settings.rs:1933
+msgid "Language"
+msgstr "Dil"
+
+#. Translators: Keep {count} exactly as written. It becomes the number of liked songs.
+#: src/i18n.rs:184
+#, rust-format
+msgid "Playlist • {count} song"
+msgid_plural "Playlist • {count} songs"
+msgstr[0] "Çalma listesi • {count} şarkı"
+msgstr[1] "Çalma listesi • {count} şarkı"
+
+#. Translators: Keep {count} exactly as written. It becomes a number of songs.
+#. Translators: {count} is a number of songs.
+#. Translators: Keep {count} exactly as written. It becomes the number of selected songs.
+#: src/i18n.rs:195 src/ui/collection.rs:2222 src/ui/widgets.rs:695
+#, rust-format
+msgid "{count} song"
+msgid_plural "{count} songs"
+msgstr[0] "{count} şarkı"
+msgstr[1] "{count} şarkı"
+
+#. Translators: Keep {count} exactly as written. It becomes a number of playlists.
+#: src/i18n.rs:206
+#, rust-format
+msgid "{count} playlist"
+msgid_plural "{count} playlists"
+msgstr[0] "{count} çalma listesi"
+msgstr[1] "{count} çalma listesi"
+
+#: src/model.rs:699 src/model.rs:826
+msgctxt "filter"
+msgid "All"
+msgstr "Tümü"
+
+#: src/model.rs:700 src/ui/search.rs:443
+msgid "Songs"
+msgstr "Şarkılar"
+
+#: src/model.rs:828
+msgid "Singles & EPs"
+msgstr "Tekliler ve EP'ler"
+
+#: src/settings.rs:160
+msgctxt "theme"
+msgid "Dark"
+msgstr "Koyu"
+
+#: src/settings.rs:161
+msgctxt "theme"
+msgid "Light"
+msgstr "Açık"
+
+#: src/settings.rs:162
+msgid "Follow system"
+msgstr "Sistemi takip et"
+
+#: src/settings.rs:188
+msgctxt "proxy"
+msgid "Off"
+msgstr "Kapalı"
+
+#: src/settings.rs:189
+msgctxt "proxy"
+msgid "System"
+msgstr "Sistem"
+
+#: src/theme.rs:167
+msgid "Loading local themes…"
+msgstr "Yerel temalar yükleniyor…"
+
+#: src/theme.rs:170
+msgid "The selected theme is unavailable. Keeping the last usable appearance. See the log for details."
+msgstr "Seçilen tema kullanılamıyor. Son geçerli görünüm korunuyor. Ayrıntılar için günlüğe bakın."
+
+#: src/theme.rs:174
+msgid "The themes folder could not be read. See the log for details."
+msgstr "Temalar klasörü okunamadı. Ayrıntılar için günlüğe bakın."
+
+#: src/theme.rs:178
+msgid "The themes folder has more than 512 entries. Keep fewer files there to list the custom palettes."
+msgstr "Temalar klasöründe 512'den fazla öğe var. Özel paletleri listelemek için orada daha az dosya bulundurun."
+
+#: src/theme.rs:182
+msgid "Only 128 custom palettes can be listed. Keep fewer JSON files in the themes folder to see the rest."
+msgstr "Yalnızca 128 özel palet listelenebilir. Diğerlerini görmek için temalar klasöründe daha az JSON dosyası bulundurun."
+
+#: src/theme.rs:186
+msgid "The Omarchy palette could not be loaded. Keeping the last usable appearance. See the log for details."
+msgstr "Omarchy paleti yüklenemedi. Son geçerli görünüm korunuyor. Ayrıntılar için günlüğe bakın."
+
+#: src/theme.rs:190
+msgid "Custom themes could not be loaded. Run melba reload-themes to try again."
+msgstr "Özel temalar yüklenemedi. Tekrar denemek için melba reload-themes komutunu çalıştırın."
+
+#: src/ui/artist.rs:32
+msgid "Popular"
+msgstr "Popüler"
+
+#: src/ui/artist.rs:84
+msgid "Show less"
+msgstr "Daha az göster"
+
+#: src/ui/artist.rs:86
+msgid "See more"
+msgstr "Daha fazla gör"
+
+#: src/ui/artist.rs:97
+msgid "No popular songs to show."
+msgstr "Gösterilecek popüler şarkı yok."
+
+#: src/ui/artist.rs:110
+msgid "Discography"
+msgstr "Diskografi"
+
+#: src/ui/artist.rs:189
+msgid "Nothing in this category."
+msgstr "Bu kategoride hiçbir şey yok."
+
+#: src/ui/artist.rs:196 src/ui/queue.rs:565
+msgid "Load more"
+msgstr "Daha fazla yükle"
+
+#: src/ui/artist.rs:215
+msgid "Fans also like"
+msgstr "Hayranlar bunları da beğendi"
+
+#: src/ui/artist.rs:272 src/ui/artist.rs:300 src/ui/collection.rs:618
+#: src/ui/collection.rs:1507 src/ui/collection.rs:1637
+#: src/ui/collection.rs:1663 src/ui/collection.rs:1727
+#: src/ui/collection.rs:1836 src/ui/collection.rs:1862
+#: src/ui/collection.rs:2107 src/ui/home.rs:25 src/ui/library.rs:259
+#: src/ui/lyrics.rs:143 src/ui/lyrics.rs:160 src/ui/search.rs:91
+#: src/ui/show.rs:60 src/ui/show.rs:106 src/ui/show.rs:136
+msgid "You're offline"
+msgstr "Çevrimdışısınız"
+
+#: src/ui/artist.rs:275 src/ui/artist.rs:303 src/ui/collection.rs:621
+#: src/ui/collection.rs:1510 src/ui/collection.rs:1640
+#: src/ui/collection.rs:1666 src/ui/collection.rs:1730
+#: src/ui/collection.rs:1839 src/ui/collection.rs:1865
+#: src/ui/collection.rs:2110 src/ui/home.rs:34 src/ui/library.rs:262
+#: src/ui/lyrics.rs:146 src/ui/lyrics.rs:163 src/ui/show.rs:63
+#: src/ui/show.rs:109 src/ui/show.rs:139
+msgid "Melba will reconnect automatically when your connection returns."
+msgstr "Bağlantınız geri geldiğinde Melba otomatik olarak yeniden bağlanacaktır."
+
+#: src/ui/artist.rs:379 src/ui/collection.rs:246 src/ui/show.rs:206
+#: src/ui/show.rs:358
+msgid "Starting…"
+msgstr "Başlatılıyor…"
+
+#: src/ui/artist.rs:402
+msgctxt "artist"
+msgid "Following"
+msgstr "Takip ediliyor"
+
+#: src/ui/artist.rs:404 src/ui/widgets.rs:1177
+msgctxt "artist"
+msgid "Follow"
+msgstr "Takip et"
+
+#: src/ui/artist.rs:418 src/ui/collection.rs:363 src/ui/show.rs:247
+#: src/ui/show.rs:449 src/ui/widgets.rs:1931
+msgid "More"
+msgstr "Daha fazla"
+
+#: src/ui/collection.rs:258 src/ui/player_bar.rs:684
+msgid "Pause"
+msgstr "Duraklat"
+
+#: src/ui/collection.rs:265
+msgid "No playable songs in this view"
+msgstr "Bu görünümde çalınabilir şarkı yok"
+
+#: src/ui/collection.rs:312
+msgid "Shuffle off"
+msgstr "Karışık çalmayı kapat"
+
+#: src/ui/collection.rs:314 src/ui/player_bar.rs:630 src/ui/player_bar.rs:637
+msgid "Shuffle"
+msgstr "Karışık çal"
+
+#: src/ui/collection.rs:350 src/ui/collection.rs:376
+msgid "Save as playlist"
+msgstr "Çalma listesi olarak kaydet"
+
+#: src/ui/collection.rs:398
+msgid "Refreshing…"
+msgstr "Yenileniyor…"
+
+#: src/ui/collection.rs:400 src/ui/devices.rs:211
+msgid "Refresh"
+msgstr "Yenile"
+
+#: src/ui/collection.rs:419
+msgid "Filter"
+msgstr "Filtrele"
+
+#: src/ui/collection.rs:805 src/ui/collection.rs:832
+msgid "Unavailable"
+msgstr "Kullanılamıyor"
+
+#: src/ui/collection.rs:811
+msgid "You're offline. Reconnect to load more songs."
+msgstr "Çevrimdışısınız. Daha fazla şarkı yüklemek için yeniden bağlanın."
+
+#: src/ui/collection.rs:960
+msgid "Nothing here yet"
+msgstr "Burada henüz bir şey yok"
+
+#: src/ui/collection.rs:961
+msgid "Added songs appear here."
+msgstr "Eklenen şarkılar burada görünür."
+
+#: src/ui/collection.rs:1413 src/ui/home.rs:551
+msgid "Your top songs"
+msgstr "En çok dinlediğin şarkılar"
+
+#: src/ui/collection.rs:1422
+msgid "Your most-played tracks from the last four weeks."
+msgstr "Son dört haftada en çok dinlediğin parçalar."
+
+#: src/ui/collection.rs:1917
+msgid "Public Playlist"
+msgstr "Herkese açık çalma listesi"
+
+#: src/ui/collection.rs:1967 src/ui/widgets.rs:1179
+msgid "Add to Your Library"
+msgstr "Kitaplığına ekle"
+
+#: src/ui/collection.rs:1968 src/ui/collection.rs:1990 src/ui/show.rs:229
+#: src/ui/widgets.rs:1178
+msgid "Remove from Your Library"
+msgstr "Kitaplığından kaldır"
+
+#: src/ui/collection.rs:1989
+msgid "Save to Your Library"
+msgstr "Kitaplığına kaydet"
+
+#. Translators: {count} is a number of songs and {duration} their total
+#. length, such as "2 hr 13 min".
+#: src/ui/collection.rs:2247
+#, rust-format
+msgid "{count} song, {duration}"
+msgid_plural "{count} songs, {duration}"
+msgstr[0] "{count} şarkı, {duration}"
+msgstr[1] "{count} şarkı, {duration}"
+
+#: src/ui/devices.rs:198 src/ui/player_bar.rs:894
+msgid "Connect to a device"
+msgstr "Bir cihaza bağlan"
+
+#: src/ui/dialogs.rs:43
+msgid "Delete playlist?"
+msgstr "Çalma listesi silinsin mi?"
+
+#: src/ui/dialogs.rs:45
+msgid "Remove from Your Library?"
+msgstr "Kitaplığından kaldırılsın mı?"
+
+#. Translators: {name} is a playlist name.
+#: src/ui/dialogs.rs:53
+#, rust-format
+msgid "Delete “{name}”?"
+msgstr "“{name}” silinsin mi?"
+
+#. Translators: {name} is a playlist name.
+#: src/ui/dialogs.rs:56
+#, rust-format
+msgid "“{name}” will no longer appear in Your Library."
+msgstr "“{name}” artık Kitaplığınızda görünmeyecek."
+
+#: src/ui/dialogs.rs:73 src/ui/widgets.rs:1203
+msgid "Delete"
+msgstr "Sil"
+
+#: src/ui/dialogs.rs:75
+msgid "Remove"
+msgstr "Kaldır"
+
+#: src/ui/dialogs.rs:83 src/ui/dialogs.rs:130 src/ui/dialogs.rs:418
+#: src/ui/dialogs.rs:599 src/ui/login.rs:89
+msgid "Cancel"
+msgstr "İptal"
+
+#: src/ui/dialogs.rs:101
+msgid "Songs already in this playlist"
+msgstr "Bu çalma listesinde zaten bulunan şarkılar"
+
+#: src/ui/dialogs.rs:103
+msgid "Song already in this playlist"
+msgstr "Şarkı bu çalma listesinde zaten var"
+
+#: src/ui/dialogs.rs:120
+msgid "Add anyway"
+msgstr "Yine de ekle"
+
+#: src/ui/dialogs.rs:140 src/ui/keys.rs:306 src/ui/settings.rs:1816
+#: src/ui/topbar.rs:479
+msgid "Keyboard shortcuts"
+msgstr "Klavye kısayolları"
+
+#: src/ui/dialogs.rs:186
+msgid "Done"
+msgstr "Bitti"
+
+#: src/ui/dialogs.rs:196
+msgid "This account cannot play music here"
+msgstr "Bu hesap burada müzik çalamaz"
+
+#: src/ui/dialogs.rs:205
+msgid "Playback needs an Apple Music subscription."
+msgstr "Çalmak için Apple Music aboneliği gerekli."
+
+#: src/ui/dialogs.rs:214
+msgid "OK"
+msgstr "Tamam"
+
+#: src/ui/dialogs.rs:256
+#, rust-format
+msgid "This song is already in “{playlist}”. Add it again?"
+msgstr "Bu şarkı “{playlist}” çalma listesinde zaten var. Tekrar eklensin mi?"
+
+#: src/ui/dialogs.rs:263
+#, rust-format
+msgid "This song is already in “{playlist}”. Add them anyway?"
+msgstr "Bu şarkı “{playlist}” çalma listesinde zaten var. Yine de eklensin mi?"
+
+#. Translators: {name} is a song name and {playlist} a playlist name.
+#: src/ui/dialogs.rs:268
+#, rust-format
+msgid "“{name}” is already in “{playlist}”. Add it again?"
+msgstr "“{name}” zaten “{playlist}” içinde var. Tekrar eklensin mi?"
+
+#: src/ui/dialogs.rs:276
+#, rust-format
+msgid "“{name}” is already in “{playlist}”. Add them anyway?"
+msgstr "“{name}” zaten “{playlist}” içinde var. Yine de eklensin mi?"
+
+#: src/ui/dialogs.rs:285
+#, rust-format
+msgid "“{first}” and “{second}” are already in “{playlist}”. Add them anyway?"
+msgstr "“{first}” ve “{second}” zaten “{playlist}” içinde var. Yine de eklensin mi?"
+
+#. Translators: {first} and {second} are song names, {count} is how many more songs are already in the playlist, and {playlist} is a playlist name.
+#: src/ui/dialogs.rs:294
+#, rust-format
+msgid "“{first}”, “{second}”, and {count} more are already in “{playlist}”. Add them anyway?"
+msgid_plural "“{first}”, “{second}”, and {count} more are already in “{playlist}”. Add them anyway?"
+msgstr[0] "“{first}”, “{second}” ve {count} şarkı daha zaten “{playlist}” içinde var. Yine de eklensin mi?"
+msgstr[1] "“{first}”, “{second}” ve {count} şarkı daha zaten “{playlist}” içinde var. Yine de eklensin mi?"
+
+#: src/ui/dialogs.rs:352 src/ui/widgets.rs:858
+msgid "New playlist"
+msgstr "Yeni çalma listesi"
+
+#: src/ui/dialogs.rs:359 src/ui/dialogs.rs:516 src/ui/sidebar.rs:358
+msgid "Name"
+msgstr "Ad"
+
+#: src/ui/dialogs.rs:369
+msgid "My playlist"
+msgstr "Çalma listem"
+
+#: src/ui/dialogs.rs:374 src/ui/dialogs.rs:377 src/ui/dialogs.rs:564
+#: src/ui/dialogs.rs:573
+msgid "Public playlist"
+msgstr "Herkese açık çalma listesi"
+
+#. Translators: {count} is the number of songs.
+#: src/ui/dialogs.rs:390
+#, rust-format
+msgid "{count} song will be added."
+msgid_plural "{count} songs will be added."
+msgstr[0] "{count} şarkı eklenecek."
+msgstr[1] "{count} şarkı eklenecek."
+
+#: src/ui/dialogs.rs:408
+msgid "Create"
+msgstr "Oluştur"
+
+#: src/ui/dialogs.rs:451 src/ui/widgets.rs:1189
+msgid "Edit details"
+msgstr "Ayrıntıları düzenle"
+
+#: src/ui/dialogs.rs:467
+msgid "Selected playlist cover"
+msgstr "Seçilen çalma listesi kapağı"
+
+#: src/ui/dialogs.rs:474
+msgid "Current playlist cover"
+msgstr "Mevcut çalma listesi kapağı"
+
+#: src/ui/dialogs.rs:483
+msgid "Uploading cover…"
+msgstr "Kapak yükleniyor…"
+
+#: src/ui/dialogs.rs:485
+msgid "Choosing cover…"
+msgstr "Kapak seçiliyor…"
+
+#: src/ui/dialogs.rs:491
+msgid "Change cover"
+msgstr "Kapağı değiştir"
+
+#: src/ui/dialogs.rs:500
+msgid "Upload cover"
+msgstr "Kapak yükle"
+
+#: src/ui/dialogs.rs:526
+msgid "Playlist name"
+msgstr "Çalma listesi adı"
+
+#: src/ui/dialogs.rs:532
+msgid "Description"
+msgstr "Açıklama"
+
+#: src/ui/dialogs.rs:547
+msgid "Optional description"
+msgstr "İsteğe bağlı açıklama"
+
+#: src/ui/dialogs.rs:589
+msgid "Save"
+msgstr "Kaydet"
+
+#: src/ui/home.rs:241
+msgid "Made for you"
+msgstr "Senin İçin Hazırlandı"
+
+#. Translators: {owner} is the name of the playlist's owner.
+#: src/ui/home.rs:258 src/ui/search.rs:623
+#, rust-format
+msgid "By {owner}"
+msgstr "{owner} tarafından"
+
+#: src/ui/home.rs:314 src/ui/home.rs:324 src/ui/home.rs:351
+#: src/ui/sidebar.rs:356
+msgid "Recently played"
+msgstr "Son çalınanlar"
+
+#: src/ui/home.rs:403 src/ui/home.rs:413 src/ui/home.rs:428
+msgid "Your top artists"
+msgstr "En çok dinlediğin sanatçılar"
+
+#: src/ui/home.rs:552
+msgid "Show more top songs"
+msgstr "Daha fazla popüler şarkı göster"
+
+#: src/ui/home.rs:566
+msgid "Recommended for you"
+msgstr "Senin için önerilenler"
+
+#: src/ui/keys.rs:196
+msgctxt "key"
+msgid "Space"
+msgstr "Boşluk"
+
+#: src/ui/keys.rs:197
+msgid "Play or pause"
+msgstr "Çal veya duraklat"
+
+#: src/ui/keys.rs:201
+msgid "Previous or next"
+msgstr "Önceki veya sonraki"
+
+#: src/ui/keys.rs:205
+msgid "Seek 10 seconds"
+msgstr "10 saniye sar"
+
+#: src/ui/keys.rs:209
+msgid "Volume up or down"
+msgstr "Sesi artır veya azalt"
+
+#: src/ui/keys.rs:211
+msgid "Mute or unmute"
+msgstr "Sesi kapat veya aç"
+
+#: src/ui/keys.rs:214
+msgid "Like or unlike the playing song"
+msgstr "Çalan şarkıyı beğen veya beğenmekten vazgeç"
+
+#: src/ui/keys.rs:216
+msgid "Toggle shuffle"
+msgstr "Karışık çalmayı aç/kapat"
+
+#: src/ui/keys.rs:217
+msgid "Cycle repeat"
+msgstr "Tekrarlama modunu değiştir"
+
+#: src/ui/keys.rs:218
+msgid "Show the queue"
+msgstr "Sırayı göster"
+
+#: src/ui/keys.rs:219
+msgid "Show the lyrics"
+msgstr "Şarkı sözlerini göster"
+
+#: src/ui/keys.rs:221
+msgid "Lyrics: leave full screen"
+msgstr "Şarkı sözleri: tam ekrandan çık"
+
+#: src/ui/keys.rs:224
+msgid "Song list: extend or shrink the selection"
+msgstr "Şarkı listesi: seçimi genişlet veya daralt"
+
+#: src/ui/keys.rs:226 src/ui/widgets.rs:744 src/ui/widgets.rs:1035
+msgid "Remove from this playlist"
+msgstr "Bu çalma listesinden kaldır"
+
+#: src/ui/keys.rs:229
+msgid "Song list: select all"
+msgstr "Şarkı listesi: tümünü seç"
+
+#: src/ui/keys.rs:233
+msgid "Song list: copy the selected songs' links"
+msgstr "Şarkı listesi: seçilen şarkıların bağlantılarını kopyala"
+
+#: src/ui/keys.rs:237
+msgid "Playlist: cut the selected songs"
+msgstr "Çalma listesi: seçilen şarkıları kes"
+
+#: src/ui/keys.rs:241
+msgid "Playlist: add the pasted song links"
+msgstr "Çalma listesi: yapıştırılan şarkı bağlantılarını ekle"
+
+#. Translators: Keep the key names. Only the word "or" is translated.
+#: src/ui/keys.rs:246
+msgid "Cmd+F  or  /"
+msgstr "Cmd+F  veya  /"
+
+#. Translators: Keep the key names. Only the word "or" is translated.
+#: src/ui/keys.rs:249
+msgid "Ctrl+F  or  /"
+msgstr "Ctrl+F  veya  /"
+
+#: src/ui/keys.rs:255
+msgid "Show or hide the sidebar"
+msgstr "Kenar çubuğunu göster veya gizle"
+
+#: src/ui/keys.rs:257
+msgid "Back or forward"
+msgstr "Geri veya ileri"
+
+#: src/ui/keys.rs:268
+msgid "Go to the playing artist"
+msgstr "Çalan sanatçıya git"
+
+#: src/ui/keys.rs:272
+msgid "Go to the playing album"
+msgstr "Çalan albüme git"
+
+#: src/ui/keys.rs:296 src/ui/settings.rs:269 src/ui/topbar.rs:471
+#: src/ui/topbar.rs:531
+msgid "Settings"
+msgstr "Ayarlar"
+
+#. Translators: Keep the key names. Only the word "or" is translated.
+#: src/ui/keys.rs:301
+msgid "Cmd+/ or ?"
+msgstr "Cmd+/ veya ?"
+
+#. Translators: Keep the key names. Only the word "or" is translated.
+#: src/ui/keys.rs:304
+msgid "Ctrl+/ or ?"
+msgstr "Ctrl+/ veya ?"
+
+#: src/ui/keys.rs:310
+msgid "Close the window"
+msgstr "Pencereyi kapat"
+
+#: src/ui/keys.rs:312 src/ui/winamp/mod.rs:727
+msgid "Quit"
+msgstr "Çıkış"
+
+#: src/ui/library.rs:18
+msgid "No saved albums"
+msgstr "Kayıtlı albüm yok"
+
+#: src/ui/library.rs:19
+msgid "Saved albums appear here."
+msgstr "Kaydedilen albümler burada görünür."
+
+#: src/ui/library.rs:23
+msgid "No followed artists"
+msgstr "Takip edilen sanatçı yok"
+
+#: src/ui/library.rs:24
+msgid "Followed artists appear here."
+msgstr "Takip edilen sanatçılar burada görünür."
+
+#: src/ui/login.rs:74
+msgid "A native Apple Music client."
+msgstr "Yerel bir Apple Music istemcisi."
+
+#: src/ui/login.rs:82
+msgid "Waiting for Apple Music in your browser…"
+msgstr "Tarayıcınızda Apple Music bekleniyor…"
+
+#: src/ui/login.rs:85
+msgid "Didn't open? Open the sign-in page again"
+msgstr "Açılmadı mı? Giriş sayfasını tekrar açın"
+
+#: src/ui/login.rs:97 src/ui/settings.rs:373
+msgid "Connecting to Apple Music…"
+msgstr "Apple Music'a bağlanıyor…"
+
+#: src/ui/login.rs:111
+msgid "Sign in with Apple Music"
+msgstr "Apple Music ile giriş yap"
+
+#: src/ui/login.rs:117
+msgid "Sign in through your browser. Melba never sees your password. Playback needs an Apple Music subscription."
+msgstr "Tarayıcınız üzerinden giriş yapın. Melba parolanızı asla görmez. Yerel çalma için an Apple Music subscription gerekir."
+
+#: src/ui/login.rs:131
+msgid "Proxy Settings"
+msgstr "Proxy Ayarları"
+
+#. Translators: {version} is the app's version number, such as 1.2.0.
+#: src/ui/login.rs:152
+#, rust-format
+msgid "Melba {version} • not affiliated with Apple"
+msgstr "Melba {version} • Apple Music ile bağlantılı değildir"
+
+#: src/ui/login.rs:213 src/ui/settings.rs:1255
+msgid "Apply settings"
+msgstr "Ayarları uygula"
+
+#: src/ui/lyrics.rs:67 src/ui/lyrics.rs:549 src/ui/player_bar.rs:939
+msgid "Lyrics"
+msgstr "Şarkı Sözleri"
+
+#: src/ui/lyrics.rs:131 src/ui/lyrics.rs:626 src/ui/player_bar.rs:401
+msgid "Nothing playing"
+msgstr "Hiçbir şey çalmıyor"
+
+#: src/ui/lyrics.rs:132 src/ui/lyrics.rs:627
+msgid "Play a song to see its lyrics."
+msgstr "Şarkı sözlerini görmek için bir şarkı çalın."
+
+#: src/ui/mod.rs:462
+msgid "Minimize"
+msgstr "Simge durumuna küçült"
+
+#: src/ui/mod.rs:463
+msgid "Maximize"
+msgstr "Ekranı kapla"
+
+#: src/ui/mod.rs:464
+msgid "Restore"
+msgstr "Önceki boyuta getir"
+
+#: src/ui/player_bar.rs:541 src/ui/widgets.rs:725 src/ui/widgets.rs:971
+#: src/ui/widgets.rs:1884
+msgid "Remove from Liked Songs"
+msgstr "Beğenilenler'den kaldır"
+
+#: src/ui/player_bar.rs:548 src/ui/widgets.rs:728 src/ui/widgets.rs:974
+#: src/ui/widgets.rs:1886
+msgid "Save to Liked Songs"
+msgstr "Beğenilenler'e kaydet"
+
+#: src/ui/player_bar.rs:651
+msgid "Previous"
+msgstr "Önceki"
+
+#: src/ui/player_bar.rs:702
+msgid "Next"
+msgstr "Sonraki"
+
+#: src/ui/player_bar.rs:710
+msgid "Repeat"
+msgstr "Tekrarla"
+
+#: src/ui/player_bar.rs:714
+msgid "Repeat one"
+msgstr "Tek şarkıyı tekrarla"
+
+#: src/ui/player_bar.rs:719
+msgid "Repeat off"
+msgstr "Tekrarlamayı kapat"
+
+#: src/ui/player_bar.rs:780
+msgid "Playback position (%)"
+msgstr "Çalma konumu (%)"
+
+#: src/ui/player_bar.rs:856
+msgid "Unmute"
+msgstr "Sesi aç"
+
+#: src/ui/player_bar.rs:858
+msgid "Mute"
+msgstr "Sesi kapat"
+
+#: src/ui/player_bar.rs:874
+msgid "This device's volume can't be changed from Melba"
+msgstr "Bu cihazın ses düzeyi Melba üzerinden değiştirilemez"
+
+#: src/ui/player_bar.rs:913 src/ui/queue.rs:23 src/ui/queue.rs:79
+msgid "Queue"
+msgstr "Sıra"
+
+#: src/ui/prerelease.rs:226 src/ui/widgets.rs:1117 src/ui/widgets.rs:1229
+msgid "Copy link"
+msgstr "Bağlantıyı kopyala"
+
+#: src/ui/prerelease.rs:230 src/ui/widgets.rs:1125 src/ui/widgets.rs:1237
+msgid "Open in Apple Music"
+msgstr "Apple Music’te aç"
+
+#: src/ui/queue.rs:241
+msgid "Playing from"
+msgstr "Şuradan çalınıyor"
+
+#: src/ui/queue.rs:261
+msgid "Now playing"
+msgstr "Şu an çalıyor"
+
+#. Translators: Songs added manually, before the current playlist or album continues.
+#: src/ui/queue.rs:326
+msgid "Playing next"
+msgstr "Sıradaki"
+
+#. Translators: Upcoming songs from the current playlist or album, after manually queued songs.
+#: src/ui/queue.rs:433
+msgid "Next up"
+msgstr "Daha sonra"
+
+#: src/ui/queue.rs:489
+msgid "No recent plays"
+msgstr "Son çalınan şarkı yok"
+
+#: src/ui/queue.rs:490
+msgid "Played songs appear here."
+msgstr "Çalınan şarkılar burada görünür."
+
+#: src/ui/radio.rs:106
+msgid "Radio comes from playback on this computer. Turn it on in Settings."
+msgstr "Radyo bu bilgisayarda çalma özelliğinden gelir. Ayarlar'dan etkinleştirin."
+
+#: src/ui/radio.rs:203
+msgid "Based on this playlist"
+msgstr "Bu çalma listesine dayalı"
+
+#: src/ui/radio.rs:204
+msgid "Based on this album"
+msgstr "Bu albüme dayalı"
+
+#: src/ui/radio.rs:205
+msgid "Based on this artist"
+msgstr "Bu sanatçıya dayalı"
+
+#: src/ui/radio.rs:206
+msgid "Based on this song"
+msgstr "Bu şarkıya dayalı"
+
+#. Translators: {first} is an artist name.
+#: src/ui/radio.rs:225
+#, rust-format
+msgid "With {first}"
+msgstr "{first} ile"
+
+#. Translators: {first} and {second} are artist names.
+#: src/ui/radio.rs:228
+#, rust-format
+msgid "With {first} and {second}"
+msgstr "{first} ve {second} ile"
+
+#. Translators: {first}, {second} and {third} are artist names.
+#: src/ui/radio.rs:234
+#, rust-format
+msgid "With {first}, {second} and {third}"
+msgstr "{first}, {second} ve {third} ile"
+
+#. Translators: {first}, {second} and {third} are artist names; more follow.
+#: src/ui/radio.rs:241
+#, rust-format
+msgid "With {first}, {second}, {third} and more"
+msgstr "{first}, {second}, {third} ve daha fazlası ile"
+
+#. Translators: {query} is the text the user searched for.
+#: src/ui/search.rs:66
+#, rust-format
+msgid "No results for “{query}”"
+msgstr "“{query}” için sonuç bulunamadı"
+
+#: src/ui/search.rs:68
+msgid "Check the spelling, or try fewer words."
+msgstr "Yazımı kontrol edin veya daha az kelime deneyin."
+
+#: src/ui/search.rs:94
+msgid "Connect to the internet to search songs, artists, and playlists."
+msgstr "Şarkı, sanatçı ve çalma listesi aramak için internete bağlanın."
+
+#: src/ui/search.rs:104 src/ui/winamp/playlist.rs:647
+msgid "Search Apple Music"
+msgstr "Apple Music’te ara"
+
+#: src/ui/search.rs:112
+msgid "Recent searches"
+msgstr "Son aramalar"
+
+#: src/ui/search.rs:151
+msgid "Top result"
+msgstr "En iyi sonuç"
+
+#. Translators: {artists} is the album's artist names.
+#: src/ui/search.rs:202
+#, rust-format
+msgid "Album • {artists}"
+msgstr "Albüm • {artists}"
+
+#. Translators: {owner} is the name of the playlist's owner.
+#: src/ui/search.rs:228 src/ui/sidebar.rs:857
+#, rust-format
+msgid "Playlist • {owner}"
+msgstr "Çalma Listesi • {owner}"
+
+#. Translators: Precedes the song's artist names, which follow as links.
+#: src/ui/search.rs:367
+msgid "Song • "
+msgstr "Şarkı • "
+
+#: src/ui/settings.rs:283
+msgid "Search settings"
+msgstr "Ayarlarda ara"
+
+#: src/ui/settings.rs:301
+msgid "Account"
+msgstr "Hesap"
+
+#: src/ui/settings.rs:302 src/ui/topbar.rs:489
+msgid "Sign out"
+msgstr "Oturumu kapat"
+
+#. Translators: {username} is the Apple Music account's user name.
+#: src/ui/settings.rs:342
+#, rust-format
+msgid "Connected as {username}"
+msgstr "{username} olarak bağlandı"
+
+#: src/ui/settings.rs:385
+msgctxt "playback status"
+msgid "Unavailable"
+msgstr "Kullanılamıyor"
+
+#: src/ui/settings.rs:404
+msgid "Audio cache"
+msgstr "Ses önbelleği"
+
+#: src/ui/settings.rs:464
+msgid "More buffering can prevent clicks on busy computers. Less buffering makes controls respond sooner."
+msgstr "Daha fazla arabellek yoğun bilgisayarlarda çıtırtıları önleyebilir. Daha az arabellek kontrollerin daha hızlı tepki vermesini sağlar."
+
+#: src/ui/settings.rs:756
+msgid "Appearance"
+msgstr "Görünüm"
+
+#: src/ui/settings.rs:757
+msgid "Theme"
+msgstr "Tema"
+
+#: src/ui/settings.rs:758
+msgid "How to make a theme"
+msgstr "Tema nasıl yapılır"
+
+#: src/ui/settings.rs:759
+msgid "Open themes folder"
+msgstr "Temalar klasörünü aç"
+
+#: src/ui/settings.rs:760
+msgid "Colour from album art"
+msgstr "Albüm kapağından renk al"
+
+#: src/ui/settings.rs:761
+msgid "Compact library sidebar"
+msgstr "Kompakt kitaplık kenar çubuğu"
+
+#: src/ui/settings.rs:762
+msgid "Compact track list"
+msgstr "Kompakt parça listesi"
+
+#: src/ui/settings.rs:763
+msgid "Middle-click autoscroll"
+msgstr "Orta tıklamayla otomatik kaydırma"
+
+#: src/ui/settings.rs:764
+msgid "Custom title bar"
+msgstr "Özel başlık çubuğu"
+
+#: src/ui/settings.rs:778
+msgid "Follow system uses your Omarchy colours."
+msgstr "Sistemi takip et seçeneği Omarchy renklerinizi kullanır."
+
+#: src/ui/settings.rs:782
+msgid "Follow system uses your desktop's light or dark appearance."
+msgstr "Sistemi takip et seçeneği masaüstünüzün açık veya koyu görünümünü kullanır."
+
+#: src/ui/settings.rs:790
+msgid "System follows your computer's language. Untranslated text stays in English."
+msgstr "Sistem seçeneği bilgisayarınızın dilini takip eder. Çevrilmemiş metinler İngilizce kalır."
+
+#: src/ui/settings.rs:797
+msgid "Use the current cover's colour on pages and the player bar."
+msgstr "Sayfalarda ve çalar çubuğunda mevcut kapağın rengini kullanır."
+
+#: src/ui/settings.rs:802
+msgid "Show names without covers in the sidebar."
+msgstr "Kenar çubuğunda adları kapaksız gösterir."
+
+#: src/ui/settings.rs:806
+msgid "Show each track on one line without a cover."
+msgstr "Her parçayı tek bir satırda ve kapaksız gösterir."
+
+#: src/ui/settings.rs:809
+msgid "Interface zoom"
+msgstr "Arayüz yakınlaştırma"
+
+#: src/ui/settings.rs:813
+msgid "Ctrl+Plus and Ctrl+Minus work anywhere; Ctrl+0 resets."
+msgstr "Ctrl+Artı ve Ctrl+Eksi her yerde çalışır; Ctrl+0 sıfırlar."
+
+#: src/ui/settings.rs:817
+msgid "Cmd+Plus and Cmd+Minus work anywhere; Cmd+0 resets."
+msgstr "Cmd+Artı ve Cmd+Eksi her yerde çalışır; Cmd+0 sıfırlar."
+
+#: src/ui/settings.rs:826
+msgid "Middle-click a list, then move the pointer to scroll it. Off by default, because a middle click usually pastes on Linux."
+msgstr "Bir listeye orta tıklayın ve kaydırmak için imleci hareket ettirin. Linux'ta orta tıklama genellikle yapıştırdığı için varsayılan olarak kapalıdır."
+
+#: src/ui/settings.rs:834
+msgid "Draw Melba's own title bar and window buttons instead of the desktop's."
+msgstr "Masaüstü ortamının başlık çubuğu ve pencere düğmeleri yerine Melba'in kendi başlık çubuğunu ve pencere düğmelerini çizer."
+
+#: src/ui/settings.rs:842
+msgid "Show the song moving behind the player bar's controls while it plays here."
+msgstr "Şarkı burada çalarken çalar çubuğu kontrollerinin arkasında hareket eden dalga formunu gösterir."
+
+#: src/ui/settings.rs:853
+msgid "How often the player bar and mini player visualizers draw. Lower rates use fewer resources. MilkDrop has its own."
+msgstr "Çalar çubuğu ve mini çalar görselleştiricilerinin ne sıklıkla çizildiği. Daha düşük kare hızları daha az kaynak kullanır. MilkDrop'un kendi ayarı vardır."
+
+#: src/ui/settings.rs:988
+msgid "Off"
+msgstr "Kapalı"
+
+#: src/ui/settings.rs:1185
+msgid "Proxy"
+msgstr "Proxy"
+
+#: src/ui/settings.rs:1187
+msgid "Mode, host, port, username and password"
+msgstr "Mod, sunucu, port, kullanıcı adı ve parola"
+
+#: src/ui/settings.rs:1190
+msgid "Off, System, HTTP or SOCKS5 proxy for network requests."
+msgstr "Ağ istekleri için Kapalı, Sistem, HTTP veya SOCKS5 proxy."
+
+#: src/ui/settings.rs:1200
+msgctxt "proxy"
+msgid "Mode"
+msgstr "Mod"
+
+#: src/ui/settings.rs:1203
+msgid "Off ignores environment variables. System uses them, and the OS proxy on macOS and Windows."
+msgstr "Kapalı, ortam değişkenlerini yok sayar. Sistem, bu değişkenleri ve macOS ile Windows'ta işletim sistemi proxy'sini kullanır."
+
+#: src/ui/settings.rs:1267
+msgid "Not using a proxy."
+msgstr "Proxy kullanılmıyor."
+
+#: src/ui/settings.rs:1268
+msgid "Using the system proxy."
+msgstr "Sistem proxy'si kullanılıyor."
+
+#: src/ui/settings.rs:1288
+msgid "Use classic Winamp .wsz skins. Press Ctrl+M or click the skin logo to return. Drop a skin on either window to add it."
+msgstr "Klasik Winamp .wsz temalarını kullanın. Geri dönmek için Ctrl+M tuşuna basın veya tema logosuna tıklayın. Eklemek için herhangi bir pencereye bir tema sürükleyip bırakın."
+
+#: src/ui/settings.rs:1292
+msgid "Use classic Winamp .wsz skins. Press Cmd+Shift+M or click the skin logo to return. Drop a skin on either window to add it."
+msgstr "Klasik Winamp .wsz temalarını kullanın. Geri dönmek için Cmd+Shift+M tuşuna basın veya tema logosuna tıklayın. Eklemek için herhangi bir pencereye bir tema sürükleyip bırakın."
+
+#: src/ui/settings.rs:1322
+msgid "Keep a taskbar button for the mini player. The tray icon stays available when hidden."
+msgstr "Mini çalar için görev çubuğunda bir düğme tutar. Gizlendiğinde sistem tepsisi simgesi kullanılabilir kalır."
+
+#: src/ui/settings.rs:1418
+#, rust-format
+msgid "Now showing {skin}. Another one is picked each time the mini player opens."
+msgstr "Şu anda {skin} gösteriliyor. Mini çalar her açıldığında başka biri seçilir."
+
+#: src/ui/settings.rs:1482
+msgid "A projectM visualiser for local playback. Open it here, from the top bar, with Ctrl+Shift+K, or from the mini player's V menu. Press ? or F1 for its shortcuts."
+msgstr "Yerel çalma için bir projectM görselleştiricisi. Buradan, üst çubuktan, Ctrl+Shift+K ile veya mini çaların V menüsünden açın. Kısayolları için ? veya F1 tuşuna basın."
+
+#: src/ui/settings.rs:1486
+msgid "A projectM visualiser for local playback. Open it here, from the top bar, with Cmd+Shift+K, or from the mini player's V menu. Press ? or F1 for its shortcuts."
+msgstr "Yerel çalma için bir projectM görselleştiricisi. Buradan, üst çubuktan, Cmd+Shift+K ile veya mini çaların V menüsünden açın. Kısayolları için ? veya F1 tuşuna basın."
+
+#. Translators: {folder} is the path of the MilkDrop presets folder.
+#: src/ui/settings.rs:1497
+#, rust-format
+msgid "None yet in {folder}. Add .milk files here. Melba downloads presets when MilkDrop first opens with an empty folder."
+msgstr "{folder} konumunda henüz hazır ayar yok. Buraya .milk dosyaları ekleyin. Melba, MilkDrop boş bir klasörle ilk açıldığında hazır ayarları otomatik indirir."
+
+#. Translators: {folder} is the path of the MilkDrop presets folder.
+#: src/ui/settings.rs:1503
+#, rust-format
+msgid "One preset in {folder}. Add .milk files here. Melba downloads presets when MilkDrop first opens with an empty folder."
+msgstr "{folder} içinde bir hazır ayar var. Buraya .milk dosyaları ekleyin. Melba, MilkDrop boş bir klasörle ilk açıldığında hazır ayarları otomatik indirir."
+
+#. Translators: {count} is the number of presets, {folder} the path of the MilkDrop presets folder.
+#: src/ui/settings.rs:1509
+#, rust-format
+msgid "{count} preset in {folder}. Add .milk files here. Melba downloads presets when MilkDrop first opens with an empty folder."
+msgid_plural "{count} presets in {folder}. Add .milk files here. Melba downloads presets when MilkDrop first opens with an empty folder."
+msgstr[0] "{folder} içinde {count} hazır ayar var. Buraya .milk dosyaları ekleyin. Melba, MilkDrop boş bir klasörle ilk açıldığında hazır ayarları otomatik indirir."
+msgstr[1] "{folder} içinde {count} hazır ayar var. Buraya .milk dosyaları ekleyin. Melba, MilkDrop boş bir klasörle ilk açıldığında hazır ayarları otomatik indirir."
+
+#. Translators: {hz} is the screen's refresh rate in hertz.
+#: src/ui/settings.rs:1534
+#, rust-format
+msgid "Your screen refreshes at {hz} Hz. Higher rates do not add visible frames. Uncapped draws as fast as possible."
+msgstr "Ekranınız {hz} Hz yenileme hızına sahip. Daha yüksek hızlar görünür kare eklemez. Sınırsız, mümkün olan en hızlı şekilde çizer."
+
+#: src/ui/settings.rs:1665
+msgid "A ten-band equalizer for playback on this computer. It does not affect other devices."
+msgstr "Bu bilgisayarda çalma için on bantlı ekolayzer. Diğer cihazları etkilemez."
+
+#: src/ui/settings.rs:1742
+msgid "Storage"
+msgstr "Depolama"
+
+#: src/ui/settings.rs:1745
+msgid "Artwork cache"
+msgstr "Albüm kapağı önbelleği"
+
+#. Translators: {folder} is the path of a cache folder.
+#: src/ui/settings.rs:1747 src/ui/settings.rs:1753
+#, rust-format
+msgid "Stored in {folder}"
+msgstr "{folder} konumunda saklanır"
+
+#: src/ui/settings.rs:1759
+msgid "Play history"
+msgstr "Çalma geçmişi"
+
+#. Translators: {file} is the path of the play history file.
+#: src/ui/settings.rs:1763
+#, rust-format
+msgid "Tracks played here are stored in {file}. This file is never uploaded."
+msgstr "Burada çalınan parçalar {file} dosyasında saklanır. Bu dosya asla karşıya yüklenmez."
+
+#: src/ui/settings.rs:1768
+msgid "Sign-in"
+msgstr "Oturum Açma"
+
+#: src/ui/settings.rs:1771
+msgid "Sign-ins are saved in the system credential store when available."
+msgstr "Oturum bilgileri kullanılabilir olduğunda sistem kimlik bilgisi deposuna kaydedilir."
+
+#: src/ui/settings.rs:1783
+msgid "Clear artwork"
+msgstr "Kapakları temizle"
+
+#: src/ui/settings.rs:1797
+msgid "Clear history"
+msgstr "Geçmişi temizle"
+
+#: src/ui/settings.rs:1809 src/ui/show.rs:36
+msgid "About"
+msgstr "Hakkında"
+
+#: src/ui/settings.rs:1812
+msgid "Built with Rust and egui on Melba. Not affiliated with Apple."
+msgstr "Rust, egui ve librespot ile geliştirildi. Apple Music ile bağlantılı değildir."
+
+#: src/ui/settings.rs:1814
+msgid "Check for updates"
+msgstr "Güncellemeleri denetle"
+
+#: src/ui/settings.rs:1815
+msgid "Checking…"
+msgstr "Denetleniyor…"
+
+#: src/ui/settings.rs:1817
+msgid "Source code"
+msgstr "Kaynak kodu"
+
+#. Translators: {query} is the text typed into the settings search field.
+#: src/ui/settings.rs:1889
+#, rust-format
+msgid "No settings for “{query}”"
+msgstr "“{query}” için ayar bulunamadı"
+
+#: src/ui/settings.rs:1890
+msgid "Try fewer words, or check the spelling."
+msgstr "Daha az kelime deneyin veya yazımı kontrol edin."
+
+#: src/ui/settings.rs:1906
+msgctxt "language"
+msgid "System"
+msgstr "Sistem"
+
+#. Translators: The play button on a Library card. {name} is the playlist, album, artist, or podcast.
+#: src/ui/sidebar.rs:174
+#, rust-format
+msgid "Pause {name}"
+msgstr "{name} duraklat"
+
+#. Translators: The play button on a Library card. {name} is the playlist, album, artist, or podcast.
+#: src/ui/sidebar.rs:177
+#, rust-format
+msgid "Play {name}"
+msgstr "{name} çal"
+
+#: src/ui/sidebar.rs:353
+msgid "Library order"
+msgstr "Kitaplık sıralaması"
+
+#: src/ui/sidebar.rs:361
+msgid "Recently added"
+msgstr "Son eklenenler"
+
+#: src/ui/sidebar.rs:363
+msgid "Local custom order"
+msgstr "Yerel özel sıralama"
+
+#: src/ui/sidebar.rs:965
+msgid "Hide sidebar (Ctrl+B)"
+msgstr "Kenar çubuğunu gizle (Ctrl+B)"
+
+#: src/ui/sidebar.rs:966
+msgid "Hide sidebar (Cmd+B)"
+msgstr "Kenar çubuğunu gizle (Cmd+B)"
+
+#: src/ui/sidebar.rs:975
+msgid "Show as list"
+msgstr "Liste olarak göster"
+
+#: src/ui/sidebar.rs:977
+msgid "Show as grid"
+msgstr "Izgara olarak göster"
+
+#. Translators: Library filter for playlists created by the signed-in user.
+#: src/ui/sidebar.rs:1057
+msgid "By You"
+msgstr "Senin oluşturdukların"
+
+#: src/ui/sidebar.rs:1282
+msgid "Nothing here yet."
+msgstr "Burada henüz bir şey yok."
+
+#: src/ui/sidebar.rs:1284
+msgid "No matches."
+msgstr "Eşleşme bulunamadı."
+
+#: src/ui/sidebar.rs:1913
+msgid "Sort by recently played"
+msgstr "Son çalınanlara göre sırala"
+
+#: src/ui/topbar.rs:244
+msgid "Show sidebar (Ctrl+B)"
+msgstr "Kenar çubuğunu göster (Ctrl+B)"
+
+#: src/ui/topbar.rs:245
+msgid "Show sidebar (Cmd+B)"
+msgstr "Kenar çubuğunu göster (Cmd+B)"
+
+#: src/ui/topbar.rs:264
+msgid "Back"
+msgstr "Geri"
+
+#: src/ui/topbar.rs:275
+msgid "Forward"
+msgstr "İleri"
+
+#: src/ui/topbar.rs:305
+msgid "Update ready"
+msgstr "Güncelleme hazır"
+
+#: src/ui/topbar.rs:308 src/ui/update.rs:74
+msgid "Downloading update…"
+msgstr "Güncelleme indiriliyor…"
+
+#. Translators: {version} is a version number such as 1.2.0.
+#: src/ui/topbar.rs:312
+#, rust-format
+msgid "Update to {version}"
+msgstr "{version} sürümüne güncelle"
+
+#: src/ui/topbar.rs:357
+msgid "What do you want to play?"
+msgstr "Ne çalmak istersiniz?"
+
+#: src/ui/topbar.rs:521
+msgid "Melba is offline. Reconnecting automatically when connection returns."
+msgstr "Melba çevrimdışı. Bağlantı geri geldiğinde otomatik olarak yeniden bağlanacaktır."
+
+#: src/ui/topbar.rs:576
+msgid "Updating your library…"
+msgstr "Kitaplığınız güncelleniyor…"
+
+#: src/ui/topbar.rs:577
+msgid "Checking for updates…"
+msgstr "Güncellemeler denetleniyor…"
+
+#: src/ui/topbar.rs:578
+msgid "Waiting for Apple Music…"
+msgstr "Apple Music bekleniyor…"
+
+#. Translators: {version} is a version number such as 1.2.0.
+#: src/ui/topbar.rs:618
+#, rust-format
+msgid "Version {version} is available."
+msgstr "Sürüm {version} hazır."
+
+#: src/ui/update.rs:19
+msgid "Update Melba"
+msgstr "Melba'i güncelle"
+
+#: src/ui/update.rs:51
+msgid "Close update"
+msgstr "Güncellemeyi kapat"
+
+#: src/ui/update.rs:65
+msgid "Release notes"
+msgstr "Sürüm notları"
+
+#: src/ui/update.rs:72
+msgid "Checking download…"
+msgstr "İndirme denetleniyor…"
+
+#. Translators: {received} and {total} are sizes in megabytes, such as 12.5.
+#: src/ui/update.rs:90
+#, rust-format
+msgid "{received} of {total} MB"
+msgstr "{received} / {total} MB"
+
+#: src/ui/update.rs:106
+msgid "Ready to install"
+msgstr "Yüklemeye hazır"
+
+#: src/ui/update.rs:115
+msgid "Music playing on this computer will stop when Melba restarts."
+msgstr "Melba yeniden başlatıldığında bu bilgisayarda çalan müzik duracak."
+
+#: src/ui/update.rs:122
+msgid "Restart to update"
+msgstr "Güncellemek için yeniden başlat"
+
+#: src/ui/update.rs:129
+msgid "Preparing to restart…"
+msgstr "Yeniden başlatmaya hazırlanıyor…"
+
+#: src/ui/update.rs:160
+msgid "Download from GitHub"
+msgstr "GitHub'dan indir"
+
+#: src/ui/update.rs:165
+msgid "Retry download"
+msgstr "İndirmeyi yeniden dene"
+
+#: src/ui/update.rs:167
+msgid "Download update"
+msgstr "Güncellemeyi indir"
+
+#: src/ui/widgets.rs:711 src/ui/widgets.rs:944 src/ui/widgets.rs:1166
+msgid "Add to queue"
+msgstr "Sıraya ekle"
+
+#: src/ui/widgets.rs:762
+msgid "Add to playlist"
+msgstr "Çalma listesine ekle"
+
+#: src/ui/widgets.rs:847
+msgid "Filter playlists"
+msgstr "Çalma listelerini filtrele"
+
+#: src/ui/widgets.rs:887
+msgid "No editable playlists"
+msgstr "Düzenlenebilir çalma listesi yok"
+
+#: src/ui/widgets.rs:889
+msgid "No matching playlists"
+msgstr "Eşleşen çalma listesi yok"
+
+#: src/ui/widgets.rs:959
+msgid "Remove from queue"
+msgstr "Sıradan kaldır"
+
+#: src/ui/widgets.rs:984
+msgid "Save episode"
+msgstr "Bölümü kaydet"
+
+#: src/ui/widgets.rs:1009
+msgid "Move up"
+msgstr "Yukarı taşı"
+
+#: src/ui/widgets.rs:1022
+msgid "Move down"
+msgstr "Aşağı taşı"
+
+#: src/ui/widgets.rs:1050
+msgid "Go to song radio"
+msgstr "Şarkı radyosuna git"
+
+#: src/ui/widgets.rs:1067 src/ui/widgets.rs:1074
+msgid "Go to artist"
+msgstr "Sanatçıya git"
+
+#: src/ui/widgets.rs:1092
+msgid "Go to album"
+msgstr "Albüme git"
+
+#: src/ui/widgets.rs:1156
+msgid "Shuffle play"
+msgstr "Karışık çal"
+
+#: src/ui/widgets.rs:1176
+msgctxt "artist"
+msgid "Unfollow"
+msgstr "Takipten çık"
+
+#: src/ui/widgets.rs:1214
+msgid "Go to playlist radio"
+msgstr "Çalma listesi radyosuna git"
+
+#: src/ui/widgets.rs:1215
+msgid "Go to album radio"
+msgstr "Albüm radyosuna git"
+
+#: src/ui/widgets.rs:1216
+msgid "Go to artist radio"
+msgstr "Sanatçı radyosuna git"
+
+#. Translators: {title} is a song or episode name, {subtitle} its artists or podcast.
+#: src/ui/widgets.rs:1416
+#, rust-format
+msgid "Play {title}, {subtitle}"
+msgstr "{title}, {subtitle} çal"
+
+#. Translators: The label beside the pointer while songs are dragged. {name} is the first song's name and {count} how many more songs are dragged with it.
+#: src/ui/widgets.rs:2067
+#, rust-format
+msgid "{name} + {count} more"
+msgid_plural "{name} + {count} more"
+msgstr[0] "{name} + {count} tane daha"
+msgstr[1] "{name} + {count} tane daha"
+
+#. Translators: {column} is a column heading of a song list, such as Title.
+#: src/ui/widgets.rs:2184
+#, rust-format
+msgid "Sort by {column}"
+msgstr "{column} sütununa göre sırala"
+
+#: src/ui/widgets.rs:2234
+msgid "Sort by playlist order"
+msgstr "Çalma listesi sırasına göre sırala"
+
+#: src/ui/widgets.rs:2269
+msgid "Original order, reversed"
+msgstr "Özgün sıra, ters çevrilmiş"
+
+#: src/ui/widgets.rs:2282
+msgctxt "column heading"
+msgid "TITLE"
+msgstr "BAŞLIK"
+
+#: src/ui/widgets.rs:2305
+msgctxt "column heading"
+msgid "ALBUM"
+msgstr "ALBÜM"
+
+#: src/ui/widgets.rs:2323
+msgctxt "column heading"
+msgid "DATE ADDED"
+msgstr "EKLENME TARİHİ"
+
+#: src/ui/widgets.rs:2344 src/ui/widgets.rs:2374
+msgid "Sort by duration"
+msgstr "Süreye göre sırala"
+
+#: src/ui/widgets.rs:2907
+msgid "Cut"
+msgstr "Kes"
+
+#: src/ui/widgets.rs:2912
+msgid "Copy"
+msgstr "Kopyala"
+
+#: src/ui/widgets.rs:2917
+msgid "Paste"
+msgstr "Yapıştır"
+
+#: src/ui/widgets.rs:2934
+msgid "Select all"
+msgstr "Tümünü seç"
+
+#: src/ui/widgets.rs:3041
+msgid "Clear"
+msgstr "Temizle"
+
+#. Translators: {name} is replaced by the author's name, shown as a link.
+#: src/ui/widgets.rs:3086
+#, rust-format
+msgid "Based on {name} by Carmine Paolino"
+msgstr ""
+#: src/ui/widgets.rs:3231
+msgid "Host"
+msgstr "Sunucu"
+
+#: src/ui/widgets.rs:3248
+msgid "Port"
+msgstr "Port"
+
+#: src/ui/widgets.rs:3266
+msgid "Username"
+msgstr "Kullanıcı adı"
+
+#: src/ui/widgets.rs:3277
+msgid "Password"
+msgstr "Parola"
+
+#: src/ui/widgets.rs:3295
+msgid "Proxy login applies to Web requests. Local playback uses this proxy only without a login."
+msgstr "Proxy girişi web istekleri için geçerlidir. Yerel çalma bu proxy'yi yalnızca kimlik doğrulamasız kullanır."
+
+#: src/ui/widgets.rs:3299
+msgid "Apple Music hostnames are resolved by the proxy. Local playback connects directly."
+msgstr "Apple Music sunucu adları proxy tarafından çözümlenir. Yerel çalma doğrudan bağlanır."
+
+#. Translators: Selects every song in the list.
+#: src/ui/winamp/playlist.rs:702
+msgctxt "selection"
+msgid "All"
+msgstr "Tümü"
+
+#. Translators: A length of time, abbreviated. Keep {hours} and {minutes}.
+#: src/util.rs:28 src/util.rs:47
+#, rust-format
+msgid "{hours} hr {minutes} min"
+msgstr "{hours} sa {minutes} dk"
+
+#. Translators: A length of time, abbreviated. Keep {minutes} and {seconds}.
+#: src/util.rs:33
+#, rust-format
+msgid "{minutes} min {seconds} sec"
+msgstr "{minutes} dk {seconds} sn"
+
+#. Translators: A length of time, abbreviated. Keep {seconds}.
+#: src/util.rs:38
+#, rust-format
+msgid "{seconds} sec"
+msgstr "{seconds} sn"
+
+#. Translators: A length of time, abbreviated. Keep {minutes}.
+#: src/util.rs:52
+#, rust-format
+msgid "{minutes} min"
+msgstr "{minutes} dk"
+
+#: src/util.rs:77
+msgctxt "month"
+msgid "Jan"
+msgstr "Oca"
+
+#: src/util.rs:78
+msgctxt "month"
+msgid "Feb"
+msgstr "Şub"
+
+#: src/util.rs:79
+msgctxt "month"
+msgid "Mar"
+msgstr "Mar"
+
+#: src/util.rs:80
+msgctxt "month"
+msgid "Apr"
+msgstr "Nis"
+
+#: src/util.rs:81
+msgctxt "month"
+msgid "May"
+msgstr "May"
+
+#: src/util.rs:82
+msgctxt "month"
+msgid "Jun"
+msgstr "Haz"
+
+#: src/util.rs:83
+msgctxt "month"
+msgid "Jul"
+msgstr "Tem"
+
+#: src/util.rs:84
+msgctxt "month"
+msgid "Aug"
+msgstr "Ağu"
+
+#: src/util.rs:85
+msgctxt "month"
+msgid "Sep"
+msgstr "Eyl"
+
+#: src/util.rs:86
+msgctxt "month"
+msgid "Oct"
+msgstr "Eki"
+
+#: src/util.rs:87
+msgctxt "month"
+msgid "Nov"
+msgstr "Kas"
+
+#: src/util.rs:88
+msgctxt "month"
+msgid "Dec"
+msgstr "Ara"
+
+#. Translators: A date. {month} is an abbreviated month name; reorder as your language writes dates.
+#: src/util.rs:94
+#, rust-format
+msgid "{month} {day}, {year}"
+msgstr "{day} {month} {year}"
+
+#. Translators: A month and year. {month} is an abbreviated month name.
+#: src/util.rs:97
+#, rust-format
+msgid "{month} {year}"
+msgstr "{month} {year}"
+
+#. Translators: How long ago a song was added. Keep {count}.
+#: src/util.rs:123
+#, rust-format
+msgid "{count} second ago"
+msgid_plural "{count} seconds ago"
+msgstr[0] "{count} saniye önce"
+msgstr[1] "{count} saniye önce"
+
+#. Translators: How long ago a song was added. Keep {count}.
+#: src/util.rs:133
+#, rust-format
+msgid "{count} minute ago"
+msgid_plural "{count} minutes ago"
+msgstr[0] "{count} dakika önce"
+msgstr[1] "{count} dakika önce"
+
+#. Translators: How long ago a song was added. Keep {count}.
+#: src/util.rs:143
+#, rust-format
+msgid "{count} hour ago"
+msgid_plural "{count} hours ago"
+msgstr[0] "{count} saat önce"
+msgstr[1] "{count} saat önce"
+
+#. Translators: How long ago a song was added. Keep {count}.
+#: src/util.rs:151
+#, rust-format
+msgid "{count} day ago"
+msgid_plural "{count} days ago"
+msgstr[0] "{count} gün önce"
+msgstr[1] "{count} gün önce"
+
+#. Translators: How long ago a song was added. Keep {count}.
+#: src/util.rs:158
+#, rust-format
+msgid "{count} week ago"
+msgid_plural "{count} weeks ago"
+msgstr[0] "{count} hafta önce"
+msgstr[1] "{count} hafta önce"
+
+#: src/util.rs:311
+msgid "Good morning"
+msgstr "Günaydın"
+
+#: src/util.rs:312
+msgid "Good afternoon"
+msgstr "İyi günler"
+
+#: src/util.rs:313
+msgid "Good evening"
+msgstr "İyi akşamlar"
+
+#: src/window.rs:39
+msgid "melba cannot open its window"
+msgstr "Melba penceresini açamıyor"
+
+#: src/window.rs:45
+msgid "On Windows on ARM, the OpenGL that melba draws with comes from Microsoft's OpenCL, OpenGL & Vulkan Compatibility Pack. Open its Microsoft Store page to install or repair it?"
+msgstr "ARM üzerinde Windows'ta Melba'in çizim için kullandığı OpenGL, Microsoft'un OpenCL, OpenGL & Vulkan Compatibility Pack paketinden gelir. Yüklemek veya onarmak için Microsoft Store sayfası açılsın mı?"
+
+#. Translators: Keep {url} exactly as written. It becomes the address
+#. of the melba download page.
+#: src/window.rs:55
+#, rust-format
+msgid "melba needs a graphics driver with OpenGL 2.0 or newer, and this PC or virtual machine does not provide one. Install the graphics driver, or turn on GPU acceleration for the virtual machine. Open {url} to read more?"
+msgstr "Melba, OpenGL 2.0 veya daha yenisini destekleyen bir grafik sürücüsüne ihtiyaç duyar ve bu bilgisayar ya da sanal makine bunu sağlamıyor. Grafik sürücüsünü yükleyin veya sanal makine için GPU hızlandırmayı açın. Daha fazlasını okumak için {url} açılsın mı?"
+
+msgid "Playback is not ready on this computer"
+msgstr "Bu bilgisayarda çalma henüz hazır değil"

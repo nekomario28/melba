@@ -1,0 +1,122 @@
+{
+  "kind": "synthetic-illustration",
+  "notice": "SYNTHETIC ILLUSTRATION / NOT AN APP CAPTURE",
+  "generator_sha256": "cf0820ad4e7c7b92072a534dcfe7f225d360673f5f53ff3851d14fb53d6941e9",
+  "font_sha256": "79c18ebe7b811951e8311bad7103ebeae8c337ed9988ea69e8a78a66cfe029b9",
+  "font_file": "wqy-zenhei.ttc",
+  "pillow_version": "13.0.0",
+  "images": {
+    "ui-album-cjk.png": {
+      "sha256": "cb12209d5f544b051e8161f5059a449f0fae5c1b4ad9c1c76d5f659559e781d6",
+      "width": 720,
+      "height": 480,
+      "page": "album",
+      "language": "ja"
+    },
+    "ui-album-en.png": {
+      "sha256": "3325721e861b43f7f60dd5b207643a7ae2063238b2431784133eab8f1581e420",
+      "width": 720,
+      "height": 480,
+      "page": "album",
+      "language": "en"
+    },
+    "ui-album-wayland-wgpu.png": {
+      "sha256": "592b46249ecc12cb0875131d002bba55aa54ab24151e4dcf05da779dc53e8df1",
+      "width": 720,
+      "height": 480,
+      "page": "album",
+      "language": "en"
+    },
+    "ui-artist-albums-ja.png": {
+      "sha256": "bf404b27128be06e636d91392d9b94e5d9b3d1869b1698f5302313c9f73c3858",
+      "width": 720,
+      "height": 480,
+      "page": "artist-albums",
+      "language": "ja"
+    },
+    "ui-artist-en.png": {
+      "sha256": "fb9f4c19cea92d0f7799c63bff39744ad12a443a39218c9fd3f25da01f4793c7",
+      "width": 720,
+      "height": 480,
+      "page": "artist",
+      "language": "en"
+    },
+    "ui-artist-ja.png": {
+      "sha256": "7053a1ae660a2776d04cecc1c48b9155e0d8a3bde5a80c419cc2188a4cee21b5",
+      "width": 720,
+      "height": 480,
+      "page": "artist",
+      "language": "ja"
+    },
+    "ui-deeplink-album-en.png": {
+      "sha256": "3325721e861b43f7f60dd5b207643a7ae2063238b2431784133eab8f1581e420",
+      "width": 720,
+      "height": 480,
+      "page": "album",
+      "language": "en"
+    },
+    "ui-deeplink-playlist-ja.png": {
+      "sha256": "3175f3a96793d33e8df5ea4585819be2c12d6832e353982632b62cef8965b977",
+      "width": 720,
+      "height": 480,
+      "page": "playlist",
+      "language": "ja"
+    },
+    "ui-lyrics-ja.png": {
+      "sha256": "380c47cd8d322bffbb09f455d33c40572f301925d1fb6e1566ddffeec9dd3564",
+      "width": 900,
+      "height": 560,
+      "page": "lyrics",
+      "language": "ja"
+    },
+    "ui-playlist-en.png": {
+      "sha256": "8450aadf5ce43f5a0c42913eeddc6b41dfe38399fccef31fde805676b1cf3f5c",
+      "width": 720,
+      "height": 480,
+      "page": "playlist",
+      "language": "en"
+    },
+    "ui-playlist-ja.png": {
+      "sha256": "c5aa5cb1d45abf6d3aa8a432526cec81d298dd9ac367a3e510360a6690e8d506",
+      "width": 720,
+      "height": 480,
+      "page": "playlist",
+      "language": "ja"
+    },
+    "ui-search-cards-en.png": {
+      "sha256": "ace9786f4a4f6329829f4141342a78b59eb637c8e8d361fa67a975548a5013ae",
+      "width": 720,
+      "height": 480,
+      "page": "cards",
+      "language": "en"
+    },
+    "ui-search-scroll-760-ja.png": {
+      "sha256": "065602712ee7c313875df9c06af675fced0dac37953abc5650f2afe078a77a6b",
+      "width": 720,
+      "height": 480,
+      "page": "search",
+      "language": "ja"
+    },
+    "ui-search-scroll-840-ja.png": {
+      "sha256": "d22cf41b5d08e3803811ebc7c88e5cff2e056a4681ef30553a69d7f0958e983b",
+      "width": 720,
+      "height": 480,
+      "page": "search",
+      "language": "ja"
+    },
+    "ui-search-sections-en.png": {
+      "sha256": "6e6bcfd6f211ac89f421b1fbaf5386fcec2bb4959ec778677e2f4719af47d9f8",
+      "width": 720,
+      "height": 480,
+      "page": "search",
+      "language": "en"
+    },
+    "ui-search-sections-ja.png": {
+      "sha256": "794bcaa2b6f383aec457f24bc780dc6889a74fa0f9ed46539782e9c0c3ce0186",
+      "width": 720,
+      "height": 480,
+      "page": "search",
+      "language": "ja"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+%http://www.apple.com/appleca/root.crl0
+3https://www.apple.com/certificateauthority/root.crl0
+3https://www.apple.com/certificateauthority/root.crl0U
+5https://www.apple.com/certificateauthority/terms.html0
+9https://www.apple.com/certificateauthority/casigners.html0
+http://crl.apple.com/root.crl0
+https://www.apple.com/appleca/0

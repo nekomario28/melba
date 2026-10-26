@@ -1,0 +1,20 @@
+# Extends the built-in gitleaks ruleset. The only local change is the
+# allowlist below.
+title = "apple-music-linux"
+
+[extend]
+useDefault = true
+
+# Test string from the Spotifast import, verified not a live credential.
+# Commit 084f29bbf3978186b730c5957158b0a99e3f9a94 added
+# crates/aml-ui2/src/zeroconf.rs (the file is gone from HEAD). Inside
+# login_blob_has_the_expected_envelope, the call
+# login_blob(&credentials, "abcdef0123456789", &receiver_key) passes a
+# placeholder receiver device id. generic-api-key matches that hex
+# fixture (entropy 4). condition = AND so only this path in this commit
+# is ignored; the rest of the import stays scanned.
+[[allowlists]]
+description = "Spotifast import test device id in zeroconf.rs (not a live credential)"
+condition = "AND"
+commits = ["084f29bbf3978186b730c5957158b0a99e3f9a94"]
+paths = ['''^crates/aml-ui2/src/zeroconf\.rs$''']

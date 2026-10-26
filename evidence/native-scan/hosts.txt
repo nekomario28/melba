@@ -1,0 +1,5 @@
+.itunes.apple.com
+.music.apple.com
+init.itunes.apple.com
+sandbox.itunes.apple.com
+www.apple.com

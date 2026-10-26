@@ -1,0 +1,757 @@
+{
+  "schema": 1,
+  "purpose": "Bounded material provenance and identity record, not publication authorization or comprehensive legal clearance.",
+  "sources": {
+    "local_history": {
+      "repository": "https://github.com/nekomario28/apple-music-linux",
+      "evidence": "Per-file first_addition_commits locate retained Git additions. A commit proves custody, not original creation, synthetic signal or media rights."
+    },
+    "aac_recipe": {
+      "path": "tests/source_format.rs",
+      "anchor": "mono_aac_uses_the_prepared_decoders_signal_format",
+      "method": "The lavfi sine recipe documented in that test was regenerated privately without any media input or audio device.",
+      "ffmpeg_version": "ffmpeg version n9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+      "regenerated_sha256": "b74a5bc2a19aff32e0f8adbffd3c7475a466e9fd0fc89f4b6d9205d545bca388",
+      "result": "EXACT_BYTE_MATCH",
+      "scope": "Same recorded tool/version and recipe; no claim of cross-version bit-identical AAC encoding."
+    },
+    "android_scan_report": {
+      "reports": [
+        "research/2026-10-15-apple-music-linux-route-measurements.md",
+        "research/2026-10-15-auth-path-jadx-scan.md"
+      ],
+      "reported_apk_sha256": "ecbd223130e3bc4429402239f77c0ef6a1bcd2860a124630d6fa04eb72defa08",
+      "reported_method": "strings/grep over Android arm64-v8a native libraries, with a later jadx interpretation.",
+      "original_apk_reverified_this_pass": false,
+      "extraction_reproduced_this_pass": false,
+      "scope": "Historical reports are provenance leads, not current runtime, capability or legal verdicts. Shared-library names do not establish their copyright owner. No endpoint was requested."
+    },
+    "spotifast": {
+      "repository": "https://github.com/crmne/spotifast",
+      "commit": "d69bb2ede19650168aed598f76a4a45af7abbeab",
+      "enclosing_license": "MIT",
+      "retained_notice": "crates/melba/LICENSE",
+      "identity_basis": "Current Git blob IDs match the retained pinned donor tree. donor_path identifies the upstream file at this commit.",
+      "scope": "The enclosing MIT grant and notice matter. Matching a donor blob is not evidence of production nonuse, certificate trust or every third-party right."
+    },
+    "alac_recipe": {
+      "path": "materials/recipes/alac-fixtures.sh",
+      "script_sha256": "324bb7d34101dec16fd0f2d97cc2b9e39780b190938f7f616c28ffe6ef4e36cd",
+      "method": "lavfi sine (and a fixed-seed noise floor for 24-bit precision) encoded by ffmpeg ALAC; cover PNG generated deterministically with Python zlib; no media input, account or audio device.",
+      "ffmpeg_version": "ffmpeg version n9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+      "regenerated_sha256": {
+        "fixtures/44k-16bit-art.m4a": "e2ab714c05e00641846545d388ffee2e6838ce387da528c070840abd702fd468",
+        "fixtures/88k-16bit.m4a": "273f3e814854ba140247762ddc5fb076d84b7c377204d2c65f6d08e6ea48a9c4",
+        "fixtures/96k-24bit.m4a": "25a7eb05d8431dcb286211b9750b74607a79b9bde47e6bed3a14a72b731708cb"
+      },
+      "result": "EXACT_BYTE_MATCH_ON_REPEAT",
+      "scope": "Same recorded tool/version and recipe. A different ffmpeg must be reviewed; no claim of cross-version identical encoding or of rights to any Apple Music content."
+    }
+  },
+  "supporting_files": [
+    {
+      "path": "fixtures/cover.png",
+      "sha256": "ac225540b23e1495d468a8006598847b3b984ce7851c533210a759716add397e"
+    },
+    {
+      "path": "crates/melba/src/testdata/cast/device.der",
+      "sha256": "e51ae31d62104406dbfa220a890bc80b625d13bee0a05291b49b5b1f02f48dbc"
+    },
+    {
+      "path": "crates/melba/src/testdata/cast/device-sha1.der",
+      "sha256": "ffb84fc027c89f3f3dc3782f122c70dddd8ec46696ccb2c73c23da01b92332ac"
+    },
+    {
+      "path": "crates/melba/LICENSE",
+      "sha256": "31c157bb74a315b5b73ebbefd2f675450a35fc699f76d373830f59094216571b"
+    },
+    {
+      "path": "tests/source_format.rs",
+      "sha256": "36b2213abd4760c999026bf55103fe578207ea9bc3fb2b174cd635ddc8f4cfc8"
+    },
+    {
+      "path": "research/2026-10-15-auth-path-jadx-scan.md",
+      "sha256": "e26dc2823b3b7fe0f639c38e2715969723f77973e25005277ae3c55424cb3c53"
+    },
+    {
+      "path": "research/2026-10-15-apple-music-linux-route-measurements.md",
+      "sha256": "0593f455137eacc1e59a257dc56e8dff02c710fbe7cc0159bbdec67e884230f7"
+    }
+  ],
+  "records": [
+    {
+      "path": "crates/melba/assets/skins/melba.wsz",
+      "sha256": "9781021e32988dfd8d4c7a161743fda8737188ba38bae6493e7a19e5f3e3496a",
+      "git_blob": "6ab9adf5cfc125f130bcc103e2f47558dd556b87",
+      "bytes": 14062,
+      "first_addition_commits": [
+        "37f18eefb9406ecfe55965dee7159d7abcba1ff4"
+      ],
+      "category": "skin",
+      "source": "spotifast",
+      "origin_status": "upstream_blob_identity",
+      "donor_path": "assets/skins/spotifast.wsz",
+      "local_import_commit": "37f18eefb9406ecfe55965dee7159d7abcba1ff4",
+      "local_import_path": "crates/aml-ui2/assets/skins/spotifast.wsz",
+      "archive_metadata": {
+        "members": 17,
+        "license_or_notice_named_members": 0
+      },
+      "unresolved": [
+        "The enclosing MIT context is established; authorship and any third-party component scope inside the archive are not separately documented. Absence of an archive-local notice is not a no-license finding."
+      ]
+    },
+    {
+      "path": "crates/melba/src/testdata/cast/device-key.pk8",
+      "sha256": "65043556779a6b7744e42e1de413a42e3d61b5dbcd3eed514ffc70543ea664bc",
+      "git_blob": "1cd4437660d096ebe7c9ade3bdbb3bd63b668b48",
+      "bytes": 1217,
+      "first_addition_commits": [
+        "084f29bbf3978186b730c5957158b0a99e3f9a94"
+      ],
+      "category": "cast_test_key",
+      "source": "spotifast",
+      "origin_status": "upstream_blob_identity",
+      "donor_path": "src/testdata/cast/device-key.pk8",
+      "local_import_commit": "084f29bbf3978186b730c5957158b0a99e3f9a94",
+      "local_import_path": "crates/aml-ui2/src/testdata/cast/device-key.pk8",
+      "metadata": {
+        "key_type": "RSA",
+        "bits": 2048,
+        "matching_certificates": [
+          "crates/melba/src/testdata/cast/device.der",
+          "crates/melba/src/testdata/cast/device-sha1.der"
+        ],
+        "certificate_test_markers_observed": true,
+        "chain_validation": "NOT_RUN",
+        "production_nonuse": "NOT_ESTABLISHED"
+      },
+      "unresolved": [
+        "Upstream test provenance does not establish production nonuse or authorize authentication. Do not add a blanket private-key scanner exclusion."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/hosts.txt",
+      "sha256": "0ad4e7b926bee0fc25860495d6e80da8c5277667dd6c854017d4beb27101dbb8",
+      "git_blob": "12ee150e3f2e3bf96606c1e18ae9ceae66d3730c",
+      "bytes": 96,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "reported_derivation_not_reproduced",
+      "content": {
+        "lines": 5,
+        "http_like_substrings": 0
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/libBlocksRuntime.so.endpoints.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "empty_extraction_output",
+      "content": {
+        "lines": 0,
+        "http_like_substrings": 0
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "An empty grep output does not prove the original library has no endpoints."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/libCoreADI.so.endpoints.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "empty_extraction_output",
+      "content": {
+        "lines": 0,
+        "http_like_substrings": 0
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "An empty grep output does not prove the original library has no endpoints."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/libCoreFP.so.endpoints.txt",
+      "sha256": "bb71985ce91ac637875614ded338968a7fb7b0a5c1dd08a9bdf380238d248617",
+      "git_blob": "4deb0e36f18872657b73c8ab8058a89d720a1626",
+      "bytes": 328,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "reported_derivation_not_reproduced",
+      "content": {
+        "lines": 7,
+        "http_like_substrings": 7
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/libCoreFoundation.so.endpoints.txt",
+      "sha256": "fe79261a76f8f13f7c1251607f97c51a361b7a0efa4d5913585da2bf017ca289",
+      "git_blob": "d5bbc51e2a0e7eb9c8342792e0224919f8fa4618",
+      "bytes": 186,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "reported_derivation_not_reproduced",
+      "content": {
+        "lines": 4,
+        "http_like_substrings": 1
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/libCoreLSKD.so.endpoints.txt",
+      "sha256": "dd57e88637de668518d1c6269e01d6293237f78e3c14233a674c96bbb5bfc36b",
+      "git_blob": "fdb3bdb5cedbc2813cc35aedeb08556cec6b22c5",
+      "bytes": 297,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "reported_derivation_not_reproduced",
+      "content": {
+        "lines": 6,
+        "http_like_substrings": 6
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/libandroidappmusic.so.endpoints.txt",
+      "sha256": "a227b967be664c1f446ead719447a20fc6281d95c317a1265951444490540525",
+      "git_blob": "23483bfb7be01ff6a050ec6af4380c691310a7b1",
+      "bytes": 6389,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "reported_derivation_not_reproduced",
+      "content": {
+        "lines": 69,
+        "http_like_substrings": 6
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/libc++_shared.so.endpoints.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "empty_extraction_output",
+      "content": {
+        "lines": 0,
+        "http_like_substrings": 0
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "An empty grep output does not prove the original library has no endpoints."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/libcurl.so.endpoints.txt",
+      "sha256": "29145d3d902755b8ffa9d1b2d8c8d385f5a7c9efcd8579c948dbced6e8c9d855",
+      "git_blob": "335e08ea850c244aa8e65aa0faa3a74a57458140",
+      "bytes": 315,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "reported_derivation_not_reproduced",
+      "content": {
+        "lines": 17,
+        "http_like_substrings": 0
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/libdaapkit.so.endpoints.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "empty_extraction_output",
+      "content": {
+        "lines": 0,
+        "http_like_substrings": 0
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "An empty grep output does not prove the original library has no endpoints."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/libdispatch.so.endpoints.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "empty_extraction_output",
+      "content": {
+        "lines": 0,
+        "http_like_substrings": 0
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "An empty grep output does not prove the original library has no endpoints."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/libicudata_sv_apple.so.endpoints.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "empty_extraction_output",
+      "content": {
+        "lines": 0,
+        "http_like_substrings": 0
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "An empty grep output does not prove the original library has no endpoints."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/libicui18n_sv_apple.so.endpoints.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "empty_extraction_output",
+      "content": {
+        "lines": 0,
+        "http_like_substrings": 0
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "An empty grep output does not prove the original library has no endpoints."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/libicuuc_sv_apple.so.endpoints.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "empty_extraction_output",
+      "content": {
+        "lines": 0,
+        "http_like_substrings": 0
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "An empty grep output does not prove the original library has no endpoints."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/libmedialibrarycore.so.endpoints.txt",
+      "sha256": "96a2e98b1d93d332cd21b843d644f67a6620939a0f600447079273853706125c",
+      "git_blob": "f7cb52dc13877b526f1918a259914fb3ecd93469",
+      "bytes": 32984,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "reported_derivation_not_reproduced",
+      "content": {
+        "lines": 290,
+        "http_like_substrings": 6
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/libmediaplatform.so.endpoints.txt",
+      "sha256": "8b007cbf0622f35c56235536b5a010dff7699afcc7219451804dd80061063903",
+      "git_blob": "2c036921793c31713096154ffd061dd5635ad486",
+      "bytes": 3289,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "reported_derivation_not_reproduced",
+      "content": {
+        "lines": 30,
+        "http_like_substrings": 0
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/librenderscript-toolkit.so.endpoints.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "empty_extraction_output",
+      "content": {
+        "lines": 0,
+        "http_like_substrings": 0
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "An empty grep output does not prove the original library has no endpoints."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/libstoreservicescore.so.endpoints.txt",
+      "sha256": "c33f29e5fe0697efd277febe2a66eaf316ac9c63c1521c8a9ca5fdceae69022e",
+      "git_blob": "4156b73ce5faff13aaea58d8c6970d6ba3a4487d",
+      "bytes": 9584,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "reported_derivation_not_reproduced",
+      "content": {
+        "lines": 129,
+        "http_like_substrings": 8
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "Content-specific publication grounds have not been adjudicated; filenames do not establish ownership or endpoint validity."
+      ]
+    },
+    {
+      "path": "evidence/native-scan/libxml2.so.endpoints.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "extracted_strings",
+      "source": "android_scan_report",
+      "origin_status": "empty_extraction_output",
+      "content": {
+        "lines": 0,
+        "http_like_substrings": 0
+      },
+      "unresolved": [
+        "Original APK and extraction pipeline were not reacquired or reproduced in this pass.",
+        "An empty grep output does not prove the original library has no endpoints."
+      ]
+    },
+    {
+      "path": "fixtures/176k-24bit.flac",
+      "sha256": "80749d33d7ca5ab35298e2596a36ced6bd008f8935c7e49f7a075fa58737914b",
+      "git_blob": "4bab937b6e1308887a6b38ae48083a4088d99a35",
+      "bytes": 102356,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "audio",
+      "origin_status": "local_history_recipe_missing",
+      "source": "local_history",
+      "audio": {
+        "codec": "flac",
+        "sample_rate": 176400,
+        "channels": 2,
+        "stored_bits": 16,
+        "duration_seconds": "2.000000",
+        "attached_picture": false
+      },
+      "unresolved": [
+        "Original PCM generation or recording source and its applicable license are not established."
+      ],
+      "legacy_name_misstates_depth": true
+    },
+    {
+      "path": "fixtures/44k-16bit-art.m4a",
+      "sha256": "e2ab714c05e00641846545d388ffee2e6838ce387da528c070840abd702fd468",
+      "git_blob": "f40bf98f91f5ab05263f9ace78b2d09aff882213",
+      "bytes": 118063,
+      "first_addition_commits": [],
+      "category": "audio",
+      "origin_status": "synthetic_recipe_reproduced",
+      "source": "alac_recipe",
+      "audio": {
+        "codec": "alac",
+        "sample_rate": 44100,
+        "channels": 2,
+        "stored_bits": 16,
+        "duration_seconds": "3.000000",
+        "attached_picture": true
+      },
+      "unresolved": [],
+      "previous_sha256": "4927a93a3cb1b76c48bdffe7fd7d714522f1900b3e6b1e1fbd9021b85c14d14c"
+    },
+    {
+      "path": "fixtures/44k-16bit.flac",
+      "sha256": "cd34c5fd7aac746d1f84ef7e22b71cf36a473d1eccdfac472bccbe321054ac41",
+      "git_blob": "faf398343b1b9df0d7787dc892ad0b13b2b5c292",
+      "bytes": 156472,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "audio",
+      "origin_status": "local_history_recipe_missing",
+      "source": "local_history",
+      "audio": {
+        "codec": "flac",
+        "sample_rate": 44100,
+        "channels": 2,
+        "stored_bits": 16,
+        "duration_seconds": "3.000000",
+        "attached_picture": false
+      },
+      "unresolved": [
+        "Original PCM generation or recording source and its applicable license are not established."
+      ]
+    },
+    {
+      "path": "fixtures/48k-mono-aac.m4a",
+      "sha256": "b74a5bc2a19aff32e0f8adbffd3c7475a466e9fd0fc89f4b6d9205d545bca388",
+      "git_blob": "d1195875cf7de4937b96dc2cb9ae1e441d2c82b0",
+      "bytes": 1734,
+      "first_addition_commits": [],
+      "category": "audio",
+      "origin_status": "synthetic_recipe_reproduced",
+      "source": "aac_recipe",
+      "audio": {
+        "codec": "aac",
+        "sample_rate": 48000,
+        "channels": 1,
+        "stored_bits": null,
+        "duration_seconds": "0.080000",
+        "attached_picture": false
+      },
+      "unresolved": []
+    },
+    {
+      "path": "fixtures/88k-16bit.m4a",
+      "sha256": "273f3e814854ba140247762ddc5fb076d84b7c377204d2c65f6d08e6ea48a9c4",
+      "git_blob": "97faf611ea87f8eb31a46715f24d304b2882733c",
+      "bytes": 132170,
+      "first_addition_commits": [],
+      "category": "audio",
+      "origin_status": "synthetic_recipe_reproduced",
+      "source": "alac_recipe",
+      "audio": {
+        "codec": "alac",
+        "sample_rate": 88200,
+        "channels": 2,
+        "stored_bits": 16,
+        "duration_seconds": "2.000000",
+        "attached_picture": false
+      },
+      "unresolved": [],
+      "previous_sha256": "f6c5f2573f8f167ca7d7c43ceb5fbf8931a9a3a7b1957887856799216d38145e"
+    },
+    {
+      "path": "fixtures/96k-24bit.flac",
+      "sha256": "7495a5ca463f28ed206423a429d7d8906344f7c5202d04db18311053334c7a10",
+      "git_blob": "f07d90244c731521dc3f7370493ae818a05900fd",
+      "bytes": 1218414,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "audio",
+      "origin_status": "local_history_recipe_missing",
+      "source": "local_history",
+      "audio": {
+        "codec": "flac",
+        "sample_rate": 96000,
+        "channels": 2,
+        "stored_bits": 24,
+        "duration_seconds": "3.000000",
+        "attached_picture": false
+      },
+      "unresolved": [
+        "Original PCM generation or recording source and its applicable license are not established."
+      ]
+    },
+    {
+      "path": "fixtures/96k-24bit.m4a",
+      "sha256": "25a7eb05d8431dcb286211b9750b74607a79b9bde47e6bed3a14a72b731708cb",
+      "git_blob": "b6838a27a26624032609214ee178a0536c9d9a05",
+      "bytes": 819941,
+      "first_addition_commits": [],
+      "category": "audio",
+      "origin_status": "synthetic_recipe_reproduced",
+      "source": "alac_recipe",
+      "audio": {
+        "codec": "alac",
+        "sample_rate": 96000,
+        "channels": 2,
+        "stored_bits": 24,
+        "duration_seconds": "3.000000",
+        "attached_picture": false
+      },
+      "unresolved": [],
+      "previous_sha256": "d734d2832bf4ada9f1baa2165b3da4d929d9930256431ddecc015ffb49c9ecba"
+    },
+    {
+      "path": "fixtures/96k-mono.flac",
+      "sha256": "dc7f310606e1e53b07e363a86ea60bc6be37549b7dd3a46d2268ac29edee0a10",
+      "git_blob": "646fe67a07f281c43100dc976e85fd504546a571",
+      "bytes": 82547,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "audio",
+      "origin_status": "local_history_recipe_missing",
+      "source": "local_history",
+      "audio": {
+        "codec": "flac",
+        "sample_rate": 96000,
+        "channels": 1,
+        "stored_bits": 16,
+        "duration_seconds": "1.000000",
+        "attached_picture": false
+      },
+      "unresolved": [
+        "Original PCM generation or recording source and its applicable license are not established."
+      ]
+    },
+    {
+      "path": "fixtures/96k-quad.flac",
+      "sha256": "3f9f04149a53ed6ad65f7923ec2b2b4c5981e9c816704b2ba9ef906b4ac89eab",
+      "git_blob": "cb415cd5342396b4e1d7560a2c76a4d8d7e6bf18",
+      "bytes": 286418,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "audio",
+      "origin_status": "local_history_recipe_missing",
+      "source": "local_history",
+      "audio": {
+        "codec": "flac",
+        "sample_rate": 96000,
+        "channels": 4,
+        "stored_bits": 16,
+        "duration_seconds": "2.000000",
+        "attached_picture": false
+      },
+      "unresolved": [
+        "Original PCM generation or recording source and its applicable license are not established."
+      ]
+    },
+    {
+      "path": "fixtures/lib/trackA.flac",
+      "sha256": "7495a5ca463f28ed206423a429d7d8906344f7c5202d04db18311053334c7a10",
+      "git_blob": "f07d90244c731521dc3f7370493ae818a05900fd",
+      "bytes": 1218414,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "audio",
+      "origin_status": "local_history_recipe_missing",
+      "source": "local_history",
+      "audio": {
+        "codec": "flac",
+        "sample_rate": 96000,
+        "channels": 2,
+        "stored_bits": 24,
+        "duration_seconds": "3.000000",
+        "attached_picture": false
+      },
+      "unresolved": [
+        "Original PCM generation or recording source and its applicable license are not established."
+      ],
+      "byte_identical_to": "fixtures/96k-24bit.flac"
+    },
+    {
+      "path": "fixtures/lib/trackB.flac",
+      "sha256": "cd34c5fd7aac746d1f84ef7e22b71cf36a473d1eccdfac472bccbe321054ac41",
+      "git_blob": "faf398343b1b9df0d7787dc892ad0b13b2b5c292",
+      "bytes": 156472,
+      "first_addition_commits": [
+        "309b95dd92a376594146f104ca44be26b88aee97"
+      ],
+      "category": "audio",
+      "origin_status": "local_history_recipe_missing",
+      "source": "local_history",
+      "audio": {
+        "codec": "flac",
+        "sample_rate": 44100,
+        "channels": 2,
+        "stored_bits": 16,
+        "duration_seconds": "3.000000",
+        "attached_picture": false
+      },
+      "unresolved": [
+        "Original PCM generation or recording source and its applicable license are not established."
+      ],
+      "byte_identical_to": "fixtures/44k-16bit.flac"
+    }
+  ]
+}

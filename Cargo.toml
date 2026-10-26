@@ -1,0 +1,48 @@
+[workspace]
+members = [".", "crates/melba-cdm", "crates/melba-auth"]
+default-members = [".", "crates/melba-cdm"]
+
+[package]
+name = "melbad"
+version = "0.3.1"
+edition = "2021"
+description = "native lightweight Linux music client — bit-perfect playback core"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+symphonia = { version = "0.5", default-features = false, features = ["flac", "alac", "wav", "pcm", "vorbis", "mp3", "aac", "isomp4", "caf"] }
+alsa = "0.9"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+clap = { version = "4", features = ["derive"] }
+nix = { version = "0.29", features = ["signal"] }
+plist = "1.10.1"
+roxmltree = "0.21.1"
+jsonschema = "0.58.6"
+sha2 = "0.11.1"
+dbus = "0.9"
+dbus-crossroads = "0.5"
+libc = "0.2.190"
+ureq = "2"
+wry = "0.53"
+tao = "0.34"
+# Widevine CDM host + Apple Music HLS/fMP4 streaming (AAC + ALAC)
+melba-cdm = { path = "crates/melba-cdm" }
+melba-auth = { path = "crates/melba-auth" }
+# Recover current browser records (including deletions) in memory, never open
+# a live browser database for write. Replaces ad-hoc LevelDB byte scanning.
+rusty-leveldb = { version = "4.0.2", default-features = false }
+# Hide wrapper password input; SIGINT is deferred until the terminal is restored.
+rpassword = "7.5.4"
+# melba-shot (dev bin) encodes KWin's raw ScreenShot2 pixels as PNG itself:
+# zlib (flate2) for IDAT and crc32fast for the chunk CRCs.
+flate2 = "1"
+crc32fast = "1"
+
+[build-dependencies]
+# Reuse Cargo's existing target-compiler selection for the embedded C bridge.
+cc = "1"
+
+[profile.release]
+opt-level = 2
+lto = true

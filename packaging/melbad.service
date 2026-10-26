@@ -1,0 +1,21 @@
+# systemd --user unit: the melba playback daemon + MPRIS endpoint.
+# Install:  cp packaging/melbad.service ~/.config/systemd/user/
+#           systemctl --user daemon-reload
+#           systemctl --user enable --now melbad
+# The daemon starts stopped with an empty queue; load tracks with
+# `melbad ctl open <path>` / `melbad serve` args, or keep a collection loaded by
+# editing ExecStart below (e.g. append /path/to/library.json).
+[Unit]
+Description=melba playback daemon (MPRIS org.mpris.MediaPlayer2.melba)
+After=graphical-session.target pipewire.service
+# D-Bus session is required for MPRIS.
+Requires=dbus.socket
+
+[Service]
+Type=simple
+ExecStart=%h/.cargo/bin/melbad serve
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

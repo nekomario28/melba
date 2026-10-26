@@ -1,0 +1,31 @@
+/target/
+crates/*/target/
+ci/models/*.storyboard.png
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# editor / OS litter
+*.swp
+*.swo
+*~
+*.orig
+*.rej
+*.bak
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# secrets / local env
+.env
+.env.*
+
+# stray build objects (compiled artifacts belong under target/ or the
+# managed install dir, never in-tree)
+*.so
+*.o
+*.a

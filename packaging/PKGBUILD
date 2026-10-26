@@ -1,0 +1,90 @@
+# Maintainer: nekomario28
+# Arch Linux VCS package: run `makepkg -si` inside packaging/.
+# Builds the source repository's default branch, not this local checkout.
+
+pkgname=melba-git
+pkgver=0.3.1
+pkgrel=1
+pkgdesc="Apple Music, native and fast — melbad playback daemon + egui client"
+arch=('x86_64' 'aarch64')
+url="https://github.com/nekomario28/melba"
+# Component terms are preserved separately in the generated notice bundles.
+license=('MIT' 'Apache-2.0' 'BSD-2-Clause' 'BSD-3-Clause' 'ISC' 'Zlib'
+         'Unicode-3.0' 'CDLA-Permissive-2.0' 'MIT-0' 'MPL-2.0'
+         'OFL-1.1' 'Ubuntu-font-1.0' 'Bitstream-Vera' 'Unlicense' 'CC0-1.0')
+depends=('xdg-utils' 'dbus' 'alsa-lib' 'webkit2gtk-4.1' 'gtk3' 'libxkbcommon' 'wayland' 'libglvnd' 'libx11' 'libxcursor' 'libxi' 'libxrandr')
+makedepends=('cargo' 'cargo-about' 'python' 'git' 'pkgconf' 'cmake')
+optdepends=('google-chrome: Widevine CDM for AAC subscription streams'
+            'sqlite: token capture when signing in with Firefox')
+source=("git+$url")
+sha256sums=('SKIP')
+# Cargo profiles own Rust LTO. GCC LTO archives (AWS-LC/CDM) cannot be
+# consumed by Rust's LLVM linker, so do not inject makepkg's native LTO flags.
+options=('!lto')
+_rust_target="$CARCH-unknown-linux-gnu"
+
+pkgver() {
+    cd "$srcdir/apple-music-linux" || return
+    local version
+    if version=$(git describe --tags --long 2>/dev/null); then
+        printf '%s\n' "$version" | sed 's/^v//;s/-/./g'
+    else
+        printf '0.3.1.r%s.%s\n' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+    fi
+}
+
+prepare() {
+    cd "$srcdir/apple-music-linux"
+    cargo fetch --locked
+    cargo fetch --locked --manifest-path crates/melba/Cargo.toml
+}
+
+build() {
+    cd "$srcdir/apple-music-linux"
+    # Keep the output root local, independent of a user's CARGO_TARGET_DIR.
+    export CARGO_TARGET_DIR="$srcdir/target"
+    cargo build --release --frozen --target "$_rust_target" --bin melbad
+    cargo build --release --frozen --target "$_rust_target" --manifest-path crates/melba/Cargo.toml --bin melba
+    python3 packaging/licenses.py "$srcdir/third-party"
+}
+
+check() {
+    cd "$srcdir/apple-music-linux"
+    export CARGO_TARGET_DIR="$srcdir/target"
+    cargo test --release --frozen --target "$_rust_target" -p melbad --lib
+    cargo test --release --frozen --target "$_rust_target" --manifest-path crates/melba/Cargo.toml --lib
+}
+
+package() {
+    cd "$srcdir/apple-music-linux"
+    # Refuse missing, stale or corrupted notices even with --repackage/--nocheck.
+    python3 packaging/licenses.py --check "$srcdir/third-party"
+    install -Dm644 "$srcdir/third-party/melbad-THIRD-PARTY.txt" \
+        "$pkgdir/usr/share/licenses/$pkgname/melbad-THIRD-PARTY.txt"
+    install -Dm644 "$srcdir/third-party/melba-THIRD-PARTY.txt" \
+        "$pkgdir/usr/share/licenses/$pkgname/melba-THIRD-PARTY.txt"
+    install -Dm644 "$srcdir/third-party/receipt.json" \
+        "$pkgdir/usr/share/licenses/$pkgname/receipt.json"
+    install -Dm755 "$srcdir/target/$_rust_target/release/melbad" "$pkgdir/usr/bin/melbad"
+    install -Dm755 "$srcdir/target/$_rust_target/release/melba" "$pkgdir/usr/bin/melba"
+    install -Dm644 crates/melba/packaging/melba.desktop \
+        "$pkgdir/usr/share/applications/melba.desktop"
+    install -Dm644 crates/melba/packaging/icons/melba.svg \
+        "$pkgdir/usr/share/icons/hicolor/scalable/apps/melba.svg"
+    sed 's|ExecStart=.*|ExecStart=/usr/bin/melbad serve|' \
+        packaging/melbad.service > melbad.service.pkg
+    install -Dm644 melbad.service.pkg \
+        "$pkgdir/usr/lib/systemd/user/melbad.service"
+    install -Dm644 LICENSE-MIT "$pkgdir/usr/share/licenses/$pkgname/LICENSE-MIT"
+    install -Dm644 LICENSE-APACHE "$pkgdir/usr/share/licenses/$pkgname/LICENSE-APACHE"
+    install -Dm644 NOTICE.md "$pkgdir/usr/share/licenses/$pkgname/NOTICE.md"
+    install -Dm644 crates/melba/LICENSE "$pkgdir/usr/share/licenses/$pkgname/melba-LICENSE"
+    install -Dm644 crates/melba-cdm/third_party/cdm-api/LICENSE \
+        "$pkgdir/usr/share/licenses/$pkgname/cdm-api-LICENSE"
+    install -Dm644 crates/melba/assets/fonts/Inter-LICENSE.txt \
+        "$pkgdir/usr/share/licenses/$pkgname/Inter-LICENSE.txt"
+    install -Dm644 crates/melba/assets/fonts/NotoEmoji-LICENSE.txt \
+        "$pkgdir/usr/share/licenses/$pkgname/NotoEmoji-LICENSE.txt"
+    install -Dm644 crates/melba/assets/icons/LICENSE.txt \
+        "$pkgdir/usr/share/licenses/$pkgname/lucide-LICENSE.txt"
+}

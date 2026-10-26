@@ -1,0 +1,2108 @@
+# European Portuguese translation of the melba navigation pilot.
+# Distributed under the same MIT license as melba.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Melba\n"
+"Report-Msgid-Bugs-To: https://github.com/nekomario28/melba/issues/new\n"
+"POT-Creation-Date: 2026-10-20 02:23+0900\n"
+"PO-Revision-Date: 2026-09-23 20:00+0000\n"
+"Last-Translator: Melba contributors\n"
+"Language-Team: European Portuguese\n"
+"Language: pt_PT\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/api/models.rs:284
+msgid "Single"
+msgstr "Single"
+
+#: src/api/models.rs:285
+msgid "Compilation"
+msgstr "Compilação"
+
+#: src/api/models.rs:286 src/model.rs:829
+msgid "Appears On"
+msgstr "Aparece em"
+
+#: src/api/models.rs:287 src/app.rs:2825 src/ui/prerelease.rs:71
+msgid "Album"
+msgstr "Álbum"
+
+#. Translators: {error} is a sentence saying why the proxy password could not be stored.
+#: src/app.rs:2079
+#, rust-format
+msgid "{error} The original settings file is kept intact; changed preferences are not saved yet."
+msgstr "{error} O ficheiro de definições original foi mantido intacto; as preferências alteradas ainda não foram guardadas."
+
+#. Translators: {version} is a version number such as 1.4.0.
+#: src/app.rs:2227
+#, rust-format
+msgid "Melba {version} is available"
+msgstr "O Melba {version} está disponível"
+
+#: src/app.rs:2244
+msgid "Melba is up to date"
+msgstr "O Melba está atualizado"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:2252
+#, rust-format
+msgid "Couldn't check for updates: {error}"
+msgstr "Não foi possível procurar atualizações: {error}"
+
+#. Translators: {error} is an error message from the playback engine.
+#: src/app.rs:2333
+#, rust-format
+msgid "Local playback: {error}"
+msgstr "Reprodução local: {error}"
+
+#: src/app.rs:2340
+msgid "Opening your browser to set up local playback"
+msgstr "A abrir o navegador para configurar a reprodução local"
+
+#: src/app.rs:2681
+msgid "Audio disconnected. Reconnecting local playback"
+msgstr "O áudio do Apple Music desligou-se. A religar a reprodução local"
+
+#: src/app.rs:2783 src/app.rs:19070 src/demo.rs:1679 src/demo.rs:1721
+#: src/demo.rs:1723 src/demo.rs:2299 src/demo.rs:2315 src/ui/collection.rs:2127
+#: src/ui/home.rs:77 src/ui/keys.rs:264 src/ui/sidebar.rs:312
+#: src/ui/winamp/playlist.rs:653
+msgid "Liked Songs"
+msgstr "Músicas de que gostas"
+
+#: src/app.rs:2791 src/app/radio.rs:191 src/ui/radio.rs:35 src/ui/radio.rs:77
+msgid "Radio"
+msgstr "Rádio"
+
+#: src/app.rs:2809 src/app.rs:19065 src/ui/collection.rs:1919
+#: src/ui/collection.rs:2134 src/ui/sidebar.rs:302
+msgid "Playlist"
+msgstr "Playlist"
+
+#: src/app.rs:2844 src/ui/artist.rs:214 src/ui/artist.rs:357 src/ui/home.rs:440
+#: src/ui/library.rs:101 src/ui/search.rs:159 src/ui/search.rs:491
+#: src/ui/sidebar.rs:1189 src/ui/winamp/playlist.rs:746
+msgid "Artist"
+msgstr "Artista"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:3597
+#, rust-format
+msgid "Proxy could not be applied: {error}. Previous connection settings are still in use."
+msgstr "Não foi possível aplicar o proxy: {error}. As definições de ligação anteriores continuam em uso."
+
+#: src/app.rs:5245
+msgid "Queue cleared"
+msgstr "Fila limpa"
+
+#. Translators: Keep {date} unchanged. It is a date in YYYY-MM-DD form.
+#: src/app.rs:5275 src/app.rs:19055
+#, rust-format
+msgid "Queue {date}"
+msgstr "Fila {date}"
+
+#: src/app.rs:5784
+msgid "Your Apple Music sign-in expired. Please sign in again."
+msgstr "A tua sessão do Apple Music expirou. Inicia sessão novamente."
+
+#. Translators: {error} is an error message.
+#: src/app.rs:5791
+#, rust-format
+msgid "Couldn't load your profile: {error}"
+msgstr "Não foi possível carregar o teu perfil: {error}"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:5852
+#, rust-format
+msgid "Couldn't list devices: {error}"
+msgstr "Não foi possível listar os dispositivos: {error}"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:6204
+#, rust-format
+msgid "Couldn't load more playlists: {error}"
+msgstr "Não foi possível carregar mais playlists: {error}"
+
+#: src/app.rs:6250
+msgid "Apple Music hasn't confirmed your playlist changes yet. Try refreshing again."
+msgstr "O Apple Music ainda não confirmou as alterações às tuas playlists. Tenta atualizar novamente."
+
+#. Translators: {name} is a playlist name.
+#: src/app.rs:6454
+#, rust-format
+msgid "Created {name}"
+msgstr "{name} criada"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:6480
+#, rust-format
+msgid "Couldn't create the playlist: {error}"
+msgstr "Não foi possível criar a playlist: {error}"
+
+#: src/app.rs:6534
+msgid "Playlist cover updated"
+msgstr "Capa da playlist atualizada"
+
+#: src/app.rs:6543
+msgid "Playlist updated"
+msgstr "Playlist atualizada"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:6553 src/app.rs:6670
+#, rust-format
+msgid "Couldn't update the playlist: {error}"
+msgstr "Não foi possível atualizar a playlist: {error}"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:6627
+#, rust-format
+msgid "Playlist change failed: {error}"
+msgstr "A alteração da playlist falhou: {error}"
+
+#: src/app.rs:6654
+msgid "Added to Your Library"
+msgstr "Adicionado à tua biblioteca"
+
+#: src/app.rs:6656 src/app.rs:6861
+msgid "Removed from Your Library"
+msgstr "Removido da tua biblioteca"
+
+#: src/app.rs:6854
+msgid "Added to Liked Songs"
+msgstr "Adicionada às Músicas de que gostas"
+
+#: src/app.rs:6856
+msgid "Removed from Liked Songs"
+msgstr "Removida das Músicas de que gostas"
+
+#: src/app.rs:6858
+msgid "Following artist"
+msgstr "A seguir o artista"
+
+#: src/app.rs:6859
+msgid "Unfollowed artist"
+msgstr "Deixaste de seguir o artista"
+
+#: src/app.rs:6860
+msgid "Saved to Your Library"
+msgstr "Guardado na tua biblioteca"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:6875
+#, rust-format
+msgid "Couldn't update your library: {error}"
+msgstr "Não foi possível atualizar a tua biblioteca: {error}"
+
+#: src/app.rs:6957 src/model.rs:703 src/ui/search.rs:668 src/ui/sidebar.rs:1042
+msgid "Playlists"
+msgstr "Playlists"
+
+#: src/app.rs:6983 src/demo.rs:1675 src/ui/keys.rs:251 src/ui/sidebar.rs:926
+msgid "Search"
+msgstr "Pesquisar"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:7179
+#, rust-format
+msgid "Cannot open this song: {error}"
+msgstr "Não é possível abrir esta música: {error}"
+
+#: src/app.rs:7236
+msgid "Couldn't add to queue: {error}"
+msgstr "Não foi possível adicionar à fila: {error}"
+
+#: src/app.rs:7386
+msgid "This song's album is not on Apple Music"
+msgstr "O álbum desta música não está no Apple Music"
+
+#: src/app.rs:7403
+msgid "Melba cannot open this kind of Apple Music link"
+msgstr "O Melba não consegue abrir este tipo de ligação do Apple Music"
+
+#: src/app.rs:7651
+msgid "Nothing is playing. Pick something first"
+msgstr "Nada está a tocar. Escolhe algo primeiro"
+
+#: src/app.rs:8396 src/app.rs:8401
+msgid "Pick something to play"
+msgstr "Escolhe algo para ouvir"
+
+#: src/app.rs:8413 src/ui/player_bar.rs:407
+msgid "Pick a song, album, or playlist"
+msgstr "Escolhe uma música, um álbum ou uma playlist"
+
+#. Translators: {name} is an album name.
+#: src/app.rs:8680
+#, rust-format
+msgid "Loading {name} to queue…"
+msgstr "A adicionar {name} à fila…"
+
+#: src/app.rs:8699
+msgid "Playback device changed. Add the album to queue again"
+msgstr "O dispositivo de reprodução mudou. Adiciona o álbum à fila novamente"
+
+#: src/app.rs:8708 src/app.rs:8726 src/app.rs:8735
+msgid "Couldn't load the album's songs in order. Try again"
+msgstr "Não foi possível carregar as músicas do álbum por ordem. Tenta novamente"
+
+#. Translators: {name} is an album name and {error} is an error message.
+#: src/app.rs:8715
+#, rust-format
+msgid "Couldn't add {name} to queue: {error}"
+msgstr "Não foi possível adicionar {name} à fila: {error}"
+
+#: src/app.rs:8773
+msgid "This album has no playable songs to queue"
+msgstr "Este álbum não tem músicas que possam ser adicionadas à fila"
+
+#. Translators: {count} is a number of songs and {name} is an album name.
+#: src/app.rs:8782
+#, rust-format
+msgid "{count} song from {name} added to queue"
+msgid_plural "{count} songs from {name} added to queue"
+msgstr[0] "{count} música de {name} adicionada à fila"
+msgstr[1] "{count} músicas de {name} adicionadas à fila"
+
+#. Translators: {count} is a number of songs.
+#: src/app.rs:8826
+#, rust-format
+msgid "{count} song added to queue"
+msgid_plural "{count} songs added to queue"
+msgstr[0] "{count} música adicionada à fila"
+msgstr[1] "{count} músicas adicionadas à fila"
+
+#. Translators: {name} is a song, episode, album, or playlist name.
+#: src/app.rs:8863
+#, rust-format
+msgid "{name} added to queue"
+msgstr "{name} adicionado à fila"
+
+#: src/app.rs:9273
+msgid "The clipboard has no Apple Music song links"
+msgstr "A área de transferência não tem ligações de músicas do Apple Music"
+
+#. Translators: {count} is the number of pasted links that failed.
+#: src/app.rs:9354
+#, rust-format
+msgid "{count} pasted link could not be added"
+msgid_plural "{count} pasted links could not be added"
+msgstr[0] "{count} ligação colada não pôde ser adicionada"
+msgstr[1] "{count} ligações coladas não puderam ser adicionadas"
+
+#: src/app.rs:9972
+msgid "Apple Music doesn't let apps remove a playlist description, so it was kept"
+msgstr "O Apple Music não permite que as apps removam a descrição de uma playlist, por isso foi mantida"
+
+#: src/app.rs:10020 src/app.rs:10033
+msgid "Link copied"
+msgstr "Ligação copiada"
+
+#. Translators: {count} is a number of song links, always more than one.
+#: src/app.rs:10037
+#, rust-format
+msgid "{count} link copied"
+msgid_plural "{count} links copied"
+msgstr[0] "{count} ligação copiada"
+msgstr[1] "{count} ligações copiadas"
+
+#: src/app.rs:10290
+msgid "Apple Music doesn't let apps reorder your playlists, so this order is saved on this computer"
+msgstr "O Apple Music não permite que as apps reordenem as tuas playlists, por isso esta ordem é guardada neste computador"
+
+#: src/app.rs:10388 src/ui/settings.rs:328
+msgid "Playback needs an Apple Music subscription"
+msgstr "A reprodução requer uma assinatura do Apple Music"
+
+#: src/app.rs:10439
+msgid "Play history cleared"
+msgstr "Histórico de reprodução apagado"
+
+#. Translators: {size} is a size in megabytes, such as 12.5.
+#: src/app.rs:10450
+#, rust-format
+msgid "Cleared {size} MB of artwork"
+msgstr "{size} MB de capas apagados"
+
+#. Translators: {error} is an error message.
+#: src/app.rs:10456
+#, rust-format
+msgid "Couldn't clear artwork: {error}"
+msgstr "Não foi possível apagar as capas: {error}"
+
+#: src/app.rs:11580 src/demo.rs:2032 src/demo.rs:2075 src/ui/collection.rs:813
+#: src/ui/lyrics.rs:411 src/ui/widgets.rs:2638
+msgid "Loading…"
+msgstr "A carregar…"
+
+#: src/app.rs:11692
+msgid "No audio output device was found. Connect or enable one, then press play again."
+msgstr "Não foi encontrado nenhum dispositivo de saída de áudio. Liga ou ativa um e carrega novamente em Reproduzir."
+
+#: src/app.rs:11751 src/app.rs:11765 src/ui/widgets.rs:2649
+msgid "Network connection error. Check your connection."
+msgstr "Erro de ligação à rede. Verifica a ligação."
+
+#: src/app.rs:11756
+msgid "Apple Music doesn't make this playlist's songs available to third-party apps."
+msgstr "O Apple Music não disponibiliza as músicas desta playlist a apps de terceiros."
+
+#: src/app.rs:11877
+msgid "Apple Music sign-in expired. Sign in again, then retry the cover upload."
+msgstr "A sessão do Apple Music expirou. Inicia sessão novamente e volta a tentar carregar a capa."
+
+#: src/app.rs:11882
+msgid "Apple Music refused this cover. Check that you own the playlist, then sign in again to grant image upload permission."
+msgstr "O Apple Music recusou esta capa. Confirma que a playlist é tua e inicia sessão novamente para dar permissão de carregamento de imagens. Se usas uma app pessoal, volta também a ligá-la nas Definições."
+
+#: src/app.rs:11886
+msgid "Apple Music rejected the image size. Choose a smaller image."
+msgstr "O Apple Music rejeitou o tamanho da imagem. Escolhe uma imagem mais pequena."
+
+#. Translators: {error} is an error message.
+#: src/app.rs:11889
+#, rust-format
+msgid "Couldn't upload the cover: {error}. Try again."
+msgstr "Não foi possível carregar a capa: {error}. Tenta novamente."
+
+#. Translators: Keep {track} unchanged. It is the name of the song,
+#. playlist, album, or artist the radio is based on, not translated.
+#: src/app.rs:19075 src/app/radio.rs:38
+#, rust-format
+msgid "{track} Radio"
+msgstr "Rádio de {track}"
+
+#: src/demo.rs:1390 src/ui/sidebar.rs:1022
+msgid "Library"
+msgstr "Biblioteca"
+
+#: src/demo.rs:1391 src/demo.rs:1705 src/ui/sidebar.rs:1006
+msgid "Search Your Library"
+msgstr "Pesquisar na biblioteca"
+
+#: src/demo.rs:1674 src/demo.rs:4804 src/i18n.rs:262 src/i18n.rs:265
+#: src/ui/keys.rs:260 src/ui/sidebar.rs:915 src/ui/topbar.rs:255
+msgid "Home"
+msgstr "Início"
+
+#: src/demo.rs:1676 src/ui/sidebar.rs:990
+msgid "Create a playlist"
+msgstr "Criar playlist"
+
+#: src/demo.rs:1677 src/model.rs:702 src/model.rs:827 src/ui/library.rs:17
+#: src/ui/search.rs:595 src/ui/sidebar.rs:1043
+msgid "Albums"
+msgstr "Álbuns"
+
+#: src/demo.rs:1678 src/model.rs:701 src/ui/library.rs:22 src/ui/search.rs:527
+#: src/ui/sidebar.rs:1044
+msgid "Artists"
+msgstr "Artistas"
+
+#: src/demo.rs:1718 src/ui/sidebar.rs:1085
+msgid "Search in Your Library"
+msgstr "Pesquisar na tua biblioteca"
+
+#: src/demo.rs:1784 src/demo.rs:2306 src/ui/artist.rs:388
+#: src/ui/collection.rs:260 src/ui/player_bar.rs:686 src/ui/prerelease.rs:309
+#: src/ui/search.rs:408 src/ui/show.rs:371 src/ui/sidebar.rs:1934
+#: src/ui/widgets.rs:1144
+msgid "Play"
+msgstr "Reproduzir"
+
+#: src/demo.rs:1789 src/ui/player_bar.rs:823
+msgid "Volume (%)"
+msgstr "Volume (%)"
+
+#: src/demo.rs:1888 src/ui/queue.rs:152
+msgid "Save as a playlist"
+msgstr "Guardar como playlist"
+
+#: src/demo.rs:1907 src/ui/queue.rs:169
+msgid "Clear queue"
+msgstr "Limpar fila"
+
+#: src/demo.rs:1916 src/ui/queue.rs:80
+msgid "Recent"
+msgstr "Recentes"
+
+#: src/demo.rs:1924 src/demo.rs:2004 src/ui/lyrics.rs:78 src/ui/mod.rs:465
+#: src/ui/queue.rs:92
+msgid "Close"
+msgstr "Fechar"
+
+#: src/demo.rs:1951 src/demo.rs:1970 src/ui/lyrics.rs:102 src/ui/lyrics.rs:572
+msgctxt "lyrics"
+msgid "Follow"
+msgstr "Seguir"
+
+#: src/demo.rs:1960 src/ui/keys.rs:220 src/ui/lyrics.rs:90
+msgid "Full screen lyrics"
+msgstr "Letra em ecrã inteiro"
+
+#: src/demo.rs:1980 src/ui/lyrics.rs:560
+msgid "Leave full screen (Esc)"
+msgstr "Sair do ecrã inteiro (Esc)"
+
+#: src/demo.rs:1993 src/ui/login.rs:106 src/ui/lyrics.rs:177
+#: src/ui/lyrics.rs:431 src/ui/lyrics.rs:646 src/ui/settings.rs:387
+msgid "Try again"
+msgstr "Tentar novamente"
+
+#. Translators: Keep {error} unchanged. It is the original failure detail.
+#: src/demo.rs:2037 src/ui/lyrics.rs:171 src/ui/lyrics.rs:404
+#: src/ui/lyrics.rs:640
+#, rust-format
+msgid "Couldn't fetch the lyrics: {error}"
+msgstr "Não foi possível obter a letra: {error}"
+
+#: src/demo.rs:2044 src/ui/lyrics.rs:188 src/ui/lyrics.rs:397
+#: src/ui/lyrics.rs:657
+msgid "No lyrics"
+msgstr "Sem letra"
+
+#: src/demo.rs:2045 src/ui/lyrics.rs:189 src/ui/lyrics.rs:398
+#: src/ui/lyrics.rs:658
+msgid "No lyrics found for this track."
+msgstr "Não foi encontrada letra para esta música."
+
+#: src/demo.rs:2051 src/ui/lyrics.rs:198 src/ui/lyrics.rs:393
+#: src/ui/lyrics.rs:667
+msgid "Instrumental"
+msgstr "Instrumental"
+
+#: src/demo.rs:2052 src/ui/lyrics.rs:199 src/ui/lyrics.rs:394
+#: src/ui/lyrics.rs:668
+msgid "No timed lyrics for this track."
+msgstr "Esta música não tem letra sincronizada."
+
+#: src/demo.rs:2081 src/demo.rs:2130 src/ui/collection.rs:1149
+#: src/ui/prerelease.rs:242 src/ui/queue.rs:474 src/ui/queue.rs:507
+#: src/ui/widgets.rs:2672
+msgid "Retry"
+msgstr "Tentar novamente"
+
+#: src/demo.rs:2087 src/ui/queue.rs:302
+msgid "Nothing queued"
+msgstr "Nenhuma música na fila"
+
+#: src/demo.rs:2088 src/ui/queue.rs:303
+msgid "Queued songs appear here."
+msgstr "As músicas na fila aparecem aqui."
+
+#: src/demo.rs:2307 src/ui/sidebar.rs:1954
+msgid "Pin to top"
+msgstr "Fixar no topo"
+
+#: src/demo.rs:2322 src/ui/sidebar.rs:1952
+msgid "Unpin"
+msgstr "Desafixar"
+
+#: src/demo.rs:4805 src/ui/settings.rs:787 src/ui/settings.rs:1933
+msgid "Language"
+msgstr "Idioma"
+
+#. Translators: Keep {count} exactly as written. It becomes the number of liked songs.
+#: src/i18n.rs:184
+#, rust-format
+msgid "Playlist • {count} song"
+msgid_plural "Playlist • {count} songs"
+msgstr[0] "Playlist • {count} música"
+msgstr[1] "Playlist • {count} músicas"
+
+#. Translators: Keep {count} exactly as written. It becomes a number of songs.
+#. Translators: {count} is a number of songs.
+#. Translators: Keep {count} exactly as written. It becomes the number of selected songs.
+#: src/i18n.rs:195 src/ui/collection.rs:2222 src/ui/widgets.rs:695
+#, rust-format
+msgid "{count} song"
+msgid_plural "{count} songs"
+msgstr[0] "{count} música"
+msgstr[1] "{count} músicas"
+
+#. Translators: Keep {count} exactly as written. It becomes a number of playlists.
+#: src/i18n.rs:206
+#, rust-format
+msgid "{count} playlist"
+msgid_plural "{count} playlists"
+msgstr[0] "{count} lista de reprodução"
+msgstr[1] "{count} listas de reprodução"
+
+#: src/model.rs:699 src/model.rs:826
+msgctxt "filter"
+msgid "All"
+msgstr "Tudo"
+
+#: src/model.rs:700 src/ui/search.rs:443
+msgid "Songs"
+msgstr "Músicas"
+
+#: src/model.rs:828
+msgid "Singles & EPs"
+msgstr "Singles e EPs"
+
+#: src/settings.rs:160
+msgctxt "theme"
+msgid "Dark"
+msgstr "Escuro"
+
+#: src/settings.rs:161
+msgctxt "theme"
+msgid "Light"
+msgstr "Claro"
+
+#: src/settings.rs:162
+msgid "Follow system"
+msgstr "Seguir o sistema"
+
+#: src/settings.rs:188
+msgctxt "proxy"
+msgid "Off"
+msgstr "Desativado"
+
+#: src/settings.rs:189
+msgctxt "proxy"
+msgid "System"
+msgstr "Sistema"
+
+#: src/theme.rs:167
+msgid "Loading local themes…"
+msgstr "A carregar temas locais…"
+
+#: src/theme.rs:170
+msgid "The selected theme is unavailable. Keeping the last usable appearance. See the log for details."
+msgstr "O tema selecionado não está disponível. Mantém-se o último aspeto utilizável. Consulta o registo para mais detalhes."
+
+#: src/theme.rs:174
+msgid "The themes folder could not be read. See the log for details."
+msgstr "Não foi possível ler a pasta de temas. Consulta o registo para mais detalhes."
+
+#: src/theme.rs:178
+msgid "The themes folder has more than 512 entries. Keep fewer files there to list the custom palettes."
+msgstr "A pasta de temas tem mais de 512 entradas. Mantém menos ficheiros lá para listar as paletas personalizadas."
+
+#: src/theme.rs:182
+msgid "Only 128 custom palettes can be listed. Keep fewer JSON files in the themes folder to see the rest."
+msgstr "Só é possível listar 128 paletas personalizadas. Mantém menos ficheiros JSON na pasta de temas para veres as restantes."
+
+#: src/theme.rs:186
+msgid "The Omarchy palette could not be loaded. Keeping the last usable appearance. See the log for details."
+msgstr "Não foi possível carregar a paleta do Omarchy. Mantém-se o último aspeto utilizável. Consulta o registo para mais detalhes."
+
+#: src/theme.rs:190
+msgid "Custom themes could not be loaded. Run melba reload-themes to try again."
+msgstr "Não foi possível carregar os temas personalizados. Executa melba reload-themes para tentar novamente."
+
+#: src/ui/artist.rs:32
+msgid "Popular"
+msgstr "Populares"
+
+#: src/ui/artist.rs:84
+msgid "Show less"
+msgstr "Mostrar menos"
+
+#: src/ui/artist.rs:86
+msgid "See more"
+msgstr "Ver mais"
+
+#: src/ui/artist.rs:97
+msgid "No popular songs to show."
+msgstr "Não há músicas populares para mostrar."
+
+#: src/ui/artist.rs:110
+msgid "Discography"
+msgstr "Discografia"
+
+#: src/ui/artist.rs:189
+msgid "Nothing in this category."
+msgstr "Nada nesta categoria."
+
+#: src/ui/artist.rs:196 src/ui/queue.rs:565
+msgid "Load more"
+msgstr "Carregar mais"
+
+#: src/ui/artist.rs:215
+msgid "Fans also like"
+msgstr "Os fãs também gostam de"
+
+#: src/ui/artist.rs:272 src/ui/artist.rs:300 src/ui/collection.rs:618
+#: src/ui/collection.rs:1507 src/ui/collection.rs:1637
+#: src/ui/collection.rs:1663 src/ui/collection.rs:1727
+#: src/ui/collection.rs:1836 src/ui/collection.rs:1862
+#: src/ui/collection.rs:2107 src/ui/home.rs:25 src/ui/library.rs:259
+#: src/ui/lyrics.rs:143 src/ui/lyrics.rs:160 src/ui/search.rs:91
+#: src/ui/show.rs:60 src/ui/show.rs:106 src/ui/show.rs:136
+msgid "You're offline"
+msgstr "Estás offline"
+
+#: src/ui/artist.rs:275 src/ui/artist.rs:303 src/ui/collection.rs:621
+#: src/ui/collection.rs:1510 src/ui/collection.rs:1640
+#: src/ui/collection.rs:1666 src/ui/collection.rs:1730
+#: src/ui/collection.rs:1839 src/ui/collection.rs:1865
+#: src/ui/collection.rs:2110 src/ui/home.rs:34 src/ui/library.rs:262
+#: src/ui/lyrics.rs:146 src/ui/lyrics.rs:163 src/ui/show.rs:63
+#: src/ui/show.rs:109 src/ui/show.rs:139
+msgid "Melba will reconnect automatically when your connection returns."
+msgstr "O Melba voltará a ligar-se automaticamente quando a ligação for restabelecida."
+
+#: src/ui/artist.rs:379 src/ui/collection.rs:246 src/ui/show.rs:206
+#: src/ui/show.rs:358
+msgid "Starting…"
+msgstr "A iniciar…"
+
+#: src/ui/artist.rs:402
+msgctxt "artist"
+msgid "Following"
+msgstr "A seguir"
+
+#: src/ui/artist.rs:404 src/ui/widgets.rs:1177
+msgctxt "artist"
+msgid "Follow"
+msgstr "Seguir"
+
+#: src/ui/artist.rs:418 src/ui/collection.rs:363 src/ui/show.rs:247
+#: src/ui/show.rs:449 src/ui/widgets.rs:1931
+msgid "More"
+msgstr "Mais"
+
+#: src/ui/collection.rs:258 src/ui/player_bar.rs:684
+msgid "Pause"
+msgstr "Pausar"
+
+#: src/ui/collection.rs:265
+msgid "No playable songs in this view"
+msgstr "Não há músicas reproduzíveis nesta vista"
+
+#: src/ui/collection.rs:312
+msgid "Shuffle off"
+msgstr "Desativar ordem aleatória"
+
+#: src/ui/collection.rs:314 src/ui/player_bar.rs:630 src/ui/player_bar.rs:637
+msgid "Shuffle"
+msgstr "Ordem aleatória"
+
+#: src/ui/collection.rs:350 src/ui/collection.rs:376
+msgid "Save as playlist"
+msgstr "Guardar como playlist"
+
+#: src/ui/collection.rs:398
+msgid "Refreshing…"
+msgstr "A atualizar…"
+
+#: src/ui/collection.rs:400 src/ui/devices.rs:211
+msgid "Refresh"
+msgstr "Atualizar"
+
+#: src/ui/collection.rs:419
+msgid "Filter"
+msgstr "Filtrar"
+
+#: src/ui/collection.rs:805 src/ui/collection.rs:832
+msgid "Unavailable"
+msgstr "Indisponível"
+
+#: src/ui/collection.rs:811
+msgid "You're offline. Reconnect to load more songs."
+msgstr "Estás offline. Volta a ligar-te para carregar mais músicas."
+
+#: src/ui/collection.rs:960
+msgid "Nothing here yet"
+msgstr "Ainda não há nada aqui"
+
+#: src/ui/collection.rs:961
+msgid "Added songs appear here."
+msgstr "As músicas adicionadas aparecem aqui."
+
+#: src/ui/collection.rs:1413 src/ui/home.rs:551
+msgid "Your top songs"
+msgstr "As tuas músicas mais ouvidas"
+
+#: src/ui/collection.rs:1422
+msgid "Your most-played tracks from the last four weeks."
+msgstr "As tuas faixas mais ouvidas nas últimas quatro semanas."
+
+#: src/ui/collection.rs:1917
+msgid "Public Playlist"
+msgstr "Playlist pública"
+
+#: src/ui/collection.rs:1967 src/ui/widgets.rs:1179
+msgid "Add to Your Library"
+msgstr "Adicionar à tua biblioteca"
+
+#: src/ui/collection.rs:1968 src/ui/collection.rs:1990 src/ui/show.rs:229
+#: src/ui/widgets.rs:1178
+msgid "Remove from Your Library"
+msgstr "Remover da tua biblioteca"
+
+#: src/ui/collection.rs:1989
+msgid "Save to Your Library"
+msgstr "Guardar na tua biblioteca"
+
+#. Translators: {count} is a number of songs and {duration} their total
+#. length, such as "2 hr 13 min".
+#: src/ui/collection.rs:2247
+#, rust-format
+msgid "{count} song, {duration}"
+msgid_plural "{count} songs, {duration}"
+msgstr[0] "{count} música, {duration}"
+msgstr[1] "{count} músicas, {duration}"
+
+#: src/ui/devices.rs:198 src/ui/player_bar.rs:894
+msgid "Connect to a device"
+msgstr "Ligar a um dispositivo"
+
+#: src/ui/dialogs.rs:43
+msgid "Delete playlist?"
+msgstr "Eliminar playlist?"
+
+#: src/ui/dialogs.rs:45
+msgid "Remove from Your Library?"
+msgstr "Remover da tua biblioteca?"
+
+#. Translators: {name} is a playlist name.
+#: src/ui/dialogs.rs:53
+#, rust-format
+msgid "Delete “{name}”?"
+msgstr "Apagar “{name}”?"
+
+#. Translators: {name} is a playlist name.
+#: src/ui/dialogs.rs:56
+#, rust-format
+msgid "“{name}” will no longer appear in Your Library."
+msgstr "“{name}” deixará de aparecer na tua biblioteca."
+
+#: src/ui/dialogs.rs:73 src/ui/widgets.rs:1203
+msgid "Delete"
+msgstr "Eliminar"
+
+#: src/ui/dialogs.rs:75
+msgid "Remove"
+msgstr "Remover"
+
+#: src/ui/dialogs.rs:83 src/ui/dialogs.rs:130 src/ui/dialogs.rs:418
+#: src/ui/dialogs.rs:599 src/ui/login.rs:89
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: src/ui/dialogs.rs:101
+msgid "Songs already in this playlist"
+msgstr "Músicas já presentes nesta playlist"
+
+#: src/ui/dialogs.rs:103
+msgid "Song already in this playlist"
+msgstr "Música já presente nesta playlist"
+
+#: src/ui/dialogs.rs:120
+msgid "Add anyway"
+msgstr "Adicionar na mesma"
+
+#: src/ui/dialogs.rs:140 src/ui/keys.rs:306 src/ui/settings.rs:1816
+#: src/ui/topbar.rs:479
+msgid "Keyboard shortcuts"
+msgstr "Atalhos de teclado"
+
+#: src/ui/dialogs.rs:186
+msgid "Done"
+msgstr "Concluído"
+
+#: src/ui/dialogs.rs:196
+msgid "This account cannot play music here"
+msgstr "Esta conta não pode reproduzir música aqui"
+
+#: src/ui/dialogs.rs:205
+msgid "Playback needs an Apple Music subscription."
+msgstr "A reprodução requer uma assinatura do Apple Music."
+
+#: src/ui/dialogs.rs:214
+msgid "OK"
+msgstr "OK"
+
+#: src/ui/dialogs.rs:256
+#, rust-format
+msgid "This song is already in “{playlist}”. Add it again?"
+msgstr "Esta música já está em “{playlist}”. Adicionar novamente?"
+
+#: src/ui/dialogs.rs:263
+#, rust-format
+msgid "This song is already in “{playlist}”. Add them anyway?"
+msgstr "Esta música já está em “{playlist}”. Adicioná-las na mesma?"
+
+#. Translators: {name} is a song name and {playlist} a playlist name.
+#: src/ui/dialogs.rs:268
+#, rust-format
+msgid "“{name}” is already in “{playlist}”. Add it again?"
+msgstr "“{name}” já está em “{playlist}”. Adicionar novamente?"
+
+#: src/ui/dialogs.rs:276
+#, rust-format
+msgid "“{name}” is already in “{playlist}”. Add them anyway?"
+msgstr "“{name}” já está em “{playlist}”. Adicioná-las na mesma?"
+
+#: src/ui/dialogs.rs:285
+#, rust-format
+msgid "“{first}” and “{second}” are already in “{playlist}”. Add them anyway?"
+msgstr "“{first}” e “{second}” já estão em “{playlist}”. Adicioná-las na mesma?"
+
+#. Translators: {first} and {second} are song names, {count} is how many more songs are already in the playlist, and {playlist} is a playlist name.
+#: src/ui/dialogs.rs:294
+#, rust-format
+msgid "“{first}”, “{second}”, and {count} more are already in “{playlist}”. Add them anyway?"
+msgid_plural "“{first}”, “{second}”, and {count} more are already in “{playlist}”. Add them anyway?"
+msgstr[0] "“{first}”, “{second}” e mais {count} música já estão em “{playlist}”. Adicioná-las na mesma?"
+msgstr[1] "“{first}”, “{second}” e mais {count} músicas já estão em “{playlist}”. Adicioná-las na mesma?"
+
+#: src/ui/dialogs.rs:352 src/ui/widgets.rs:858
+msgid "New playlist"
+msgstr "Nova playlist"
+
+#: src/ui/dialogs.rs:359 src/ui/dialogs.rs:516 src/ui/sidebar.rs:358
+msgid "Name"
+msgstr "Nome"
+
+#: src/ui/dialogs.rs:369
+msgid "My playlist"
+msgstr "A minha playlist"
+
+#: src/ui/dialogs.rs:374 src/ui/dialogs.rs:377 src/ui/dialogs.rs:564
+#: src/ui/dialogs.rs:573
+msgid "Public playlist"
+msgstr "Playlist pública"
+
+#. Translators: {count} is the number of songs.
+#: src/ui/dialogs.rs:390
+#, rust-format
+msgid "{count} song will be added."
+msgid_plural "{count} songs will be added."
+msgstr[0] "{count} música será adicionada."
+msgstr[1] "{count} músicas serão adicionadas."
+
+#: src/ui/dialogs.rs:408
+msgid "Create"
+msgstr "Criar"
+
+#: src/ui/dialogs.rs:451 src/ui/widgets.rs:1189
+msgid "Edit details"
+msgstr "Editar detalhes"
+
+#: src/ui/dialogs.rs:467
+msgid "Selected playlist cover"
+msgstr "Capa da playlist selecionada"
+
+#: src/ui/dialogs.rs:474
+msgid "Current playlist cover"
+msgstr "Capa atual da playlist"
+
+#: src/ui/dialogs.rs:483
+msgid "Uploading cover…"
+msgstr "A carregar capa…"
+
+#: src/ui/dialogs.rs:485
+msgid "Choosing cover…"
+msgstr "A escolher capa…"
+
+#: src/ui/dialogs.rs:491
+msgid "Change cover"
+msgstr "Alterar capa"
+
+#: src/ui/dialogs.rs:500
+msgid "Upload cover"
+msgstr "Carregar capa"
+
+#: src/ui/dialogs.rs:526
+msgid "Playlist name"
+msgstr "Nome da playlist"
+
+#: src/ui/dialogs.rs:532
+msgid "Description"
+msgstr "Descrição"
+
+#: src/ui/dialogs.rs:547
+msgid "Optional description"
+msgstr "Descrição opcional"
+
+#: src/ui/dialogs.rs:589
+msgid "Save"
+msgstr "Guardar"
+
+#: src/ui/home.rs:241
+msgid "Made for you"
+msgstr "Feito para ti"
+
+#. Translators: {owner} is the name of the playlist's owner.
+#: src/ui/home.rs:258 src/ui/search.rs:623
+#, rust-format
+msgid "By {owner}"
+msgstr "De {owner}"
+
+#: src/ui/home.rs:314 src/ui/home.rs:324 src/ui/home.rs:351
+#: src/ui/sidebar.rs:356
+msgid "Recently played"
+msgstr "Reproduzidos recentemente"
+
+#: src/ui/home.rs:403 src/ui/home.rs:413 src/ui/home.rs:428
+msgid "Your top artists"
+msgstr "Os teus artistas mais ouvidos"
+
+#: src/ui/home.rs:552
+msgid "Show more top songs"
+msgstr "Mostrar mais músicas mais ouvidas"
+
+#: src/ui/home.rs:566
+msgid "Recommended for you"
+msgstr "Recomendado para ti"
+
+#: src/ui/keys.rs:196
+msgctxt "key"
+msgid "Space"
+msgstr "Espaço"
+
+#: src/ui/keys.rs:197
+msgid "Play or pause"
+msgstr "Reproduzir ou pausar"
+
+#: src/ui/keys.rs:201
+msgid "Previous or next"
+msgstr "Anterior ou seguinte"
+
+#: src/ui/keys.rs:205
+msgid "Seek 10 seconds"
+msgstr "Avançar ou recuar 10 segundos"
+
+#: src/ui/keys.rs:209
+msgid "Volume up or down"
+msgstr "Aumentar ou diminuir o volume"
+
+#: src/ui/keys.rs:211
+msgid "Mute or unmute"
+msgstr "Silenciar ou ativar o som"
+
+#: src/ui/keys.rs:214
+msgid "Like or unlike the playing song"
+msgstr "Gostar ou deixar de gostar da música atual"
+
+#: src/ui/keys.rs:216
+msgid "Toggle shuffle"
+msgstr "Ativar ou desativar a ordem aleatória"
+
+#: src/ui/keys.rs:217
+msgid "Cycle repeat"
+msgstr "Alternar o modo de repetição"
+
+#: src/ui/keys.rs:218
+msgid "Show the queue"
+msgstr "Mostrar a fila"
+
+#: src/ui/keys.rs:219
+msgid "Show the lyrics"
+msgstr "Mostrar a letra"
+
+#: src/ui/keys.rs:221
+msgid "Lyrics: leave full screen"
+msgstr "Letra: sair do ecrã inteiro"
+
+#: src/ui/keys.rs:224
+msgid "Song list: extend or shrink the selection"
+msgstr "Lista de músicas: ampliar ou reduzir a seleção"
+
+#: src/ui/keys.rs:226 src/ui/widgets.rs:744 src/ui/widgets.rs:1035
+msgid "Remove from this playlist"
+msgstr "Remover desta playlist"
+
+#: src/ui/keys.rs:229
+msgid "Song list: select all"
+msgstr "Lista de músicas: selecionar tudo"
+
+#: src/ui/keys.rs:233
+msgid "Song list: copy the selected songs' links"
+msgstr "Lista de músicas: copiar as ligações das músicas selecionadas"
+
+#: src/ui/keys.rs:237
+msgid "Playlist: cut the selected songs"
+msgstr "Playlist: cortar as músicas selecionadas"
+
+#: src/ui/keys.rs:241
+msgid "Playlist: add the pasted song links"
+msgstr "Playlist: adicionar as ligações de músicas coladas"
+
+#. Translators: Keep the key names. Only the word "or" is translated.
+#: src/ui/keys.rs:246
+msgid "Cmd+F  or  /"
+msgstr "Cmd+F  ou  /"
+
+#. Translators: Keep the key names. Only the word "or" is translated.
+#: src/ui/keys.rs:249
+msgid "Ctrl+F  or  /"
+msgstr "Ctrl+F  ou  /"
+
+#: src/ui/keys.rs:255
+msgid "Show or hide the sidebar"
+msgstr "Mostrar ou ocultar a barra lateral"
+
+#: src/ui/keys.rs:257
+msgid "Back or forward"
+msgstr "Voltar ou avançar"
+
+#: src/ui/keys.rs:268
+msgid "Go to the playing artist"
+msgstr "Ir para o artista da música atual"
+
+#: src/ui/keys.rs:272
+msgid "Go to the playing album"
+msgstr "Ir para o álbum da música atual"
+
+#: src/ui/keys.rs:296 src/ui/settings.rs:269 src/ui/topbar.rs:471
+#: src/ui/topbar.rs:531
+msgid "Settings"
+msgstr "Definições"
+
+#. Translators: Keep the key names. Only the word "or" is translated.
+#: src/ui/keys.rs:301
+msgid "Cmd+/ or ?"
+msgstr "Cmd+/ ou ?"
+
+#. Translators: Keep the key names. Only the word "or" is translated.
+#: src/ui/keys.rs:304
+msgid "Ctrl+/ or ?"
+msgstr "Ctrl+/ ou ?"
+
+#: src/ui/keys.rs:310
+msgid "Close the window"
+msgstr "Fechar a janela"
+
+#: src/ui/keys.rs:312 src/ui/winamp/mod.rs:727
+msgid "Quit"
+msgstr "Sair"
+
+#: src/ui/library.rs:18
+msgid "No saved albums"
+msgstr "Nenhum álbum guardado"
+
+#: src/ui/library.rs:19
+msgid "Saved albums appear here."
+msgstr "Os álbuns guardados aparecem aqui."
+
+#: src/ui/library.rs:23
+msgid "No followed artists"
+msgstr "Nenhum artista seguido"
+
+#: src/ui/library.rs:24
+msgid "Followed artists appear here."
+msgstr "Os artistas que segues aparecem aqui."
+
+#: src/ui/login.rs:74
+msgid "A native Apple Music client."
+msgstr "Um cliente nativo do Apple Music."
+
+#: src/ui/login.rs:82
+msgid "Waiting for Apple Music in your browser…"
+msgstr "A aguardar o Apple Music no navegador…"
+
+#: src/ui/login.rs:85
+msgid "Didn't open? Open the sign-in page again"
+msgstr "Não abriu? Abre novamente a página de início de sessão"
+
+#: src/ui/login.rs:97 src/ui/settings.rs:373
+msgid "Connecting to Apple Music…"
+msgstr "A ligar ao Apple Music…"
+
+#: src/ui/login.rs:111
+msgid "Sign in with Apple Music"
+msgstr "Iniciar sessão com o Apple Music"
+
+#: src/ui/login.rs:117
+msgid "Sign in through your browser. Melba never sees your password. Playback needs an Apple Music subscription."
+msgstr "Inicia sessão no navegador. O Melba nunca vê a tua palavra-passe. A reprodução local requer o an Apple Music subscription."
+
+#: src/ui/login.rs:131
+msgid "Proxy Settings"
+msgstr "Definições de proxy"
+
+#. Translators: {version} is the app's version number, such as 1.2.0.
+#: src/ui/login.rs:152
+#, rust-format
+msgid "Melba {version} • not affiliated with Apple"
+msgstr "Melba {version} • sem afiliação ao Apple Music"
+
+#: src/ui/login.rs:213 src/ui/settings.rs:1255
+msgid "Apply settings"
+msgstr "Aplicar definições"
+
+#: src/ui/lyrics.rs:67 src/ui/lyrics.rs:549 src/ui/player_bar.rs:939
+msgid "Lyrics"
+msgstr "Letra"
+
+#: src/ui/lyrics.rs:131 src/ui/lyrics.rs:626 src/ui/player_bar.rs:401
+msgid "Nothing playing"
+msgstr "Nada em reprodução"
+
+#: src/ui/lyrics.rs:132 src/ui/lyrics.rs:627
+msgid "Play a song to see its lyrics."
+msgstr "Reproduz uma música para veres a letra."
+
+#: src/ui/mod.rs:462
+msgid "Minimize"
+msgstr "Minimizar"
+
+#: src/ui/mod.rs:463
+msgid "Maximize"
+msgstr "Maximizar"
+
+#: src/ui/mod.rs:464
+msgid "Restore"
+msgstr "Restaurar"
+
+#: src/ui/player_bar.rs:541 src/ui/widgets.rs:725 src/ui/widgets.rs:971
+#: src/ui/widgets.rs:1884
+msgid "Remove from Liked Songs"
+msgstr "Remover das Músicas de que gostas"
+
+#: src/ui/player_bar.rs:548 src/ui/widgets.rs:728 src/ui/widgets.rs:974
+#: src/ui/widgets.rs:1886
+msgid "Save to Liked Songs"
+msgstr "Guardar nas Músicas de que gostas"
+
+#: src/ui/player_bar.rs:651
+msgid "Previous"
+msgstr "Anterior"
+
+#: src/ui/player_bar.rs:702
+msgid "Next"
+msgstr "Seguinte"
+
+#: src/ui/player_bar.rs:710
+msgid "Repeat"
+msgstr "Repetir"
+
+#: src/ui/player_bar.rs:714
+msgid "Repeat one"
+msgstr "Repetir uma música"
+
+#: src/ui/player_bar.rs:719
+msgid "Repeat off"
+msgstr "Desativar repetição"
+
+#: src/ui/player_bar.rs:780
+msgid "Playback position (%)"
+msgstr "Posição de reprodução (%)"
+
+#: src/ui/player_bar.rs:856
+msgid "Unmute"
+msgstr "Ativar som"
+
+#: src/ui/player_bar.rs:858
+msgid "Mute"
+msgstr "Silenciar"
+
+#: src/ui/player_bar.rs:874
+msgid "This device's volume can't be changed from Melba"
+msgstr "O volume deste dispositivo não pode ser alterado a partir do Melba"
+
+#: src/ui/player_bar.rs:913 src/ui/queue.rs:23 src/ui/queue.rs:79
+msgid "Queue"
+msgstr "Fila"
+
+#: src/ui/prerelease.rs:226 src/ui/widgets.rs:1117 src/ui/widgets.rs:1229
+msgid "Copy link"
+msgstr "Copiar ligação"
+
+#: src/ui/prerelease.rs:230 src/ui/widgets.rs:1125 src/ui/widgets.rs:1237
+msgid "Open in Apple Music"
+msgstr "Abrir no Apple Music"
+
+#: src/ui/queue.rs:241
+msgid "Playing from"
+msgstr "A reproduzir de"
+
+#: src/ui/queue.rs:261
+msgid "Now playing"
+msgstr "A reproduzir"
+
+#. Translators: Songs added manually, before the current playlist or album continues.
+#: src/ui/queue.rs:326
+msgid "Playing next"
+msgstr "A seguir"
+
+#. Translators: Upcoming songs from the current playlist or album, after manually queued songs.
+#: src/ui/queue.rs:433
+msgid "Next up"
+msgstr "Depois"
+
+#: src/ui/queue.rs:489
+msgid "No recent plays"
+msgstr "Nenhuma reprodução recente"
+
+#: src/ui/queue.rs:490
+msgid "Played songs appear here."
+msgstr "As músicas reproduzidas aparecem aqui."
+
+#: src/ui/radio.rs:106
+msgid "Radio comes from playback on this computer. Turn it on in Settings."
+msgstr "A rádio vem da reprodução neste computador. Ativa-a nas Definições."
+
+#: src/ui/radio.rs:203
+msgid "Based on this playlist"
+msgstr "Com base nesta playlist"
+
+#: src/ui/radio.rs:204
+msgid "Based on this album"
+msgstr "Com base neste álbum"
+
+#: src/ui/radio.rs:205
+msgid "Based on this artist"
+msgstr "Com base neste artista"
+
+#: src/ui/radio.rs:206
+msgid "Based on this song"
+msgstr "Com base nesta música"
+
+#. Translators: {first} is an artist name.
+#: src/ui/radio.rs:225
+#, rust-format
+msgid "With {first}"
+msgstr "Com {first}"
+
+#. Translators: {first} and {second} are artist names.
+#: src/ui/radio.rs:228
+#, rust-format
+msgid "With {first} and {second}"
+msgstr "Com {first} e {second}"
+
+#. Translators: {first}, {second} and {third} are artist names.
+#: src/ui/radio.rs:234
+#, rust-format
+msgid "With {first}, {second} and {third}"
+msgstr "Com {first}, {second} e {third}"
+
+#. Translators: {first}, {second} and {third} are artist names; more follow.
+#: src/ui/radio.rs:241
+#, rust-format
+msgid "With {first}, {second}, {third} and more"
+msgstr "Com {first}, {second}, {third} e mais"
+
+#. Translators: {query} is the text the user searched for.
+#: src/ui/search.rs:66
+#, rust-format
+msgid "No results for “{query}”"
+msgstr "Sem resultados para “{query}”"
+
+#: src/ui/search.rs:68
+msgid "Check the spelling, or try fewer words."
+msgstr "Verifica a ortografia ou experimenta menos palavras."
+
+#: src/ui/search.rs:94
+msgid "Connect to the internet to search songs, artists, and playlists."
+msgstr "Liga-te à Internet para pesquisar músicas, artistas e listas de reprodução."
+
+#: src/ui/search.rs:104 src/ui/winamp/playlist.rs:647
+msgid "Search Apple Music"
+msgstr "Pesquisar no Apple Music"
+
+#: src/ui/search.rs:112
+msgid "Recent searches"
+msgstr "Pesquisas recentes"
+
+#: src/ui/search.rs:151
+msgid "Top result"
+msgstr "Melhor resultado"
+
+#. Translators: {artists} is the album's artist names.
+#: src/ui/search.rs:202
+#, rust-format
+msgid "Album • {artists}"
+msgstr "Álbum • {artists}"
+
+#. Translators: {owner} is the name of the playlist's owner.
+#: src/ui/search.rs:228 src/ui/sidebar.rs:857
+#, rust-format
+msgid "Playlist • {owner}"
+msgstr "Playlist • {owner}"
+
+#. Translators: Precedes the song's artist names, which follow as links.
+#: src/ui/search.rs:367
+msgid "Song • "
+msgstr "Música • "
+
+#: src/ui/settings.rs:283
+msgid "Search settings"
+msgstr "Pesquisar nas definições"
+
+#: src/ui/settings.rs:301
+msgid "Account"
+msgstr "Conta"
+
+#: src/ui/settings.rs:302 src/ui/topbar.rs:489
+msgid "Sign out"
+msgstr "Terminar sessão"
+
+#. Translators: {username} is the Apple Music account's user name.
+#: src/ui/settings.rs:342
+#, rust-format
+msgid "Connected as {username}"
+msgstr "Sessão iniciada como {username}"
+
+#: src/ui/settings.rs:385
+msgctxt "playback status"
+msgid "Unavailable"
+msgstr "Indisponível"
+
+#: src/ui/settings.rs:404
+msgid "Audio cache"
+msgstr "Cache de áudio"
+
+#: src/ui/settings.rs:464
+msgid "More buffering can prevent clicks on busy computers. Less buffering makes controls respond sooner."
+msgstr "Um buffer maior pode evitar estalidos em computadores sobrecarregados. Um buffer menor faz os controlos responderem mais depressa."
+
+#: src/ui/settings.rs:756
+msgid "Appearance"
+msgstr "Aspeto"
+
+#: src/ui/settings.rs:757
+msgid "Theme"
+msgstr "Tema"
+
+#: src/ui/settings.rs:758
+msgid "How to make a theme"
+msgstr "Como criar um tema"
+
+#: src/ui/settings.rs:759
+msgid "Open themes folder"
+msgstr "Abrir pasta de temas"
+
+#: src/ui/settings.rs:760
+msgid "Colour from album art"
+msgstr "Cor da capa do álbum"
+
+#: src/ui/settings.rs:761
+msgid "Compact library sidebar"
+msgstr "Barra lateral compacta da biblioteca"
+
+#: src/ui/settings.rs:762
+msgid "Compact track list"
+msgstr "Lista de faixas compacta"
+
+#: src/ui/settings.rs:763
+msgid "Middle-click autoscroll"
+msgstr "Deslocamento automático com o botão do meio"
+
+#: src/ui/settings.rs:764
+msgid "Custom title bar"
+msgstr "Barra de título personalizada"
+
+#: src/ui/settings.rs:778
+msgid "Follow system uses your Omarchy colours."
+msgstr "Seguir o sistema usa as cores do Omarchy."
+
+#: src/ui/settings.rs:782
+msgid "Follow system uses your desktop's light or dark appearance."
+msgstr "Seguir o sistema usa o aspeto claro ou escuro do teu ambiente de trabalho."
+
+#: src/ui/settings.rs:790
+msgid "System follows your computer's language. Untranslated text stays in English."
+msgstr "Sistema segue o idioma do computador. O texto não traduzido fica em inglês."
+
+#: src/ui/settings.rs:797
+msgid "Use the current cover's colour on pages and the player bar."
+msgstr "Usa a cor da capa atual nas páginas e na barra do leitor."
+
+#: src/ui/settings.rs:802
+msgid "Show names without covers in the sidebar."
+msgstr "Mostra os nomes sem capas na barra lateral."
+
+#: src/ui/settings.rs:806
+msgid "Show each track on one line without a cover."
+msgstr "Mostra cada faixa numa linha, sem capa."
+
+#: src/ui/settings.rs:809
+msgid "Interface zoom"
+msgstr "Zoom da interface"
+
+#: src/ui/settings.rs:813
+msgid "Ctrl+Plus and Ctrl+Minus work anywhere; Ctrl+0 resets."
+msgstr "Ctrl+Plus e Ctrl+Minus funcionam em qualquer sítio; Ctrl+0 repõe."
+
+#: src/ui/settings.rs:817
+msgid "Cmd+Plus and Cmd+Minus work anywhere; Cmd+0 resets."
+msgstr "Cmd+Plus e Cmd+Minus funcionam em qualquer sítio; Cmd+0 repõe."
+
+#: src/ui/settings.rs:826
+msgid "Middle-click a list, then move the pointer to scroll it. Off by default, because a middle click usually pastes on Linux."
+msgstr "Clica com o botão do meio numa lista e move o ponteiro para a deslocar. Desativado por predefinição, porque no Linux o clique do meio costuma colar."
+
+#: src/ui/settings.rs:834
+msgid "Draw Melba's own title bar and window buttons instead of the desktop's."
+msgstr "Desenha a barra de título e os botões de janela do próprio Melba em vez dos do ambiente de trabalho."
+
+#: src/ui/settings.rs:842
+msgid "Show the song moving behind the player bar's controls while it plays here."
+msgstr "Mostra a música em movimento atrás dos controlos da barra do leitor enquanto toca aqui."
+
+#: src/ui/settings.rs:853
+msgid "How often the player bar and mini player visualizers draw. Lower rates use fewer resources. MilkDrop has its own."
+msgstr "Com que frequência os visualizadores da barra do leitor e do minileitor desenham. Taxas mais baixas usam menos recursos. O MilkDrop tem a sua própria."
+
+#: src/ui/settings.rs:988
+msgid "Off"
+msgstr "Desativado"
+
+#: src/ui/settings.rs:1185
+msgid "Proxy"
+msgstr "Proxy"
+
+#: src/ui/settings.rs:1187
+msgid "Mode, host, port, username and password"
+msgstr "Modo, host, porta, nome de utilizador e palavra-passe"
+
+#: src/ui/settings.rs:1190
+msgid "Off, System, HTTP or SOCKS5 proxy for network requests."
+msgstr "Proxy desativado, do sistema, HTTP ou SOCKS5 para os pedidos de rede."
+
+#: src/ui/settings.rs:1200
+msgctxt "proxy"
+msgid "Mode"
+msgstr "Modo"
+
+#: src/ui/settings.rs:1203
+msgid "Off ignores environment variables. System uses them, and the OS proxy on macOS and Windows."
+msgstr "Desativado ignora as variáveis de ambiente. Sistema usa-as e, no macOS e no Windows, o proxy do sistema operativo."
+
+#: src/ui/settings.rs:1267
+msgid "Not using a proxy."
+msgstr "Sem proxy."
+
+#: src/ui/settings.rs:1268
+msgid "Using the system proxy."
+msgstr "A usar o proxy do sistema."
+
+#: src/ui/settings.rs:1288
+msgid "Use classic Winamp .wsz skins. Press Ctrl+M or click the skin logo to return. Drop a skin on either window to add it."
+msgstr "Usa skins clássicas .wsz do Winamp. Prime Ctrl+M ou clica no logótipo da skin para voltar. Larga uma skin em qualquer uma das janelas para a adicionar."
+
+#: src/ui/settings.rs:1292
+msgid "Use classic Winamp .wsz skins. Press Cmd+Shift+M or click the skin logo to return. Drop a skin on either window to add it."
+msgstr "Usa skins clássicas .wsz do Winamp. Prime Cmd+Shift+M ou clica no logótipo da skin para voltar. Larga uma skin em qualquer uma das janelas para a adicionar."
+
+#: src/ui/settings.rs:1322
+msgid "Keep a taskbar button for the mini player. The tray icon stays available when hidden."
+msgstr "Mantém um botão na barra de tarefas para o minileitor. O ícone na área de notificação continua disponível quando está oculto."
+
+#: src/ui/settings.rs:1418
+#, rust-format
+msgid "Now showing {skin}. Another one is picked each time the mini player opens."
+msgstr "Em uso: {skin}. É escolhida outra sempre que o minileitor abre."
+
+#: src/ui/settings.rs:1482
+msgid "A projectM visualiser for local playback. Open it here, from the top bar, with Ctrl+Shift+K, or from the mini player's V menu. Press ? or F1 for its shortcuts."
+msgstr "Um visualizador projectM para a reprodução local. Abre-o aqui, na barra superior, com Ctrl+Shift+K ou no menu V do minileitor. Prime ? ou F1 para ver os atalhos."
+
+#: src/ui/settings.rs:1486
+msgid "A projectM visualiser for local playback. Open it here, from the top bar, with Cmd+Shift+K, or from the mini player's V menu. Press ? or F1 for its shortcuts."
+msgstr "Um visualizador projectM para a reprodução local. Abre-o aqui, na barra superior, com Cmd+Shift+K ou no menu V do minileitor. Prime ? ou F1 para ver os atalhos."
+
+#. Translators: {folder} is the path of the MilkDrop presets folder.
+#: src/ui/settings.rs:1497
+#, rust-format
+msgid "None yet in {folder}. Add .milk files here. Melba downloads presets when MilkDrop first opens with an empty folder."
+msgstr "Ainda não há nenhuma em {folder}. Adiciona ficheiros .milk aqui. O Melba transfere predefinições quando o MilkDrop abre pela primeira vez com a pasta vazia."
+
+#. Translators: {folder} is the path of the MilkDrop presets folder.
+#: src/ui/settings.rs:1503
+#, rust-format
+msgid "One preset in {folder}. Add .milk files here. Melba downloads presets when MilkDrop first opens with an empty folder."
+msgstr "Uma predefinição em {folder}. Adiciona ficheiros .milk aqui. O Melba transfere predefinições quando o MilkDrop abre pela primeira vez com a pasta vazia."
+
+#. Translators: {count} is the number of presets, {folder} the path of the MilkDrop presets folder.
+#: src/ui/settings.rs:1509
+#, rust-format
+msgid "{count} preset in {folder}. Add .milk files here. Melba downloads presets when MilkDrop first opens with an empty folder."
+msgid_plural "{count} presets in {folder}. Add .milk files here. Melba downloads presets when MilkDrop first opens with an empty folder."
+msgstr[0] "{count} predefinição em {folder}. Adiciona ficheiros .milk aqui. O Melba transfere predefinições quando o MilkDrop abre pela primeira vez com a pasta vazia."
+msgstr[1] "{count} predefinições em {folder}. Adiciona ficheiros .milk aqui. O Melba transfere predefinições quando o MilkDrop abre pela primeira vez com a pasta vazia."
+
+#. Translators: {hz} is the screen's refresh rate in hertz.
+#: src/ui/settings.rs:1534
+#, rust-format
+msgid "Your screen refreshes at {hz} Hz. Higher rates do not add visible frames. Uncapped draws as fast as possible."
+msgstr "O teu ecrã atualiza a {hz} Hz. Taxas mais altas não acrescentam fotogramas visíveis. Sem limite desenha o mais depressa possível."
+
+#: src/ui/settings.rs:1665
+msgid "A ten-band equalizer for playback on this computer. It does not affect other devices."
+msgstr "Um equalizador de dez bandas para a reprodução neste computador. Não afeta outros dispositivos."
+
+#: src/ui/settings.rs:1742
+msgid "Storage"
+msgstr "Armazenamento"
+
+#: src/ui/settings.rs:1745
+msgid "Artwork cache"
+msgstr "Cache de capas"
+
+#. Translators: {folder} is the path of a cache folder.
+#: src/ui/settings.rs:1747 src/ui/settings.rs:1753
+#, rust-format
+msgid "Stored in {folder}"
+msgstr "Guardado em {folder}"
+
+#: src/ui/settings.rs:1759
+msgid "Play history"
+msgstr "Histórico de reprodução"
+
+#. Translators: {file} is the path of the play history file.
+#: src/ui/settings.rs:1763
+#, rust-format
+msgid "Tracks played here are stored in {file}. This file is never uploaded."
+msgstr "As faixas reproduzidas aqui ficam em {file}. Este ficheiro nunca é enviado."
+
+#: src/ui/settings.rs:1768
+msgid "Sign-in"
+msgstr "Início de sessão"
+
+#: src/ui/settings.rs:1771
+msgid "Sign-ins are saved in the system credential store when available."
+msgstr "As sessões são guardadas no armazenamento de credenciais do sistema, quando disponível."
+
+#: src/ui/settings.rs:1783
+msgid "Clear artwork"
+msgstr "Apagar capas"
+
+#: src/ui/settings.rs:1797
+msgid "Clear history"
+msgstr "Apagar histórico"
+
+#: src/ui/settings.rs:1809 src/ui/show.rs:36
+msgid "About"
+msgstr "Acerca de"
+
+#: src/ui/settings.rs:1812
+msgid "Built with Rust and egui on Melba. Not affiliated with Apple."
+msgstr "Feito com Rust, egui e librespot. Sem afiliação ao Apple Music."
+
+#: src/ui/settings.rs:1814
+msgid "Check for updates"
+msgstr "Procurar atualizações"
+
+#: src/ui/settings.rs:1815
+msgid "Checking…"
+msgstr "A verificar…"
+
+#: src/ui/settings.rs:1817
+msgid "Source code"
+msgstr "Código-fonte"
+
+#. Translators: {query} is the text typed into the settings search field.
+#: src/ui/settings.rs:1889
+#, rust-format
+msgid "No settings for “{query}”"
+msgstr "Nenhuma definição para “{query}”"
+
+#: src/ui/settings.rs:1890
+msgid "Try fewer words, or check the spelling."
+msgstr "Experimenta menos palavras ou verifica a ortografia."
+
+#: src/ui/settings.rs:1906
+msgctxt "language"
+msgid "System"
+msgstr "Sistema"
+
+#. Translators: The play button on a Library card. {name} is the playlist, album, artist, or podcast.
+#: src/ui/sidebar.rs:174
+#, rust-format
+msgid "Pause {name}"
+msgstr "Pausar {name}"
+
+#. Translators: The play button on a Library card. {name} is the playlist, album, artist, or podcast.
+#: src/ui/sidebar.rs:177
+#, rust-format
+msgid "Play {name}"
+msgstr "Reproduzir {name}"
+
+#: src/ui/sidebar.rs:353
+msgid "Library order"
+msgstr "Ordem da biblioteca"
+
+#: src/ui/sidebar.rs:361
+msgid "Recently added"
+msgstr "Adicionados recentemente"
+
+#: src/ui/sidebar.rs:363
+msgid "Local custom order"
+msgstr "Ordem personalizada local"
+
+#: src/ui/sidebar.rs:965
+msgid "Hide sidebar (Ctrl+B)"
+msgstr "Ocultar barra lateral (Ctrl+B)"
+
+#: src/ui/sidebar.rs:966
+msgid "Hide sidebar (Cmd+B)"
+msgstr "Ocultar barra lateral (Cmd+B)"
+
+#: src/ui/sidebar.rs:975
+msgid "Show as list"
+msgstr "Mostrar como lista"
+
+#: src/ui/sidebar.rs:977
+msgid "Show as grid"
+msgstr "Mostrar como grelha"
+
+#. Translators: Library filter for playlists created by the signed-in user.
+#: src/ui/sidebar.rs:1057
+msgid "By You"
+msgstr "Por ti"
+
+#: src/ui/sidebar.rs:1282
+msgid "Nothing here yet."
+msgstr "Ainda não há nada aqui."
+
+#: src/ui/sidebar.rs:1284
+msgid "No matches."
+msgstr "Sem resultados."
+
+#: src/ui/sidebar.rs:1913
+msgid "Sort by recently played"
+msgstr "Ordenar por reproduzidos recentemente"
+
+#: src/ui/topbar.rs:244
+msgid "Show sidebar (Ctrl+B)"
+msgstr "Mostrar barra lateral (Ctrl+B)"
+
+#: src/ui/topbar.rs:245
+msgid "Show sidebar (Cmd+B)"
+msgstr "Mostrar barra lateral (Cmd+B)"
+
+#: src/ui/topbar.rs:264
+msgid "Back"
+msgstr "Voltar"
+
+#: src/ui/topbar.rs:275
+msgid "Forward"
+msgstr "Avançar"
+
+#: src/ui/topbar.rs:305
+msgid "Update ready"
+msgstr "Atualização pronta"
+
+#: src/ui/topbar.rs:308 src/ui/update.rs:74
+msgid "Downloading update…"
+msgstr "A transferir a atualização…"
+
+#. Translators: {version} is a version number such as 1.2.0.
+#: src/ui/topbar.rs:312
+#, rust-format
+msgid "Update to {version}"
+msgstr "Atualizar para {version}"
+
+#: src/ui/topbar.rs:357
+msgid "What do you want to play?"
+msgstr "O que queres ouvir?"
+
+#: src/ui/topbar.rs:521
+msgid "Melba is offline. Reconnecting automatically when connection returns."
+msgstr "O Melba está offline. Voltará a ligar-se automaticamente quando a ligação for restabelecida."
+
+#: src/ui/topbar.rs:576
+msgid "Updating your library…"
+msgstr "A atualizar a sua biblioteca…"
+
+#: src/ui/topbar.rs:577
+msgid "Checking for updates…"
+msgstr "A procurar atualizações…"
+
+#: src/ui/topbar.rs:578
+msgid "Waiting for Apple Music…"
+msgstr "A aguardar o Apple Music…"
+
+#. Translators: {version} is a version number such as 1.2.0.
+#: src/ui/topbar.rs:618
+#, rust-format
+msgid "Version {version} is available."
+msgstr "A versão {version} está disponível."
+
+#: src/ui/update.rs:19
+msgid "Update Melba"
+msgstr "Atualizar o Melba"
+
+#: src/ui/update.rs:51
+msgid "Close update"
+msgstr "Fechar atualização"
+
+#: src/ui/update.rs:65
+msgid "Release notes"
+msgstr "Notas da versão"
+
+#: src/ui/update.rs:72
+msgid "Checking download…"
+msgstr "A verificar a transferência…"
+
+#. Translators: {received} and {total} are sizes in megabytes, such as 12.5.
+#: src/ui/update.rs:90
+#, rust-format
+msgid "{received} of {total} MB"
+msgstr "{received} de {total} MB"
+
+#: src/ui/update.rs:106
+msgid "Ready to install"
+msgstr "Pronto para instalar"
+
+#: src/ui/update.rs:115
+msgid "Music playing on this computer will stop when Melba restarts."
+msgstr "A música a tocar neste computador vai parar quando o Melba reiniciar."
+
+#: src/ui/update.rs:122
+msgid "Restart to update"
+msgstr "Reiniciar para atualizar"
+
+#: src/ui/update.rs:129
+msgid "Preparing to restart…"
+msgstr "A preparar o reinício…"
+
+#: src/ui/update.rs:160
+msgid "Download from GitHub"
+msgstr "Transferir do GitHub"
+
+#: src/ui/update.rs:165
+msgid "Retry download"
+msgstr "Tentar transferir novamente"
+
+#: src/ui/update.rs:167
+msgid "Download update"
+msgstr "Transferir atualização"
+
+#: src/ui/widgets.rs:711 src/ui/widgets.rs:944 src/ui/widgets.rs:1166
+msgid "Add to queue"
+msgstr "Adicionar à fila"
+
+#: src/ui/widgets.rs:762
+msgid "Add to playlist"
+msgstr "Adicionar à playlist"
+
+#: src/ui/widgets.rs:847
+msgid "Filter playlists"
+msgstr "Filtrar playlists"
+
+#: src/ui/widgets.rs:887
+msgid "No editable playlists"
+msgstr "Não há playlists editáveis"
+
+#: src/ui/widgets.rs:889
+msgid "No matching playlists"
+msgstr "Nenhuma playlist corresponde"
+
+#: src/ui/widgets.rs:959
+msgid "Remove from queue"
+msgstr "Remover da fila"
+
+#: src/ui/widgets.rs:984
+msgid "Save episode"
+msgstr "Guardar episódio"
+
+#: src/ui/widgets.rs:1009
+msgid "Move up"
+msgstr "Mover para cima"
+
+#: src/ui/widgets.rs:1022
+msgid "Move down"
+msgstr "Mover para baixo"
+
+#: src/ui/widgets.rs:1050
+msgid "Go to song radio"
+msgstr "Ir para a rádio da música"
+
+#: src/ui/widgets.rs:1067 src/ui/widgets.rs:1074
+msgid "Go to artist"
+msgstr "Ir para o artista"
+
+#: src/ui/widgets.rs:1092
+msgid "Go to album"
+msgstr "Ir para o álbum"
+
+#: src/ui/widgets.rs:1156
+msgid "Shuffle play"
+msgstr "Reproduzir aleatoriamente"
+
+#: src/ui/widgets.rs:1176
+msgctxt "artist"
+msgid "Unfollow"
+msgstr "Deixar de seguir"
+
+#: src/ui/widgets.rs:1214
+msgid "Go to playlist radio"
+msgstr "Ir para a rádio da playlist"
+
+#: src/ui/widgets.rs:1215
+msgid "Go to album radio"
+msgstr "Ir para a rádio do álbum"
+
+#: src/ui/widgets.rs:1216
+msgid "Go to artist radio"
+msgstr "Ir para a rádio do artista"
+
+#. Translators: {title} is a song or episode name, {subtitle} its artists or podcast.
+#: src/ui/widgets.rs:1416
+#, rust-format
+msgid "Play {title}, {subtitle}"
+msgstr "Reproduzir {title}, {subtitle}"
+
+#. Translators: The label beside the pointer while songs are dragged. {name} is the first song's name and {count} how many more songs are dragged with it.
+#: src/ui/widgets.rs:2067
+#, rust-format
+msgid "{name} + {count} more"
+msgid_plural "{name} + {count} more"
+msgstr[0] "{name} + mais {count}"
+msgstr[1] "{name} + mais {count}"
+
+#. Translators: {column} is a column heading of a song list, such as Title.
+#: src/ui/widgets.rs:2184
+#, rust-format
+msgid "Sort by {column}"
+msgstr "Ordenar por {column}"
+
+#: src/ui/widgets.rs:2234
+msgid "Sort by playlist order"
+msgstr "Ordenar pela ordem da playlist"
+
+#: src/ui/widgets.rs:2269
+msgid "Original order, reversed"
+msgstr "Ordem original, invertida"
+
+#: src/ui/widgets.rs:2282
+msgctxt "column heading"
+msgid "TITLE"
+msgstr "TÍTULO"
+
+#: src/ui/widgets.rs:2305
+msgctxt "column heading"
+msgid "ALBUM"
+msgstr "ÁLBUM"
+
+#: src/ui/widgets.rs:2323
+msgctxt "column heading"
+msgid "DATE ADDED"
+msgstr "DATA DE ADIÇÃO"
+
+#: src/ui/widgets.rs:2344 src/ui/widgets.rs:2374
+msgid "Sort by duration"
+msgstr "Ordenar por duração"
+
+#: src/ui/widgets.rs:2907
+msgid "Cut"
+msgstr "Cortar"
+
+#: src/ui/widgets.rs:2912
+msgid "Copy"
+msgstr "Copiar"
+
+#: src/ui/widgets.rs:2917
+msgid "Paste"
+msgstr "Colar"
+
+#: src/ui/widgets.rs:2934
+msgid "Select all"
+msgstr "Selecionar tudo"
+
+#: src/ui/widgets.rs:3041
+msgid "Clear"
+msgstr "Limpar"
+
+#. Translators: {name} is replaced by the author's name, shown as a link.
+#: src/ui/widgets.rs:3086
+#, rust-format
+msgid "Based on {name} by Carmine Paolino"
+msgstr ""
+#: src/ui/widgets.rs:3231
+msgid "Host"
+msgstr "Host"
+
+#: src/ui/widgets.rs:3248
+msgid "Port"
+msgstr "Porta"
+
+#: src/ui/widgets.rs:3266
+msgid "Username"
+msgstr "Nome de utilizador"
+
+#: src/ui/widgets.rs:3277
+msgid "Password"
+msgstr "Palavra-passe"
+
+#: src/ui/widgets.rs:3295
+msgid "Proxy login applies to Web requests. Local playback uses this proxy only without a login."
+msgstr "As credenciais do proxy aplicam-se aos pedidos Web. A reprodução local só usa este proxy sem credenciais."
+
+#: src/ui/widgets.rs:3299
+msgid "Apple Music hostnames are resolved by the proxy. Local playback connects directly."
+msgstr "Os nomes de anfitrião do Apple Music são resolvidos pelo proxy. A reprodução local liga-se diretamente."
+
+#. Translators: Selects every song in the list.
+#: src/ui/winamp/playlist.rs:702
+msgctxt "selection"
+msgid "All"
+msgstr "Todas"
+
+#. Translators: A length of time, abbreviated. Keep {hours} and {minutes}.
+#: src/util.rs:28 src/util.rs:47
+#, rust-format
+msgid "{hours} hr {minutes} min"
+msgstr "{hours} h {minutes} min"
+
+#. Translators: A length of time, abbreviated. Keep {minutes} and {seconds}.
+#: src/util.rs:33
+#, rust-format
+msgid "{minutes} min {seconds} sec"
+msgstr "{minutes} min {seconds} s"
+
+#. Translators: A length of time, abbreviated. Keep {seconds}.
+#: src/util.rs:38
+#, rust-format
+msgid "{seconds} sec"
+msgstr "{seconds} s"
+
+#. Translators: A length of time, abbreviated. Keep {minutes}.
+#: src/util.rs:52
+#, rust-format
+msgid "{minutes} min"
+msgstr "{minutes} min"
+
+#: src/util.rs:77
+msgctxt "month"
+msgid "Jan"
+msgstr "jan."
+
+#: src/util.rs:78
+msgctxt "month"
+msgid "Feb"
+msgstr "fev."
+
+#: src/util.rs:79
+msgctxt "month"
+msgid "Mar"
+msgstr "mar."
+
+#: src/util.rs:80
+msgctxt "month"
+msgid "Apr"
+msgstr "abr."
+
+#: src/util.rs:81
+msgctxt "month"
+msgid "May"
+msgstr "mai."
+
+#: src/util.rs:82
+msgctxt "month"
+msgid "Jun"
+msgstr "jun."
+
+#: src/util.rs:83
+msgctxt "month"
+msgid "Jul"
+msgstr "jul."
+
+#: src/util.rs:84
+msgctxt "month"
+msgid "Aug"
+msgstr "ago."
+
+#: src/util.rs:85
+msgctxt "month"
+msgid "Sep"
+msgstr "set."
+
+#: src/util.rs:86
+msgctxt "month"
+msgid "Oct"
+msgstr "out."
+
+#: src/util.rs:87
+msgctxt "month"
+msgid "Nov"
+msgstr "nov."
+
+#: src/util.rs:88
+msgctxt "month"
+msgid "Dec"
+msgstr "dez."
+
+#. Translators: A date. {month} is an abbreviated month name; reorder as your language writes dates.
+#: src/util.rs:94
+#, rust-format
+msgid "{month} {day}, {year}"
+msgstr "{day} de {month} de {year}"
+
+#. Translators: A month and year. {month} is an abbreviated month name.
+#: src/util.rs:97
+#, rust-format
+msgid "{month} {year}"
+msgstr "{month} de {year}"
+
+#. Translators: How long ago a song was added. Keep {count}.
+#: src/util.rs:123
+#, rust-format
+msgid "{count} second ago"
+msgid_plural "{count} seconds ago"
+msgstr[0] "há {count} segundo"
+msgstr[1] "há {count} segundos"
+
+#. Translators: How long ago a song was added. Keep {count}.
+#: src/util.rs:133
+#, rust-format
+msgid "{count} minute ago"
+msgid_plural "{count} minutes ago"
+msgstr[0] "há {count} minuto"
+msgstr[1] "há {count} minutos"
+
+#. Translators: How long ago a song was added. Keep {count}.
+#: src/util.rs:143
+#, rust-format
+msgid "{count} hour ago"
+msgid_plural "{count} hours ago"
+msgstr[0] "há {count} hora"
+msgstr[1] "há {count} horas"
+
+#. Translators: How long ago a song was added. Keep {count}.
+#: src/util.rs:151
+#, rust-format
+msgid "{count} day ago"
+msgid_plural "{count} days ago"
+msgstr[0] "há {count} dia"
+msgstr[1] "há {count} dias"
+
+#. Translators: How long ago a song was added. Keep {count}.
+#: src/util.rs:158
+#, rust-format
+msgid "{count} week ago"
+msgid_plural "{count} weeks ago"
+msgstr[0] "há {count} semana"
+msgstr[1] "há {count} semanas"
+
+#: src/util.rs:311
+msgid "Good morning"
+msgstr "Bom dia"
+
+#: src/util.rs:312
+msgid "Good afternoon"
+msgstr "Boa tarde"
+
+#: src/util.rs:313
+msgid "Good evening"
+msgstr "Boa noite"
+
+#: src/window.rs:39
+msgid "melba cannot open its window"
+msgstr "O Melba não consegue abrir a janela"
+
+#: src/window.rs:45
+msgid "On Windows on ARM, the OpenGL that melba draws with comes from Microsoft's OpenCL, OpenGL & Vulkan Compatibility Pack. Open its Microsoft Store page to install or repair it?"
+msgstr "No Windows on ARM, o OpenGL que o Melba usa para desenhar vem do OpenCL, OpenGL & Vulkan Compatibility Pack da Microsoft. Abrir a respetiva página na Microsoft Store para o instalar ou reparar?"
+
+#. Translators: Keep {url} exactly as written. It becomes the address
+#. of the melba download page.
+#: src/window.rs:55
+#, rust-format
+msgid "melba needs a graphics driver with OpenGL 2.0 or newer, and this PC or virtual machine does not provide one. Install the graphics driver, or turn on GPU acceleration for the virtual machine. Open {url} to read more?"
+msgstr "O Melba precisa de um controlador gráfico com OpenGL 2.0 ou mais recente, e este PC ou máquina virtual não o disponibiliza. Instale o controlador gráfico ou ative a aceleração por GPU da máquina virtual. Abrir {url} para saber mais?"
+
+msgid "Playback is not ready on this computer"
+msgstr "A reprodução ainda não está pronta neste computador"

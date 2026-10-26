@@ -1,0 +1,24 @@
+{
+  "source": {
+    "path": "fixtures/96k-24bit.flac",
+    "codec": "CodecType(8192)",
+    "rate": 96000,
+    "channels": 2,
+    "bits": 24,
+    "dur_ms": 3000
+  },
+  "granted": {
+    "device": "hw:0,0",
+    "rate": 96000,
+    "format": "S32LE",
+    "msbits": 32,
+    "channels": 2
+  },
+  "verdict": "BITPERFECT",
+  "frames_written": 288000,
+  "elapsed_ms": 3036,
+  "peak_rss_kb": 7860,
+  "notes": [
+    "exclusive hw: open — no graph resampler can sit between us and the device"
+  ]
+}

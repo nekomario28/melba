@@ -1,0 +1,5 @@
+#EXTM3U
+#EXTINF:180,Artist - Song
+lib/trackA.flac
+#EXTINF:120,Other
+lib/trackB.flac

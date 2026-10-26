@@ -1,0 +1,17 @@
+Bad login part
+Curl_auth_create_login_message
+Curl_auth_create_oauth_bearer_message
+Curl_auth_create_xoauth_bearer_message
+Curl_parse_login_details
+LOGIN
+LOGIN %s %s
+LOGIN_OPTIONS
+Login denied
+Microsoft Smartcard Login
+OAUTHBEARER
+XOAUTH2
+XOAUTH2_BEARER
+login
+msSmartcardLogin
+setct-AuthTokenTBE
+setct-AuthTokenTBS
