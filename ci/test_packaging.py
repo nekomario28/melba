@@ -405,6 +405,31 @@ binary.chmod(0o755)
         self.assertFalse((self.work / "config").exists())
 
 
+class PortableArchiveTests(unittest.TestCase):
+    def test_package_portable_always_includes_the_marker(self):
+        with tempfile.TemporaryDirectory(prefix="melba-portable-package-") as folder:
+            work = Path(folder)
+            melba = work / "melba"
+            melbad = work / "melbad"
+            melba.write_text("#!/bin/sh\nexit 0\n")
+            melbad.write_text("#!/bin/sh\nexit 0\n")
+            melba.chmod(0o755)
+            melbad.chmod(0o755)
+            out = work / "out"
+            result = subprocess.run(
+                ["/bin/sh", str(ROOT / "packaging/package-portable.sh"),
+                 str(out), "9.9.9", str(melba), str(melbad), "x86_64-unknown-linux-gnu"],
+                text=True, capture_output=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            archive = out / "melba-v9.9.9-x86_64-unknown-linux-gnu.tar.gz"
+            names = subprocess.run(["tar", "-tzf", str(archive)], check=True,
+                                   text=True, capture_output=True).stdout.splitlines()
+            self.assertIn("melba-v9.9.9-x86_64-unknown-linux-gnu/melba-portable.txt", names)
+            self.assertIn("melbad-v9.9.9-x86_64-unknown-linux-gnu.tar.gz",
+                          [p.name for p in out.iterdir()])
+
+
 class WrapperStagingTests(unittest.TestCase):
     def test_staging_does_not_claim_to_verify_a_running_service(self):
         # Staging used to print live FairPlay/network success without running anything.
