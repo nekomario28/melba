@@ -16,7 +16,7 @@ bit-perfect なローカル再生、MusicKit のカタログメタデータ、�
 実行できます。
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/nekomario28/melba-wrapper-bootstrap/v1.2.2/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/nekomario28/melba-wrapper-bootstrap/v1.2.3/install.sh | bash
 ```
 
 Melba が未導入なら source からビルドし、upstream wrapper をローカルに

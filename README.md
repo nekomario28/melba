@@ -38,7 +38,7 @@ separate source-only bootstrap can install Melba and stage the wrapper in one
 command:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/nekomario28/melba-wrapper-bootstrap/v1.2.2/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/nekomario28/melba-wrapper-bootstrap/v1.2.3/install.sh | bash
 ```
 
 It installs Melba from source when absent, stages the upstream wrapper locally,
@@ -47,7 +47,7 @@ Apple ID/password, or redistribute the wrapper/rootfs. Build dependencies are
 listed under [Install](#install). To install without launching the GUI:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/nekomario28/melba-wrapper-bootstrap/v1.2.2/install.sh | bash -s -- --no-launch
+curl -fsSL https://raw.githubusercontent.com/nekomario28/melba-wrapper-bootstrap/v1.2.3/install.sh | bash -s -- --no-launch
 ```
 
 Already have a source checkout:
@@ -251,7 +251,7 @@ and need live revalidation after security changes.
 ## Updates
 
 **Check for updates** (in Settings → About, and the app menu) asks
-`github.com/nekomario28/melba` for its latest release. Nothing is
+`github.com/nekomario28/apple-music-linux` for its latest release. Nothing is
 downloaded unless that release carries `checksums.txt.sig`: a raw 64-byte
 Ed25519 signature over `checksums.txt`, made with the private half of the key
 committed as `crates/melba/assets/update-public-key.hex`. Dropping the key
