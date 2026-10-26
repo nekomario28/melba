@@ -145,9 +145,9 @@ sh packaging/install.sh --portable-dir DIR
 The default portable layout is the shape the GUI updater accepts. Cargo-mode
 installs are intentionally not GUI-updatable. The portable installer swaps
 `melba` and `melbad` as one pair and restores both if their `--version` outputs
-do not agree; this is an installer transaction, not the GUI updater. The GUI
-updater still replaces only `melba` and refuses unless `melbad` already
-matches the target. The installer does not enable the standalone unit or start
+do not agree. The GUI updater does the same from the signed archive: the GUI
+archive carries the companion `melbad`, and the helper restores both if the new
+GUI fails to start. The installer does not enable the standalone unit or start
 playback; `--no-unit` omits it entirely.
 
 Or by hand (default Cargo paths, with `~/.cargo/bin` on your session's PATH):
@@ -276,13 +276,13 @@ openssl pkeyutl -sign -rawin -inkey "$MELBA_SIGNING_KEY" \
 
 A release check and an installable update are different things. A newer
 source-only tag may be reported, but installation requires signed binary
-assets and a supported installation. The GUI updater replaces only the
-`melba` archive and requires `melba-portable.txt` beside the executable; a
-copy installed under `~/.cargo/` (including `cargo install`) is intentionally
-refused. The companion `melbad` must already match the target version, so
-package-manager or source updates install both together. A complete
-paired-package self-update with rollback remains a release gate; an unavailable
-package or a failed check must not be reported as a successful update.
+assets and a supported installation. The GUI updater requires
+`melba-portable.txt` beside the executable; a copy installed under
+`~/.cargo/` (including `cargo install`) is intentionally refused. Current GUI
+archives carry `melbad`; the helper installs both and restores both when the
+new GUI fails to start. Package-manager or source updates install both by
+construction. A missing package, bad signature or failed startup must not be
+reported as a successful update.
 
 Signed v0.3.4 assets are published for **x86_64 and aarch64** from the same
 source tag. The arm64 build is produced on an arm64 GitHub runner and is
@@ -291,9 +291,11 @@ is x86_64-only; arm64 uses the browser sign-in path. The optional
 wrapper/rootfs remains user-supplied and architecture-specific.
 
 The v0.3.2 → v0.3.3 portable GUI update was exercised end to end on
-2026-10-26: update check, signed download, install, helper restart, and
-`melba 0.3.3` startup. The installed `~/.cargo/bin` copy remains a manual
-install, not a GUI-updatable portable installation.
+2026-10-26. The paired path was exercised with the v0.3.5 helper: a portable
+v0.3.2 → v0.3.5 install succeeded, and a deliberately broken v0.3.7 test
+release restored both `melba` and `melbad` to v0.3.6 with the receipt
+"Update failed; restored the previous app". The installed `~/.cargo/bin` copy
+remains a manual install, not a GUI-updatable portable installation.
 
 Rotate or add keys with `additional_publisher_keys` in
 `crates/melba/src/updates.rs`. v0.3.2 adopts the verified local publisher key

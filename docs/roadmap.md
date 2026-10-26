@@ -36,20 +36,19 @@ and the actual playback path understandable.
   not. Source implementation and private fixtures are tracked in
   [the desktop lifecycle plan](../specs/desktop-lifecycle-update/plan.md), not a
   claim that the installed client has passed acceptance.
-- [ ] **Paired signed self-update** — publish installable frontend/daemon
-  packages and prove replacement, rollback and restart as one transaction.
-  A real release check alone is not a working whole-client installer.
+- [x] **Paired signed self-update** — v0.3.5 ships the daemon inside the GUI
+  archive; the vendored fastframe helper replaces both and restores both when
+  the new GUI fails. Verified with a broken v0.3.7 test release: receipt
+  "Update failed; restored the previous app", both binaries back at v0.3.6.
 - [x] **GUI update button acceptance** — portable v0.3.2 → v0.3.3 was driven
   through Settings → About and the update modal on 2026-10-26: signed download,
   install, helper restart and `melba 0.3.3` startup succeeded. The marker
   (`melba-portable.txt`) is required. The default installer now installs that
   portable layout, and `packaging/package-portable.sh` checks the marker.
-- [~] **Paired update rollback** — the portable installer now swaps `melba`
-  and `melbad` together and restores both if their `--version` outputs
-  disagree (covered by a packaging test). The GUI fastframe helper still
-  replaces only the GUI and requires `melbad` to match the target first; a
-  failed GUI replacement restores the old GUI but is not a paired rollback.
-  A custom paired GUI helper remains open.
+- [x] **Paired update rollback** — the portable installer and the v0.3.5 GUI
+  helper both swap `melba` and `melbad` together and restore both on failure.
+  GUI rollback was exercised with a deliberately broken test release; the
+  installer path has a package-level rollback test.
 - [x] **arm64 build path** — aarch64 release archives are built on the
   `ubuntu-24.04-arm` runner and published with the same signed manifest as
   x86_64 in v0.3.4. The x86_64-only native auth bridge is disabled on arm64
