@@ -132,7 +132,7 @@ impl CdmSession {
             .map_err(|_| Error::Missing("bad so path".into()))?;
         let dir = CString::new(storage_dir.to_string_lossy().as_bytes())
             .map_err(|_| Error::Missing("bad storage dir".into()))?;
-        let ptr = unsafe { melba_cdm_create(so.as_ptr(), dir.as_ptr()) };
+        let ptr = unsafe { melba_cdm_create(so.as_ptr().cast(), dir.as_ptr().cast()) };
         if ptr.is_null() {
             return Err(Error::Cdm("failed to load CDM / create instance".into()));
         }
