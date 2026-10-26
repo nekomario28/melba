@@ -76,7 +76,8 @@ command -v cargo-about >/dev/null || {
 # allowed during collection; Cargo fetch is the explicit acquisition step.
 notices=$(mktemp -d)
 build_root=
-trap 'rm -rf "$notices" "$build_root"' 0
+rollback_dir=
+trap 'rm -rf "$notices" "$build_root" "$rollback_dir"' 0
 trap 'exit 1' 1 2 15
 cargo fetch --locked
 cargo fetch --locked --manifest-path crates/melba/Cargo.toml
@@ -123,11 +124,37 @@ else
     mkdir -p "$install_root"
     install_root=$(cd "$install_root" && pwd -P)
     final_bin="$install_root"
-    for binary in melba melbad; do
-        install -m755 "$build_root/bin/$binary" "$install_root/.$binary.new"
-        mv -f "$install_root/.$binary.new" "$install_root/$binary"
+    # Snapshot the previous pair before swapping either executable. A
+    # version-check failure restores both; never leave a new GUI beside an
+    # old daemon (or the reverse).
+    rollback_dir=$(mktemp -d)
+    for artifact in melba melbad melba-portable.txt; do
+        if [ -e "$install_root/$artifact" ]; then
+            cp -p "$install_root/$artifact" "$rollback_dir/$artifact"
+        fi
     done
+    install -m755 "$build_root/bin/melba" "$install_root/.melba.new"
+    install -m755 "$build_root/bin/melbad" "$install_root/.melbad.new"
+    mv -f "$install_root/.melba.new" "$install_root/melba"
+    mv -f "$install_root/.melbad.new" "$install_root/melbad"
     printf 'melba-portable-v1\n' > "$install_root/melba-portable.txt"
+    gui_version=$("$install_root/melba" --version 2>/dev/null || true)
+    daemon_version=$("$install_root/melbad" --version 2>/dev/null || true)
+    case "$gui_version" in
+        "melba "*) gui_number=${gui_version#melba };;
+        *) gui_number=;;
+    esac
+    if [ -z "$gui_number" ] || [ "$daemon_version" != "melbad $gui_number" ]; then
+        echo "portable pair version check failed (melba: '$gui_version', melbad: '$daemon_version'); rolling back both" >&2
+        for artifact in melba melbad melba-portable.txt; do
+            if [ -e "$rollback_dir/$artifact" ]; then
+                cp -p "$rollback_dir/$artifact" "$install_root/$artifact"
+            else
+                rm -f "$install_root/$artifact"
+            fi
+        done
+        exit 1
+    fi
     install -m644 NOTICE.md LICENSE-MIT LICENSE-APACHE "$install_root/"
     install -d "$install_root/share/licenses/melba"
     for file in "$build_root"/share/licenses/melba/*; do

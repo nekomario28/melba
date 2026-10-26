@@ -256,7 +256,8 @@ root = args[args.index("--root") + 1] if "--root" in args else os.environ["CARGO
 name = "melba" if "crates/melba" in args else "melbad"
 binary = pathlib.Path(root) / "bin" / name
 binary.parent.mkdir(parents=True, exist_ok=True)
-binary.write_text("#!/bin/sh\\nexit 0\\n")
+version = os.environ.get("CARGO_FAKE_BAD_VERSION", "9.9.9") if name == "melbad" and os.environ.get("CARGO_BAD_MELBAD") else "0.0.0"
+binary.write_text(f"#!/bin/sh\\nprintf '%s {version}\\n' {name}\\n")
 binary.chmod(0o755)
 ''')
 
@@ -364,6 +365,20 @@ binary.chmod(0o755)
         self.assertEqual(shlex.split(command), ["/usr/bin/env", str(portable / "melba"), "%u"])
         self.assertEqual((self.work / "bin/melba").resolve(), portable / "melba")
         self.assertEqual((self.work / "bin/melbad").resolve(), portable / "melbad")
+
+    def test_portable_install_rolls_back_both_on_version_mismatch(self):
+        portable = self.work / "portable"
+        portable.mkdir()
+        (portable / "melba").write_text("old melba\n")
+        (portable / "melbad").write_text("old melbad\n")
+        (portable / "melba-portable.txt").write_text("melba-portable-v1\n")
+        self.env["MELBA_PORTABLE_DIR"] = str(portable)
+        self.env["CARGO_BAD_MELBAD"] = "1"
+        result = self.install_portable("--no-unit")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual((portable / "melba").read_text(), "old melba\n")
+        self.assertEqual((portable / "melbad").read_text(), "old melbad\n")
+        self.assertEqual((portable / "melba-portable.txt").read_text(), "melba-portable-v1\n")
 
     def test_invalid_options_fail_before_build(self):
         for args in (("--unknown",), ("--no-unit", "extra")):

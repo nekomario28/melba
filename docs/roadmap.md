@@ -44,11 +44,12 @@ and the actual playback path understandable.
   install, helper restart and `melba 0.3.3` startup succeeded. The marker
   (`melba-portable.txt`) is required. The default installer now installs that
   portable layout, and `packaging/package-portable.sh` checks the marker.
-- [ ] **Paired update rollback** — the current fastframe helper replaces only
-  the GUI and requires the co-installed `melbad` to match the target first.
-  A failed GUI replacement restores the old GUI, but the daemon is not part of
-  the transaction. A custom paired installer/helper is still required; do not
-  claim a paired rollback until it is exercised.
+- [~] **Paired update rollback** — the portable installer now swaps `melba`
+  and `melbad` together and restores both if their `--version` outputs
+  disagree (covered by a packaging test). The GUI fastframe helper still
+  replaces only the GUI and requires `melbad` to match the target first; a
+  failed GUI replacement restores the old GUI but is not a paired rollback.
+  A custom paired GUI helper remains open.
 - [x] **arm64 build path** — aarch64 release archives are built on the
   `ubuntu-24.04-arm` runner and published with the same signed manifest as
   x86_64 in v0.3.4. The x86_64-only native auth bridge is disabled on arm64

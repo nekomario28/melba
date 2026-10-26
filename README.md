@@ -143,8 +143,12 @@ sh packaging/install.sh --portable-dir DIR
 ```
 
 The default portable layout is the shape the GUI updater accepts. Cargo-mode
-installs are intentionally not GUI-updatable. The installer does not enable
-the standalone unit or start playback; `--no-unit` omits it entirely.
+installs are intentionally not GUI-updatable. The portable installer swaps
+`melba` and `melbad` as one pair and restores both if their `--version` outputs
+do not agree; this is an installer transaction, not the GUI updater. The GUI
+updater still replaces only `melba` and refuses unless `melbad` already
+matches the target. The installer does not enable the standalone unit or start
+playback; `--no-unit` omits it entirely.
 
 Or by hand (default Cargo paths, with `~/.cargo/bin` on your session's PATH):
 
@@ -251,7 +255,7 @@ and need live revalidation after security changes.
 ## Updates
 
 **Check for updates** (in Settings → About, and the app menu) asks
-`github.com/nekomario28/apple-music-linux` for its latest release. Nothing is
+`github.com/nekomario28/melba` for its latest release. Nothing is
 downloaded unless that release carries `checksums.txt.sig`: a raw 64-byte
 Ed25519 signature over `checksums.txt`, made with the private half of the key
 committed as `crates/melba/assets/update-public-key.hex`. Dropping the key
