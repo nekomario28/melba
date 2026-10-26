@@ -101,6 +101,90 @@
       "path": "upstream/tr-MIT.txt",
       "sha256": "71d7ff8278dfd9cbce550cc491ad55e4048609cab2c88a8f896ce34898841eb5",
       "url": "https://raw.githubusercontent.com/woboq/tr/0070206fb355917595e76229932ff96da25c9565/tr/src/lib.rs"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#symphonia-bundle-flac@0.5.5",
+      "path": "upstream/symphonia-MPL-2.0.txt",
+      "sha256": "c76f740d1521b9bed9ca7a04ad526c310493c62621b1341d623b431736533b30",
+      "url": "https://raw.githubusercontent.com/pdeljanov/Symphonia/6d533f26150953a882a6a111ebd13f0abf7129d5/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#symphonia-bundle-mp3@0.5.5",
+      "path": "upstream/symphonia-MPL-2.0.txt",
+      "sha256": "c76f740d1521b9bed9ca7a04ad526c310493c62621b1341d623b431736533b30",
+      "url": "https://raw.githubusercontent.com/pdeljanov/Symphonia/6d533f26150953a882a6a111ebd13f0abf7129d5/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#symphonia-codec-aac@0.5.5",
+      "path": "upstream/symphonia-MPL-2.0.txt",
+      "sha256": "c76f740d1521b9bed9ca7a04ad526c310493c62621b1341d623b431736533b30",
+      "url": "https://raw.githubusercontent.com/pdeljanov/Symphonia/6d533f26150953a882a6a111ebd13f0abf7129d5/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#symphonia-codec-alac@0.5.5",
+      "path": "upstream/symphonia-MPL-2.0.txt",
+      "sha256": "c76f740d1521b9bed9ca7a04ad526c310493c62621b1341d623b431736533b30",
+      "url": "https://raw.githubusercontent.com/pdeljanov/Symphonia/6d533f26150953a882a6a111ebd13f0abf7129d5/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#symphonia-codec-pcm@0.5.5",
+      "path": "upstream/symphonia-MPL-2.0.txt",
+      "sha256": "c76f740d1521b9bed9ca7a04ad526c310493c62621b1341d623b431736533b30",
+      "url": "https://raw.githubusercontent.com/pdeljanov/Symphonia/6d533f26150953a882a6a111ebd13f0abf7129d5/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#symphonia-codec-vorbis@0.5.5",
+      "path": "upstream/symphonia-MPL-2.0.txt",
+      "sha256": "c76f740d1521b9bed9ca7a04ad526c310493c62621b1341d623b431736533b30",
+      "url": "https://raw.githubusercontent.com/pdeljanov/Symphonia/6d533f26150953a882a6a111ebd13f0abf7129d5/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#symphonia-core@0.5.5",
+      "path": "upstream/symphonia-MPL-2.0.txt",
+      "sha256": "c76f740d1521b9bed9ca7a04ad526c310493c62621b1341d623b431736533b30",
+      "url": "https://raw.githubusercontent.com/pdeljanov/Symphonia/6d533f26150953a882a6a111ebd13f0abf7129d5/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#symphonia-format-caf@0.5.5",
+      "path": "upstream/symphonia-MPL-2.0.txt",
+      "sha256": "c76f740d1521b9bed9ca7a04ad526c310493c62621b1341d623b431736533b30",
+      "url": "https://raw.githubusercontent.com/pdeljanov/Symphonia/6d533f26150953a882a6a111ebd13f0abf7129d5/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#symphonia-format-isomp4@0.5.5",
+      "path": "upstream/symphonia-MPL-2.0.txt",
+      "sha256": "c76f740d1521b9bed9ca7a04ad526c310493c62621b1341d623b431736533b30",
+      "url": "https://raw.githubusercontent.com/pdeljanov/Symphonia/6d533f26150953a882a6a111ebd13f0abf7129d5/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#symphonia-format-riff@0.5.5",
+      "path": "upstream/symphonia-MPL-2.0.txt",
+      "sha256": "c76f740d1521b9bed9ca7a04ad526c310493c62621b1341d623b431736533b30",
+      "url": "https://raw.githubusercontent.com/pdeljanov/Symphonia/6d533f26150953a882a6a111ebd13f0abf7129d5/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#symphonia-metadata@0.5.5",
+      "path": "upstream/symphonia-MPL-2.0.txt",
+      "sha256": "c76f740d1521b9bed9ca7a04ad526c310493c62621b1341d623b431736533b30",
+      "url": "https://raw.githubusercontent.com/pdeljanov/Symphonia/6d533f26150953a882a6a111ebd13f0abf7129d5/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#symphonia-utils-xiph@0.5.5",
+      "path": "upstream/symphonia-MPL-2.0.txt",
+      "sha256": "c76f740d1521b9bed9ca7a04ad526c310493c62621b1341d623b431736533b30",
+      "url": "https://raw.githubusercontent.com/pdeljanov/Symphonia/6d533f26150953a882a6a111ebd13f0abf7129d5/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#symphonia@0.5.5",
+      "path": "upstream/symphonia-MPL-2.0.txt",
+      "sha256": "c76f740d1521b9bed9ca7a04ad526c310493c62621b1341d623b431736533b30",
+      "url": "https://raw.githubusercontent.com/pdeljanov/Symphonia/6d533f26150953a882a6a111ebd13f0abf7129d5/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#enum-map-derive@0.17.0",
+      "path": "upstream/enum-map-derive-MIT.txt",
+      "sha256": "b85dcd3e453d05982552c52b5fc9e0bdd6d23c6f8e844b984a88af32570b0cc0",
+      "url": "https://codeberg.org/xfix/enum-map/raw/commit/2026968c30ad14d268f3d70c618a704e22a3b980/LICENSES/MIT.txt"
     }
   ],
   "extra_files": [
