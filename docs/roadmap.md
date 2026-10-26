@@ -50,8 +50,9 @@ and the actual playback path understandable.
   the transaction. A custom paired installer/helper is still required; do not
   claim a paired rollback until it is exercised.
 - [x] **arm64 build path** — aarch64 release archives are built on the
-  `ubuntu-24.04-arm` runner. The x86_64-only native auth bridge is disabled on
-  arm64 (browser sign-in); arm64 binaries are build-verified, not hardware-run.
+  `ubuntu-24.04-arm` runner and published with the same signed manifest as
+  x86_64 in v0.3.4. The x86_64-only native auth bridge is disabled on arm64
+  (browser sign-in); arm64 binaries are build-verified, not hardware-run.
 - [x] **Choose the output from the app, over PipeWire** — `audio_device` in
   `~/.config/melba/config.json` selects `auto`, `default` or `hw:X,Y`;
   `auto` prefers a USB/analog hw device over HDMI, the Settings page lists
