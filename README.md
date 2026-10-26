@@ -58,7 +58,8 @@ Check before trusting a setting:
 ```sh
 melbad probe --json                  # devices and capability bounds
 melbad setup                         # choose an output; saves audio_device
-melbad play fixtures/96k-24bit.flac --device hw:3,1   --require-bitperfect --verify      # JSON receipt; exit 0 only on BITPERFECT
+melbad play fixtures/96k-24bit.flac --device hw:3,1 \
+  --require-bitperfect --verify      # JSON receipt; exit 0 only on BITPERFECT
 ```
 
 `auto` prefers a USB/analog `hw:` device over HDMI and never selects the OS
