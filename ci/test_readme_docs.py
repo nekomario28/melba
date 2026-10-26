@@ -34,6 +34,10 @@ class ReadmeDocs(unittest.TestCase):
         documented = set(re.findall(r'\b(?:de-DE|es|fr|it|ja|ko|nl|pl|pt-BR|pt-PT|ru|sv|tr|uk|zh-Hans|zh-Hant)\b', text))
         self.assertEqual(documented, bundled)
 
+    def test_wrapper_docs_have_both_languages(self):
+        self.assertIn('[日本語](wrapper.ja.md)', (ROOT / 'docs/wrapper.md').read_text())
+        self.assertIn('[English](wrapper.md)', (ROOT / 'docs/wrapper.ja.md').read_text())
+
     def test_internal_roadmap_is_not_the_front_door(self):
         self.assertNotIn('## Roadmap / TODO', read('README.md'))
         self.assertTrue((ROOT / 'docs/roadmap.md').is_file())

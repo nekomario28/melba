@@ -1,5 +1,7 @@
 # Wrapper (ALAC decrypt service) control
 
+**English** | [日本語](wrapper.ja.md)
+
 Melba does **not** download, install, bundle or redistribute a wrapper. This
 document covers only an already-installed, user-supplied service. The payload
 and its terms are outside this repository (see [NOTICE.md](../NOTICE.md) and

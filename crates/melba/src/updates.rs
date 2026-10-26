@@ -27,6 +27,9 @@ pub const CONFIG: UpdateConfig = UpdateConfig {
     // installed without signed binary assets. `None` here would trust GitHub's checksum file alone,
     // which only protects against corruption — never drop the key.
     publisher_key: Some(include_str!("../assets/update-public-key.hex")),
+    // Transitional trust: v0.3.2 can verify a release signed by the old key,
+    // but v0.3.1 and older do not know the new key and need a manual update.
+    additional_publisher_keys: &["e44c87b1550484c687947bd927ae333ff431cc7adc6cc33533c628f82016b554"],
     legacy_names: &[],
     ..UpdateConfig::new(
         "nekomario28/melba",

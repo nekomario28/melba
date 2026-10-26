@@ -4,7 +4,7 @@ default-members = [".", "crates/melba-cdm"]
 
 [package]
 name = "melbad"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 description = "native lightweight Linux music client — bit-perfect playback core"
 license = "MIT OR Apache-2.0"

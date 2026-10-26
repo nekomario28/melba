@@ -279,8 +279,12 @@ self-update with rollback remains a release gate; an unavailable package or a
 failed check must not be reported as a successful update.
 
 Rotate or add keys with `additional_publisher_keys` in
-`crates/melba/src/updates.rs` (ship the next key first, keep signing with the
-current one, then switch).
+`crates/melba/src/updates.rs`. v0.3.2 adopts the verified local publisher key
+`1e47…` and keeps the old `e44c…` key as a transitional verifier. Releases
+signed by the old key can still be verified by v0.3.2, but **v0.3.1 and older
+do not know the new key**: they require a manual/package update before the
+new signed releases. The private half of the old key is not available here, so
+a transition release signed by the old key cannot be produced.
 
 ## Subscription playback (`stream:` URIs)
 

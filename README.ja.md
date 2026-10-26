@@ -72,7 +72,8 @@ melbad play fixtures/96k-24bit.flac --device hw:3,1 \
 ## ドキュメント
 
 - [English README](README.md)
-- [Wrapper の制御とトラブルシューティング](docs/wrapper.md)
+- [Wrapper の制御とトラブルシューティング](docs/wrapper.ja.md)
+- [Wrapper (English)](docs/wrapper.md)
 - [ロードマップ / ステータス](docs/roadmap.md)
 - [公開スコープ](PUBLICATION.md)
 - [ライセンス / third-party notices](NOTICE.md)
