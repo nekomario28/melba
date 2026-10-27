@@ -43,10 +43,10 @@ Melba only assigns `BITPERFECT` when it opened direct `hw:` PCM, the **granted**
 ```sh
 melbad probe --json
 melbad setup
-melbad play fixtures/96k-24bit.flac --device hw:3,1 --require-bitperfect --verify
+melbad play fixtures/96k-24bit.flac --device hw:0,0 --require-bitperfect --verify
 ```
 
-Replace `hw:3,1` with an actual device. The file is a repository fixture and is not installed by default. `--verify` emits a JSON receipt and exits with status 0 only when the verdict is `BITPERFECT`. `MELBA_EVIDENCE_DIR` can persist receipts.
+Replace `hw:0,0` with an actual device. The file is a repository fixture and is not installed by default. `--verify` emits a JSON receipt and exits with status 0 only when the verdict is `BITPERFECT`. `MELBA_EVIDENCE_DIR` can persist receipts.
 
 The following is an abbreviated fixture receipt from the conversion path; see [the full receipt](../evidence/slice01-format.json):
 

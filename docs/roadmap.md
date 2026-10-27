@@ -51,7 +51,7 @@ and the actual playback path understandable.
   installer path has a package-level rollback test.
 - [x] **arm64 build path** — aarch64 release archives are built on the
   `ubuntu-24.04-arm` runner and published with the same signed manifest as
-  x86_64 in v0.3.4. The x86_64-only native auth bridge is disabled on arm64
+  x86_64 in v0.3.4 and v0.3.5. The x86_64-only native auth bridge is disabled on arm64
   (browser sign-in); arm64 binaries are build-verified, not hardware-run.
 - [x] **Choose the output from the app, over PipeWire** — `audio_device` in
   `~/.config/melba/config.json` selects `auto`, `default` or `hw:X,Y`;

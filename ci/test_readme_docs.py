@@ -20,13 +20,17 @@ class ReadmeDocs(unittest.TestCase):
         self.assertIn('[English](README.md)', read('README.ja.md'))
 
     def test_installer_pin_is_a_tag_and_matches_both_languages(self):
-        en = set(INSTALLER.findall(read('README.md')))
-        ja = set(INSTALLER.findall(read('README.ja.md')))
-        self.assertEqual(en, ja)
-        self.assertEqual(len(en), 1)
-        tag = en.pop()
+        # The install details live in docs/installation.md; the front READMEs
+        # may link there without duplicating the external command.
+        source = read('docs/installation.md')
+        tags = set(INSTALLER.findall(source))
+        self.assertEqual(len(tags), 1)
+        tag = next(iter(tags))
         self.assertNotIn(tag, ('main', 'master', 'HEAD'))
         self.assertRegex(tag, r'^v\d')
+        for name in ('README.md', 'README.ja.md'):
+            found = set(INSTALLER.findall(read(name)))
+            self.assertTrue(not found or found == tags, name)
 
     def test_documented_catalogs_match_the_bundled_po_files(self):
         bundled = {p.stem for p in (ROOT / 'crates/melba/assets/i18n').glob('*.po')}

@@ -31,7 +31,7 @@ Signed **v0.3.5** release assets are published for `x86_64` and `aarch64` from t
 The following cases were recorded on **2026-10-26**:
 
 - The portable GUI v0.3.2 → v0.3.3 update was driven end to end through the GUI and restarted into v0.3.3.
-- The v0.3.5 paired-update path moved a portable v0.3.2 installation to v0.3.5 with both binaries.
+- The v0.3.5 paired-update path moved a portable v0.3.5 installation to a test v0.3.6 with both binaries; the test release was removed afterwards.
 - A deliberately broken v0.3.7 **test** release caused both executables to be restored to v0.3.6; the receipt read “Update failed; restored the previous app”.
 
 These are path-specific tests, not a guarantee for every distro, signing setup or device. The earlier Cargo-root install is not GUI-updatable.
