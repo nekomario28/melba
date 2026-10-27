@@ -181,6 +181,8 @@ fn stream_matches_gates_gapless_reuse() {
         format: fmt.to_string(),
         msbits: 0,
         channels: ch,
+        buffer_frames: 0,
+        period_frames: 0,
     };
     // identical format-class -> reusable
     assert!(stream_matches(&g(44100, 2, "S16LE"), &src(44100, 2, 16)));

@@ -62,6 +62,8 @@ The following is an abbreviated fixture receipt from the conversion path; see [t
 }
 ```
 
+The buffer depth is requested as a duration, not a fixed frame count, because the playback loop decodes and writes on one thread: the granted `buffer_frames` and `period_frames` appear in the receipt, and recovered underruns are counted (`melbad now` → `xruns`). See [the HDMI/AVR dropout investigation](../evidence/hdmi-audio-dropouts.md).
+
 The receipt establishes the negotiated software output path reported by Melba; it is not a measurement of an arbitrary DAC's analog output. Do not infer bit-perfect from a codec label, a requested quality setting or a successful ALAC decode.
 
 ## Quality labels

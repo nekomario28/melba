@@ -242,10 +242,11 @@ fn run_play(file: &str, device: &str, verify: bool, max_seconds: Option<u64>) ->
         eprintln!("verdict: {v} — refusing to play as bit-perfect");
     }
 
+    let xruns = std::sync::atomic::AtomicU64::new(0);
     let t0 = Instant::now();
     let frames = if v == "BITPERFECT" {
         let cap = max_seconds.map(|s| s.saturating_mul(src.rate as u64));
-        match audio::play_into(&pcm, &granted, pf, cap) {
+        match audio::play_into(&pcm, &granted, pf, cap, &xruns) {
             Ok(f) => f,
             Err(e) => {
                 eprintln!("playback: {e}");
@@ -270,6 +271,11 @@ fn run_play(file: &str, device: &str, verify: bool, max_seconds: Option<u64>) ->
             }
             .into(),
         );
+        let recovered = xruns.load(std::sync::atomic::Ordering::SeqCst);
+        if recovered > 0 {
+            // A recovery is an audible gap: keep it in the receipt.
+            notes.push(format!("harmless=false xrun_recoveries={recovered}"));
+        }
         let r = FormatReceipt {
             source: src.clone(),
             granted: Some(granted.clone()),
@@ -1234,6 +1240,7 @@ fn now_json() -> Result<(), String> {
         "channels": get_u("melba:channels"),
         "volume": p.get::<f64>(iface, "Volume").unwrap_or(1.0),
         "streamOpens": get_u("melba:streamOpens"),
+        "xruns": get_u("melba:xruns"),
     });
     println!("{}", serde_json::to_string_pretty(&out).unwrap());
     Ok(())

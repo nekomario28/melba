@@ -238,6 +238,25 @@ fn spawn_locked(guard: &mut Option<ProcessGroup>, detached: bool) -> Result<Stri
     Ok(log.display().to_string())
 }
 
+/// What the ready check decides before any waiting, given whether the
+/// service answered: a listening service is ready, and a latched early exit
+/// fails fast with the recovery hint instead of spending the whole startup
+/// window. `None` means the caller has to start or wait for the service.
+///
+/// Split out because the second case cannot be exercised on a host where the
+/// service is already running: probing the real port would answer first.
+fn ready_from_probe(listening: bool) -> Option<Result<String, String>> {
+    if listening {
+        return Some(Ok(decrypt_url()));
+    }
+    if EARLY_EXIT.load(Ordering::SeqCst) {
+        return Some(Err(
+            "managed wrapper exited early — see wrapper.log (retry: `melbad wrapper start`)".into(),
+        ));
+    }
+    None
+}
+
 /// Bounded-wait variant for the playback path: probe the port, kick off
 /// the service when it is not already starting, then give it a short
 /// window to bind. A provisioned service opens its ports in ~10-20s, so
@@ -246,13 +265,8 @@ fn spawn_locked(guard: &mut Option<ProcessGroup>, detached: bool) -> Result<Stri
 /// `ensure` is the blocking CLI form of the same operation.
 pub fn try_ready() -> Result<String, String> {
     crate::auth_gui::check_managed_binding()?;
-    if check_wrapper(&key_url()).is_ok() {
-        return Ok(decrypt_url());
-    }
-    if EARLY_EXIT.load(Ordering::SeqCst) {
-        return Err(
-            "managed wrapper exited early — see wrapper.log (retry: `melbad wrapper start`)".into(),
-        );
+    if let Some(decision) = ready_from_probe(check_wrapper(&key_url()).is_ok()) {
+        return decision;
     }
     {
         // hold the lock across check+spawn — two racing opens must not
@@ -805,13 +819,21 @@ mod tests {
 
     #[test]
     fn early_exit_latch_short_circuits_try_ready() {
-        // a latched early-exit must fail fast with the retry hint instead
-        // of spawning the service and waiting its whole startup window
+        // A latched early exit must fail fast with the retry hint instead of
+        // spawning the service and waiting its whole startup window. The
+        // decision is driven directly: on a host where the managed service is
+        // already listening, probing the real port would answer first and this
+        // assertion would describe the host, not the code.
         EARLY_EXIT.store(true, Ordering::SeqCst);
-        let e = try_ready().unwrap_err();
+        let decision = ready_from_probe(false).expect("a latched exit must decide");
         EARLY_EXIT.store(false, Ordering::SeqCst);
+        let e = decision.unwrap_err();
         assert!(e.contains("exited early"), "{e}");
         assert!(e.contains("wrapper start"), "{e}");
+        // A service that answers is ready whatever the latch says.
+        assert!(matches!(ready_from_probe(true), Some(Ok(_))));
+        // Neither listening nor latched: the caller must start or wait.
+        assert!(ready_from_probe(false).is_none());
     }
 
     #[test]

@@ -75,6 +75,11 @@ and the actual playback path understandable.
   reservation release through D-Bus and then opens the direct device. The
   takeover is explicit, stops other audio on that card, and keeps the current
   output unchanged if the release is refused.
+- [x] **HDMI/AVR playback gaps** — diagnosed as the fixed 16384-frame ALSA
+  buffer (85 ms at 192 kHz) against a single-threaded decode-and-write loop,
+  not the driver's FIFO warnings (reproduced with stock `aplay`). The buffer is
+  now a duration (500 ms) and recovered underruns are counted and published.
+  See [the investigation](../evidence/hdmi-audio-dropouts.md).
 - [x] **HDMI/AVR bit-perfect verification** — a Yamaha RX-V6A on `hw:0,7`
   reported a valid ELD (LPCM 8ch, 16/20/24 bits, 32–192 kHz). A 96 kHz/24-bit
   FLAC, a 192 kHz/24-bit WAV and Apple Music ALAC 24/192 all produced

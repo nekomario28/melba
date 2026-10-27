@@ -1,6 +1,7 @@
 //! Source declarations must describe the codec, not MP4 sample-entry placeholders.
 
 use std::io::Cursor;
+use std::sync::atomic::AtomicU64;
 
 use melbad::audio;
 
@@ -53,12 +54,15 @@ fn alac_source_format_ignores_generic_mp4_placeholders() {
     );
     assert_eq!(pf.src.codec, "alac");
     // ALSA's null plugin negotiates the real output path without desktop audio.
+    let xruns = AtomicU64::new(0);
     let (pcm, granted) = audio::open_exact("null", &pf.src).expect("open null output");
     assert_eq!((granted.rate, granted.channels), (96_000, 2));
     assert_eq!(granted.format, "S32LE");
     assert!(granted.msbits >= 24);
     assert!(audio::stream_matches(&granted, &pf.src));
-    assert!(audio::play_into(&pcm, &granted, pf, Some(4096)).expect("decode into null") > 0);
+    assert!(
+        audio::play_into(&pcm, &granted, pf, Some(4096), &xruns).expect("decode into null") > 0
+    );
 }
 
 #[test]
@@ -119,9 +123,12 @@ fn mono_aac_uses_the_prepared_decoders_signal_format() {
     .expect("prepare mono AAC");
     assert_eq!((pf.src.rate, pf.src.channels), (48_000, 1));
     assert_eq!(pf.src.codec, "mp4a");
+    let xruns = AtomicU64::new(0);
     let (pcm, granted) = audio::open_exact("null", &pf.src).expect("open mono null output");
     assert_eq!((granted.rate, granted.channels), (48_000, 1));
-    assert!(audio::play_into(&pcm, &granted, pf, None).expect("decode mono AAC into null") > 0);
+    assert!(
+        audio::play_into(&pcm, &granted, pf, None, &xruns).expect("decode mono AAC into null") > 0
+    );
 }
 
 #[test]

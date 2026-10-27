@@ -82,6 +82,9 @@ pub struct Shared {
     /// how many ALSA streams this daemon has opened; stays at 1 across
     /// same-format track changes (gapless), grows on format changes.
     pub stream_opens: std::sync::atomic::AtomicU64,
+    /// ALSA XRuns recovered while writing. Each one is an audible gap, so it
+    /// is counted and published rather than recovered silently.
+    pub xruns: std::sync::atomic::AtomicU64,
     /// requested output device ("auto" or hw:X,Y); `melbad ctl device` retargets
     /// it live — the playback thread reads it each open.
     pub device: Mutex<String>,
@@ -110,6 +113,17 @@ pub struct Shared {
 }
 
 impl Shared {
+    /// Count an ALSA recovery and say so in the journal the first time it
+    /// happens, so a gap this process caused is attributable.
+    fn note_xrun(&self) {
+        let n = self.xruns.fetch_add(1, Ordering::SeqCst) + 1;
+        if n == 1 {
+            eprintln!(
+                "[player] audio underrun recovered (xruns=1) — the output path did not keep up"
+            );
+        }
+    }
+
     pub fn new() -> Arc<Self> {
         Arc::new(Self {
             state: AtomicU8::new(0),
@@ -121,6 +135,7 @@ impl Shared {
             quit: std::sync::atomic::AtomicBool::new(false),
             volume: std::sync::atomic::AtomicU64::new(1.0f64.to_bits()),
             stream_opens: std::sync::atomic::AtomicU64::new(0),
+            xruns: std::sync::atomic::AtomicU64::new(0),
             device: Mutex::new("auto".into()),
             pending_idx: Mutex::new(None),
             start_paused: std::sync::atomic::AtomicBool::new(false),
@@ -1280,7 +1295,7 @@ fn play_controlled(
                 Err(_) => return Flow::Ended,
             };
             let out: Vec<i16> = samples.iter().map(|&s| (s >> 16) as i16).collect();
-            if write_all_i16(&io, pcm, &out, g.channels as usize).is_err() {
+            if write_all_i16(&io, pcm, &out, g.channels as usize, shared).is_err() {
                 return Flow::Ended;
             }
         } else {
@@ -1288,7 +1303,7 @@ fn play_controlled(
                 Ok(i) => i,
                 Err(_) => return Flow::Ended,
             };
-            if write_all_i32(&io, pcm, &samples, g.channels as usize).is_err() {
+            if write_all_i32(&io, pcm, &samples, g.channels as usize, shared).is_err() {
                 return Flow::Ended;
             }
         }
@@ -1302,11 +1317,15 @@ fn play_controlled(
     Flow::Ended
 }
 
+/// Write `samples` in full, recovering an XRun as an audible gap but never
+/// hiding one: `xruns` counts every recovery so `melbad now` and the log can
+/// show that the output path is not keeping up.
 fn write_all_i16(
     io: &alsa::pcm::IO<'_, i16>,
     pcm: &alsa::pcm::PCM,
     samples: &[i16],
     ch: usize,
+    shared: &Shared,
 ) -> Result<(), ()> {
     let mut done = 0usize;
     while done * ch < samples.len() {
@@ -1315,6 +1334,7 @@ fn write_all_i16(
             Ok(0) => return Err(()),
             Ok(n) => done += n,
             Err(e) => {
+                shared.note_xrun();
                 if pcm.try_recover(e, true).is_err() {
                     return Err(());
                 }
@@ -1328,6 +1348,7 @@ fn write_all_i32(
     pcm: &alsa::pcm::PCM,
     samples: &[i32],
     ch: usize,
+    shared: &Shared,
 ) -> Result<(), ()> {
     let mut done = 0usize;
     while done * ch < samples.len() {
@@ -1335,6 +1356,7 @@ fn write_all_i32(
             Ok(0) => return Err(()),
             Ok(n) => done += n,
             Err(e) => {
+                shared.note_xrun();
                 if pcm.try_recover(e, true).is_err() {
                     return Err(());
                 }
@@ -1494,6 +1516,7 @@ fn metadata_map(shared: &Shared) -> dbus::arg::PropMap {
         "melba:streamOpens",
         Box::new(shared.stream_opens.load(Ordering::SeqCst)),
     );
+    put("melba:xruns", Box::new(shared.xruns.load(Ordering::SeqCst)));
     put(
         "melba:queue",
         Box::new(

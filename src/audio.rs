@@ -5,6 +5,7 @@
 use alsa::pcm::{Access, Format, HwParams, State, IO, PCM};
 use alsa::{Direction, ValueOr};
 use serde::Serialize;
+use std::sync::atomic::{AtomicU64, Ordering};
 use symphonia::core::audio::{SampleBuffer, SignalSpec};
 use symphonia::core::codecs::{Decoder, DecoderOptions, CODEC_TYPE_AAC, CODEC_TYPE_ALAC};
 use symphonia::core::formats::{FormatOptions, FormatReader};
@@ -30,6 +31,13 @@ pub struct Granted {
     pub format: String,
     pub msbits: u32,
     pub channels: u32,
+    /// ALSA buffer depth actually granted, in frames. This is the slack the
+    /// writer has; the receipt keeps it so a regression is visible.
+    #[serde(default)]
+    pub buffer_frames: u32,
+    /// ALSA period actually granted, in frames.
+    #[serde(default)]
+    pub period_frames: u32,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -323,6 +331,28 @@ pub fn release_for_takeover(device: &str) -> Result<(), String> {
     }
 }
 
+/// The ALSA period requested: small enough that pause and seek stay
+/// responsive, large enough to keep wake-ups cheap.
+pub const PERIOD_FRAMES: u32 = 4096;
+
+/// Buffer depth to aim for, in milliseconds.
+///
+/// The playback loop decodes and writes on one thread, and for a `stream:`
+/// source each `next_packet()` may wait on the network and the decrypt
+/// service. The buffer is the only slack that work gets: a fixed frame count
+/// is not enough slack, because the same count is a different amount of time
+/// at every rate. 16384 frames is 371 ms at 44.1 kHz but only 85 ms at
+/// 192 kHz, where an ordinary scheduling hiccup drained the device and
+/// produced an audible gap. Ask for a duration instead.
+pub const BUFFER_MS: u32 = 500;
+
+/// The buffer depth to request for `rate`, never below four periods so the
+/// period/buffer relationship stays valid for the driver.
+pub fn buffer_frames(rate: u32, period: u32) -> u32 {
+    let by_time = (u64::from(rate) * u64::from(BUFFER_MS) / 1000) as u32;
+    by_time.max(period.saturating_mul(4))
+}
+
 /// Open `device` for playback demanding exactly `src.rate`/`src.channels` and a
 /// format able to carry `src.bits` without truncation. Returns granted params
 /// read back from the kernel — the caller compares them to the source.
@@ -364,10 +394,16 @@ pub fn open_exact(device: &str, src: &SourceFormat) -> Result<(PCM, Granted), Op
         if hwp.set_channels(src.channels).is_err() {
             continue;
         }
-        if hwp.set_period_size(4096, ValueOr::Nearest).is_err() {
+        if hwp
+            .set_period_size(i64::from(PERIOD_FRAMES), ValueOr::Nearest)
+            .is_err()
+        {
             continue;
         }
-        if hwp.set_buffer_size_near(4096 * 4).is_err() {
+        if hwp
+            .set_buffer_size_near(i64::from(buffer_frames(src.rate, PERIOD_FRAMES)))
+            .is_err()
+        {
             continue;
         }
         if pcm.hw_params(&hwp).is_err() {
@@ -380,6 +416,8 @@ pub fn open_exact(device: &str, src: &SourceFormat) -> Result<(PCM, Granted), Op
             format: format!("{:?}", hwp.get_format().unwrap_or(Format::Unknown)),
             msbits: fmt_msbits(fmt),
             channels: hwp.get_channels().unwrap_or(0),
+            buffer_frames: hwp.get_buffer_size().unwrap_or(0) as u32,
+            period_frames: hwp.get_period_size().unwrap_or(0) as u32,
         };
         if granted.rate != src.rate || granted.channels != src.channels {
             // Nearest resolved to something else -> try next format.
@@ -476,6 +514,7 @@ pub fn play_into(
     g: &Granted,
     pf: ProbedFile,
     max_frames: Option<u64>,
+    xruns: &AtomicU64,
 ) -> Result<u64, String> {
     let mut probed = pf;
     let track_id = probed.track_id;
@@ -501,10 +540,10 @@ pub fn play_into(
         if g.format == "S16LE" {
             let io = pcm.io_i16().map_err(|e| format!("io_i16: {e}"))?;
             let out: Vec<i16> = samples.iter().map(|&s| (s >> 16) as i16).collect();
-            frames_total += write_frames_t(&io, pcm, &out, g.channels as usize)?;
+            frames_total += write_frames_t(&io, pcm, &out, g.channels as usize, xruns)?;
         } else {
             let io = pcm.io_i32().map_err(|e| format!("io_i32: {e}"))?;
-            frames_total += write_frames_t(&io, pcm, samples, g.channels as usize)?;
+            frames_total += write_frames_t(&io, pcm, samples, g.channels as usize, xruns)?;
         }
         if let Some(m) = max_frames {
             if frames_total >= m {
@@ -522,6 +561,7 @@ fn write_frames_t<T: Copy>(
     pcm: &PCM,
     samples: &[T],
     ch: usize,
+    xruns: &AtomicU64,
 ) -> Result<u64, String> {
     let mut done = 0usize;
     let frames = samples.len() / ch;
@@ -533,6 +573,10 @@ fn write_frames_t<T: Copy>(
             Err(e) => {
                 let st = pcm.state();
                 if st == State::XRun || st == State::Suspended || st == State::Disconnected {
+                    // Recover and keep playing, but never hide it: an
+                    // emergency recovery is an audible gap, and a silent one
+                    // is impossible to diagnose later.
+                    xruns.fetch_add(1, Ordering::SeqCst);
                     pcm.try_recover(e, true)
                         .map_err(|e2| format!("recover: {e2}"))?;
                     continue;
@@ -666,6 +710,21 @@ mod auto_tests {
             .map(|d| d.device)
             .collect();
         assert_eq!(picked, ["hw:2,0"]);
+    }
+
+    #[test]
+    fn the_requested_buffer_is_a_duration_not_a_frame_count() {
+        // 500 ms at every rate, never below four periods.
+        for rate in [44100u32, 48000, 96000, 176400, 192000] {
+            let frames = buffer_frames(rate, PERIOD_FRAMES);
+            assert!(frames >= PERIOD_FRAMES * 4, "rate {rate}: {frames}");
+            let ms = u64::from(frames) * 1000 / u64::from(rate);
+            assert!((450..=550).contains(&ms), "rate {rate} buffers {ms} ms");
+        }
+        // The old fixed size was far too little slack at high rates.
+        assert!(buffer_frames(192000, PERIOD_FRAMES) > 16384);
+        // A very low rate still leaves room for four periods.
+        assert_eq!(buffer_frames(8000, PERIOD_FRAMES), PERIOD_FRAMES * 4);
     }
 
     #[test]

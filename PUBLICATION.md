@@ -2,7 +2,7 @@
 
 This document describes the boundaries for **source publication, source-only export and separately published signed releases**. It is not legal clearance and does not by itself authorize redistribution or a new release.
 
-As of **2026-10-28**, the public [v0.3.8 release](https://github.com/nekomario28/melba/releases/tag/v0.3.8) contains signed x86_64 and aarch64 binary assets and their checksum/signature files. Therefore “source-only export” below refers to one *export workflow*, **not** a claim that the project publishes no binaries. The release process has separate signing, notice and packaging checks (see [Updates](docs/updates.md) and [NOTICE.md](NOTICE.md)).
+As of **2026-10-28**, the public [v0.3.9 release](https://github.com/nekomario28/melba/releases/tag/v0.3.9) contains signed x86_64 and aarch64 binary assets and their checksum/signature files. Therefore “source-only export” below refers to one *export workflow*, **not** a claim that the project publishes no binaries. The release process has separate signing, notice and packaging checks (see [Updates](docs/updates.md) and [NOTICE.md](NOTICE.md)).
 
 ## Included in a source publication
 
