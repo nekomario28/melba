@@ -279,6 +279,50 @@ fn fmt_msbits(f: Format) -> u32 {
     }
 }
 
+/// Ask the session audio server to release the ALSA card behind `device`.
+///
+/// WirePlumber owns `org.freedesktop.ReserveDevice1.AudioN` while it holds
+/// the card. `RequestRelease` is its cooperative hand-off: it closes the
+/// PCM and lets an exclusive `hw:` client open it. Only a busy device is
+/// disturbed; a free device, `auto`, and `default` are left alone.
+pub fn release_for_takeover(device: &str) -> Result<(), String> {
+    if device == "auto" || device == "default" {
+        return Ok(());
+    }
+    let Some(rest) = device.strip_prefix("hw:") else {
+        return Ok(());
+    };
+    let Some((card, _)) = rest.split_once(',') else {
+        return Err("invalid hardware device".into());
+    };
+    let card: u32 = card.parse().map_err(|_| "invalid hardware card")?;
+    match PCM::new(device, Direction::Playback, true) {
+        Ok(pcm) => {
+            drop(pcm);
+            return Ok(());
+        }
+        Err(error) if error.errno() == nix::errno::Errno::EBUSY as i32 => {}
+        Err(error) => return Err(format!("{device}: {error}")),
+    }
+    let service = format!("org.freedesktop.ReserveDevice1.Audio{card}");
+    let path = format!("/org/freedesktop/ReserveDevice1/Audio{card}");
+    let connection = dbus::blocking::Connection::new_session()
+        .map_err(|error| format!("session bus: {error}"))?;
+    let proxy = connection.with_proxy(service, path, std::time::Duration::from_secs(2));
+    let (released,): (bool,) = proxy
+        .method_call(
+            "org.freedesktop.ReserveDevice1",
+            "RequestRelease",
+            (100i32,),
+        )
+        .map_err(|error| format!("audio server did not release {device}: {error}"))?;
+    if released {
+        Ok(())
+    } else {
+        Err(format!("audio server declined to release {device}"))
+    }
+}
+
 /// Open `device` for playback demanding exactly `src.rate`/`src.channels` and a
 /// format able to carry `src.bits` without truncation. Returns granted params
 /// read back from the kernel — the caller compares them to the source.

@@ -23,6 +23,8 @@ Both paths use the same transport: queue commands, MPRIS `OpenUri` / `MelbaEnque
 |---|---|
 | `auto` | Prefer direct USB/analog `hw:` output over HDMI; never intentionally select the OS mixer, but compatibility still depends on the actual device. |
 | `hw:X,Y` | Target a specific ALSA hardware PCM directly; preferred for checking exact format negotiation. |
+
+The Settings picker keeps a busy hardware output visible as “in use”. Selecting it asks PipeWire/WirePlumber to release that card through the standard D-Bus device reservation (`org.freedesktop.ReserveDevice1.RequestRelease`), then opens the direct `hw:` device. This intentionally stops other system audio on that card; a free device is not disturbed.
 | `default` | Follow system audio via PipeWire/PulseAudio; regarded as shared output, not bit-perfect. |
 
 A 24-bit source needs a device that accepts at least 24 valid sample bits (for example an appropriate S24/S32 mode). A 16-bit-only S/PDIF interface cannot meet that requirement. For HDMI/AVR, verifying real sink capability requires a connected display/receiver and valid ELD; probing an unplugged HDMI device is insufficient.

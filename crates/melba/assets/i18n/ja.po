@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Melba\n"
-"Report-Msgid-Bugs-To: https://github.com/nekomario28/melba/issues/new\n"
+"Report-Msgid-Bugs-To: https://github.com/nekomario28/apple-music-linux/issues/new\n"
 "POT-Creation-Date: 2026-10-20 02:23+0900\n"
 "PO-Revision-Date: 2026-09-09 13:30+0000\n"
 "Last-Translator: Melba contributors\n"
@@ -2089,3 +2089,15 @@ msgstr "Melba には OpenGL 2.0 以降に対応したグラフィックドライ
 
 msgid "Playback is not ready on this computer"
 msgstr "このコンピューターではまだ再生できません"
+
+#: src/melba/src/ui/settings.rs
+msgid "in use"
+msgstr "使用中"
+
+#: src/melba/src/ui/settings.rs
+msgid "Selecting this output will stop the current PipeWire audio and give Melba exclusive control."
+msgstr "この出力を選ぶと、現在の PipeWire の音声を停止して Melba が排他的に使用します。"
+
+#: src/melba/src/ui/settings.rs
+msgid "Use this direct hardware output."
+msgstr "この直接ハードウェア出力を使用します。"

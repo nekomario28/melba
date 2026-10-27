@@ -1887,7 +1887,17 @@ pub fn serve(
             "MelbaSetAudioDevice",
             ("s",),
             (),
-            move |_, _: &mut St, (device,): (String,)| {
+            move |_, s: &mut St, (device,): (String,)| {
+                let sink = s
+                    .shared
+                    .sink
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .clone();
+                if device != sink && device.starts_with("hw:") {
+                    audio::release_for_takeover(&device)
+                        .map_err(|error| dbus::MethodErr::failed(&error))?;
+                }
                 crate::config::set_audio_device(&device)
                     .map_err(|e| dbus::MethodErr::invalid_arg(&e))?;
                 txp.lock()
@@ -1904,7 +1914,17 @@ pub fn serve(
             "MelbaSetDevice",
             ("s",),
             (),
-            move |_, _: &mut St, (d,): (String,)| {
+            move |_, s: &mut St, (d,): (String,)| {
+                let sink = s
+                    .shared
+                    .sink
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .clone();
+                if d != sink && d.starts_with("hw:") {
+                    audio::release_for_takeover(&d)
+                        .map_err(|error| dbus::MethodErr::failed(&error))?;
+                }
                 txp.lock()
                     .unwrap_or_else(|e| e.into_inner())
                     .send(Cmd::SetDevice(d))

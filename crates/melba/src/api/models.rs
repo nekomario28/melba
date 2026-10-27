@@ -730,6 +730,15 @@ pub struct AudioOutput {
     pub note: String,
 }
 
+impl AudioOutput {
+    /// A picker may offer a busy device: selecting it is how the user asks
+    /// Melba to take exclusive ownership from PipeWire. Phantom ALSA slots
+    /// and other probe failures stay hidden.
+    pub fn usable(&self) -> bool {
+        self.openable || self.note.to_lowercase().contains("busy")
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 pub struct AudioOutputs {
     #[serde(default)]
@@ -1086,5 +1095,28 @@ mod tests {
         let playlists = results.playlists.unwrap();
         assert_eq!(playlists.items.len(), 1);
         assert_eq!(playlists.next_offset(), Some(2));
+    }
+}
+
+#[cfg(test)]
+mod output_tests {
+    use super::AudioOutput;
+
+    #[test]
+    fn busy_outputs_are_offered_for_explicit_takeover() {
+        let busy = AudioOutput {
+            device: "hw:0,7".into(),
+            note: "Device or resource busy (16)".into(),
+            openable: false,
+            ..AudioOutput::default()
+        };
+        assert!(busy.usable());
+        let phantom = AudioOutput {
+            device: "hw:0,15".into(),
+            note: "No such device".into(),
+            openable: false,
+            ..AudioOutput::default()
+        };
+        assert!(!phantom.usable());
     }
 }

@@ -60,7 +60,7 @@ impl<'a> RowText<'a> {
 
 /// The guide to writing a palette file for the themes folder.
 const THEMES_GUIDE_URL: &str =
-    "https://github.com/nekomario28/melba/blob/master/crates/melba/docs/themes.md";
+    "https://github.com/nekomario28/apple-music-linux/blob/master/crates/melba/docs/themes.md";
 
 fn section_matches(needle: &str, title: &str, rows: &[RowText<'_>]) -> bool {
     let needle = needle.trim().to_lowercase();
@@ -286,14 +286,27 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                                 }
                             }
                             if let Some(outputs) = &outputs {
-                                for device in
-                                    outputs.devices.iter().filter(|device| device.openable)
+                                for device in outputs.devices.iter().filter(|device| device.usable())
                                 {
-                                    let label = format!("{} ({})", device.card_name, device.device);
-                                    if ui
+                                    let busy = !device.openable;
+                                    let label = if busy {
+                                        format!(
+                                            "{} ({}) — {}",
+                                            device.card_name,
+                                            device.device,
+                                            gettext(locale, "in use")
+                                        )
+                                    } else {
+                                        format!("{} ({})", device.card_name, device.device)
+                                    };
+                                    let response = ui
                                         .selectable_label(current == device.device, label)
-                                        .clicked()
-                                    {
+                                        .on_hover_text(if busy {
+                                            gettext(locale, "Selecting this output will stop the current PipeWire audio and give Melba exclusive control.")
+                                        } else {
+                                            gettext(locale, "Use this direct hardware output.")
+                                        });
+                                    if response.clicked() {
                                         choose = Some(device.device.clone());
                                     }
                                 }

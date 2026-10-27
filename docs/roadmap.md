@@ -66,6 +66,11 @@ and the actual playback path understandable.
 - [~] **First-run audio setup** — `melbad setup` and the Settings picker work;
   a guided first-launch wizard remains.
 
+- [x] **Busy output takeover** — a busy `hw:` output remains in Settings as
+  “in use”; selecting it requests the session audio server's device
+  reservation release through D-Bus and then opens the direct device. The
+  takeover is explicit, stops other audio on that card, and keeps the current
+  output unchanged if the release is refused.
 - [x] **HDMI/AVR bit-perfect verification** — a Yamaha RX-V6A on `hw:0,7`
   reported a valid ELD (LPCM 8ch, 16/20/24 bits, 32–192 kHz). A 96 kHz/24-bit
   FLAC, a 192 kHz/24-bit WAV and Apple Music ALAC 24/192 all produced
