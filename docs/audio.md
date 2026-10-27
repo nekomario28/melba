@@ -27,6 +27,8 @@ Both paths use the same transport: queue commands, MPRIS `OpenUri` / `MelbaEnque
 
 A 24-bit source needs a device that accepts at least 24 valid sample bits (for example an appropriate S24/S32 mode). A 16-bit-only S/PDIF interface cannot meet that requirement. For HDMI/AVR, verifying real sink capability requires a connected display/receiver and valid ELD; probing an unplugged HDMI device is insufficient.
 
+A recorded 2026-10-27 run with a Yamaha RX-V6A is in [HDMI / AVR bit-perfect verification](../evidence/hdmi-avr-bitperfect.md); it covers 96/192 kHz PCM and a 24-bit/192 kHz ALAC stream over direct `hw:` output.
+
 ## Bit-perfect verdicts
 
 Melba only assigns `BITPERFECT` when it opened direct `hw:` PCM, the **granted** rate and channel count match the source, and the number of valid output sample bits (`msbits`) is at least the source bit depth. It does **not** grant this label to `default`, PipeWire or PulseAudio, because a shared mixer can resample or alter PCM afterward.
