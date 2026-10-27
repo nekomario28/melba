@@ -600,6 +600,9 @@ pub struct App {
     pub update_restart_arguments: Vec<String>,
     pub update_receipt: Option<fastframe_update::Receipt>,
     held_update: Option<HeldUpdate>,
+    /// The user pressed Check for updates, so the next verified download may
+    /// restart without another click when playback is not active.
+    manual_update: bool,
     /// The window's pixels per point when it last drew, so artwork chosen
     /// away from the drawing code fits the display it lands on.
     pub pixels_per_point: f32,
@@ -999,6 +1002,7 @@ impl App {
             update_restart_arguments: Vec::new(),
             update_receipt: None,
             held_update: None,
+            manual_update: false,
             pixels_per_point: 1.0,
         };
         app.local.volume = app.settings.volume;
@@ -3263,7 +3267,7 @@ impl App {
                 } => self.receive_radio(&seed, generation, result),
                 Event::UpdateSupport(result) => {
                     if result.is_ok()
-                        && self.settings.download_updates_automatically
+                        && (self.settings.download_updates_automatically || self.manual_update)
                         && matches!(self.update_download, crate::updates::DownloadState::Idle)
                     {
                         self.take_update_step(HeldUpdate::Download);
@@ -3279,6 +3283,12 @@ impl App {
                         Ok(prepared) => crate::updates::DownloadState::Ready(prepared),
                         Err(error) => crate::updates::DownloadState::Failed(error),
                     };
+                    if self.manual_update
+                        && matches!(self.update_download, crate::updates::DownloadState::Ready(_))
+                        && !self.now_playing().is_some_and(|now| now.playing)
+                    {
+                        self.actions.push(Action::InstallUpdate);
+                    }
                 }
                 Event::UpdateInstalling(result) => match result {
                     Ok(()) => self.actions.push(Action::Quit),
@@ -3288,8 +3298,16 @@ impl App {
                 },
                 Event::UpdateChecked { manual, result } => {
                     self.update_checking = false;
+                    self.manual_update = manual;
                     match result {
                         Ok(Some(notice)) => {
+                            if manual {
+                                // A manual check is an explicit request for the
+                                // update flow: open the modal rather than
+                                // leaving only a transient toast and a small
+                                // top-bar badge.
+                                self.show_update = true;
+                            }
                             if manual || self.update.as_ref() != Some(&notice) {
                                 self.toast(
                                     // Translators: {version} is a version number such as 1.4.0.
@@ -3298,7 +3316,7 @@ impl App {
                                 );
                             }
                             self.update = Some(notice);
-                            if self.settings.download_updates_automatically
+                            if (self.settings.download_updates_automatically || manual)
                                 && matches!(
                                     self.update_download,
                                     crate::updates::DownloadState::Idle
@@ -3309,6 +3327,7 @@ impl App {
                         }
                         Ok(None) => {
                             self.update = None;
+                            self.manual_update = false;
                             if manual {
                                 self.toast(gettext(self.locale, "Melba is up to date"));
                             } else {
@@ -18355,7 +18374,7 @@ mod tests {
     }
 
     #[test]
-    fn update_checks_leave_the_popup_closed_until_requested() {
+    fn manual_update_checks_open_the_popup_while_background_checks_stay_quiet() {
         for manual in [false, true] {
             let mut app = headless_app();
             app.handle_backend_events(vec![Event::UpdateChecked {
@@ -18368,10 +18387,33 @@ mod tests {
             let ctx = egui::Context::default();
             app.apply_actions(&ctx);
             assert!(app.update.is_some());
-            assert!(!app.show_update);
-            app.apply(Action::ShowUpdate, &ctx);
-            assert!(app.show_update);
+            assert_eq!(app.show_update, manual);
+            if !manual {
+                app.apply(Action::ShowUpdate, &ctx);
+                assert!(app.show_update);
+            }
         }
+    }
+
+    #[test]
+    fn a_manual_update_installs_after_download_when_not_playing() {
+        use crate::updates::{Installation, Kind, Prepared, Release};
+        let mut app = headless_app();
+        app.manual_update = true;
+        app.update = Some(Release {
+            version: "1.2.3".into(),
+            url: "https://example.invalid/release".into(),
+        });
+        app.handle_backend_events(vec![Event::UpdateDownloaded(Ok(Box::new(
+            Prepared::sample(
+                Installation {
+                    executable: "/test/melba".into(),
+                    kind: Kind::Portable,
+                },
+                "1.2.3",
+            ),
+        )))]);
+        assert!(app.actions.iter().any(|action| matches!(action, Action::InstallUpdate)));
     }
 
     #[test]

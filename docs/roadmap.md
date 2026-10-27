@@ -40,6 +40,10 @@ and the actual playback path understandable.
   archive; the vendored fastframe helper replaces both and restores both when
   the new GUI fails. Verified with a broken v0.3.7 test release: receipt
   "Update failed; restored the previous app", both binaries back at v0.3.6 (test build).
+- [x] **Visible and automatic update flow** — a manual update check opens the
+  update dialog and starts the signed download; a verified download restarts
+  automatically when playback is idle. Active playback is never interrupted
+  by the automatic path.
 - [x] **GUI update button acceptance** — portable v0.3.2 → v0.3.3 was driven
   through Settings → About and the update modal on 2026-10-26: signed download,
   install, helper restart and `melba 0.3.3` startup succeeded. The marker
