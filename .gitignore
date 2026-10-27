@@ -29,3 +29,6 @@ Thumbs.db
 *.so
 *.o
 *.a
+
+# Vendored dependency build output
+vendor/fastframe-update/target/

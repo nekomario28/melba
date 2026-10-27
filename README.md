@@ -1,5 +1,6 @@
 <p align="center">
-  <img width="740" src="docs/assets/melba-album.png" alt="Melba album view, track list and player controls (demo library)" />
+  <img width="1000" src="docs/assets/melba-album.png" alt="Melba full window: album view, track list, sidebar and player controls (demo library)" />
+  <br/><sub>Actual app capture · full demo window · no account data</sub>
 </p>
 
 <h1 align="center">melba</h1>

@@ -1,5 +1,6 @@
 <p align="center">
-  <img width="740" src="docs/assets/melba-album.png" alt="Melba のアルバム画面、曲一覧とプレイヤー操作（デモ用ライブラリ）" />
+  <img width="1000" src="docs/assets/melba-album.png" alt="Melba の全画面。アルバム、曲一覧、サイドバー、プレイヤー（デモ用ライブラリ）" />
+  <br/><sub>実際のアプリ全画面 · デモ用ライブラリ · アカウントデータなし</sub>
 </p>
 
 # melba — Linux 向けネイティブ Apple Music クライアント
