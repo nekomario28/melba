@@ -2,7 +2,7 @@
   <a href="#quick-start">
     <img width="740" src="docs/assets/melba-album.png" alt="Melba on Linux showing an album view with its track list and player controls, using the demo library." />
   </a><br/>
-  <sub>Actual app capture · demo library · no account data</sub>
+  <sub>Actual app capture · demo library</sub>
 </p>
 
 <h1 align="center">melba</h1>
