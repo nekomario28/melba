@@ -30,7 +30,8 @@ class ReadmeDocs(unittest.TestCase):
 
     def test_documented_catalogs_match_the_bundled_po_files(self):
         bundled = {p.stem for p in (ROOT / 'crates/melba/assets/i18n').glob('*.po')}
-        text = read('README.md')
+        text = read('docs/development.md')
+        self.assertIn('docs/development.md', read('README.md'))
         documented = set(re.findall(r'\b(?:de-DE|es|fr|it|ja|ko|nl|pl|pt-BR|pt-PT|ru|sv|tr|uk|zh-Hans|zh-Hant)\b', text))
         self.assertEqual(documented, bundled)
 

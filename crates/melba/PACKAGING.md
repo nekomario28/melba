@@ -2,10 +2,11 @@
 
 The Linux product is a **pair**: the desktop executable `melba` and its
 playback/sign-in companion `melbad`. Use the repository's
-[source installer or Arch package](../../README.md#install) for both binaries
-and the notice-carrying install layout. A source-only GitHub release is not an
-installable desktop package; this repository does not yet provide a verified
-paired signed-release/rollback pipeline.
+[source installer or Arch package](../../docs/installation.md) for both binaries
+and the notice-carrying install layout. Separately published signed release
+archives are available for the documented architectures. A source-only GitHub
+tag is not itself an installable desktop package; the [paired portable updater](../../docs/updates.md)
+uses signature verification and a matching `melba` / `melbad` installation.
 
 ## Install layout and lifetime
 
@@ -18,7 +19,7 @@ selects the native or browser flow.
 
 Installing does not enable or start an independent login daemon. Ordinary
 close/Quit stops the desktop session's playback unless the user explicitly
-chooses background mode. See [desktop lifetime](../../README.md#desktop-lifetime-linux)
+chooses background mode. See [desktop lifetime](../../docs/audio.md#queue-and-desktop-control)
 for the distinction from standalone daemon use.
 
 The app-only Nix flake does not install `melbad` or collect the paired product's
@@ -45,10 +46,10 @@ include repository research material without establishing the relevant rights.
 The in-app updater requires an Ed25519 signature over the release checksums,
 verified against the committed public key. This is a verifier contract, not
 proof of an operational signing/publishing workflow or control of the private
-key. It currently replaces only the GUI and refuses a different-version
-companion; paired replacement and rollback remain release gates. Package and
-source upgrades must install both executables together. See
-[Updates](../../README.md#updates).
+key. The current portable update helper replaces both executables and restores the
+previous pair on a failed GUI startup. This was tested on specified release
+paths, not every host or package layout. Package and source upgrades must
+install both executables together. See [Updates](../../docs/updates.md).
 
 Configuration, playback state and credentials use the XDG locations owned by
 the desktop and daemon. Do not package a user's settings, queue, browser

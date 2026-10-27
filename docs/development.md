@@ -22,6 +22,14 @@ Desktop code forwards activation and application links to the existing UI, disti
 
 These are implementation contracts. The installed desktop's window-close, reopening, transport and context cases require runtime acceptance; consult the [desktop lifecycle plan](../specs/desktop-lifecycle-update/plan.md) and [Roadmap](roadmap.md) for verified and outstanding cases. Do not claim an installed result merely from synthetic tests.
 
+## UI localization
+
+The UI follows the system locale by default, with a persistent per-user setting under **Settings → Language**. Gettext catalogs are stored in `crates/melba/assets/i18n/`:
+
+`de-DE`, `es`, `fr`, `it`, `ja`, `ko`, `nl`, `pl`, `pt-BR`, `pt-PT`, `ru`, `sv`, `tr`, `uk`, `zh-Hans`, `zh-Hant`
+
+Japanese translations were complete at the documented revision; other catalogs had one or two English fallback entries. Missing keys fall back to English. The gettext `melba.pot` template and `POTFILES` drive future updates, and `cargo test --test localization` checks catalog coverage.
+
 ## Quality, licensing and release gates
 
 - `tests/source_format.rs` guards source encoding and ALAC codec-specific rate/depth/channel extraction.
