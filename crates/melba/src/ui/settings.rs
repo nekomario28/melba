@@ -60,7 +60,7 @@ impl<'a> RowText<'a> {
 
 /// The guide to writing a palette file for the themes folder.
 const THEMES_GUIDE_URL: &str =
-    "https://github.com/nekomario28/apple-music-linux/blob/master/crates/melba/docs/themes.md";
+    "https://github.com/nekomario28/melba/blob/master/crates/melba/docs/themes.md";
 
 fn section_matches(needle: &str, title: &str, rows: &[RowText<'_>]) -> bool {
     let needle = needle.trim().to_lowercase();

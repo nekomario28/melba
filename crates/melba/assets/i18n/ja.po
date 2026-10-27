@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Melba\n"
-"Report-Msgid-Bugs-To: https://github.com/nekomario28/apple-music-linux/issues/new\n"
+"Report-Msgid-Bugs-To: https://github.com/nekomario28/melba/issues/new\n"
 "POT-Creation-Date: 2026-10-20 02:23+0900\n"
 "PO-Revision-Date: 2026-09-09 13:30+0000\n"
 "Last-Translator: Melba contributors\n"
