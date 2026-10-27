@@ -30,9 +30,28 @@ class ReadmeDocs(unittest.TestCase):
 
     def test_documented_catalogs_match_the_bundled_po_files(self):
         bundled = {p.stem for p in (ROOT / 'crates/melba/assets/i18n').glob('*.po')}
-        text = read('README.md')
+        text = read('docs/development.md')
+        self.assertIn('docs/development.md', read('README.md'))
         documented = set(re.findall(r'\b(?:de-DE|es|fr|it|ja|ko|nl|pl|pt-BR|pt-PT|ru|sv|tr|uk|zh-Hans|zh-Hant)\b', text))
         self.assertEqual(documented, bundled)
+
+    def test_local_document_links_resolve(self):
+        documents = (
+            'README.md', 'README.ja.md', 'PUBLICATION.md',
+            'docs/installation.md', 'docs/audio.md',
+            'docs/authentication.md', 'docs/updates.md',
+            'docs/integrations.md', 'docs/development.md',
+            'crates/melba/PACKAGING.md', 'crates/melba/CONTRIBUTING.md',
+        )
+        for name in documents:
+            for link in re.findall(r'\]\(([^)]+)\)', read(name)):
+                target = link.split('#', 1)[0]
+                if not target or target.startswith(('https://', 'http://', 'mailto:')):
+                    continue
+                self.assertTrue(
+                    ((ROOT / name).parent / target).exists(),
+                    f'{name}: broken local link to {link}',
+                )
 
     def test_wrapper_docs_have_both_languages(self):
         self.assertIn('[日本語](wrapper.ja.md)', (ROOT / 'docs/wrapper.md').read_text())

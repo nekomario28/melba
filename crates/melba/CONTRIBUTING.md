@@ -20,7 +20,7 @@ Some boundaries are deliberate:
 - Playback requires an Apple Music subscription. `melbad` decodes AAC-256
   through the Widevine CDM already installed on the machine, and ALAC
   lossless through a decrypt service the user supplies and configures
-  (see the root README, "Subscription playback"). Proposals that bypass
+  (see [audio and playback](../../docs/audio.md)). Proposals that bypass
   Apple Music's DRM or impersonate another client are out of scope.
 - Apple Music tracks must come from Apple Music. Substituting audio from
   YouTube, Piped, `yt-dlp`, or another catalogue is out of scope.
@@ -35,7 +35,7 @@ silently ignoring the action.
 Duplicate, out-of-scope, or incomplete issues may be closed with a short
 explanation.
 
-A bug can be closed once its fix is on `master` and the relevant checks
+A bug can be closed once its fix is on `main` and the relevant checks
 pass, with the commit and release status stated. Reporter confirmation is
 welcome but is not required for closure. Reopen the issue if it persists
 after updating.
@@ -67,9 +67,9 @@ Keep each pull request to one change. Explain why it belongs in Melba,
 what changed, and how you tested it. Avoid unrelated formatting, refactors,
 generated prose, and large mechanical rewrites.
 
-`master` has a linear history. Outside pull requests are squash-merged
+`main` has a linear history. Outside pull requests are squash-merged
 into one focused commit with contributor credit; merge commits are not
-accepted. Maintainer work is committed directly on `master`, one topic per
+accepted. Maintainer work is committed directly on `main`, one topic per
 commit. Use fast-forward-only pulls and rebase unpublished local commits
 when needed. Do not rewrite published history without explicit maintainer
 approval.
