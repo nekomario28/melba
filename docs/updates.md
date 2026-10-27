@@ -35,8 +35,11 @@ v0.3.6 adds the complete binary notice set to the portable archives (`SPOTIFAST-
 The following cases were recorded on **2026-10-26** and **2026-10-27**:
 
 - The portable GUI v0.3.2 → v0.3.3 update was driven end to end through the GUI and restarted into v0.3.3.
+- A portable v0.3.5 installation checked, downloaded and installed signed v0.3.6 through the GUI. The receipt read “Updated to 0.3.6”, both binaries reported 0.3.6, and the downloaded archive matched the signed checksum manifest.
 - The v0.3.5 paired-update path moved a portable v0.3.5 installation to a test build labelled v0.3.6 with both binaries; that test release was removed afterwards.
 - A deliberately broken v0.3.7 **test** release caused both executables to be restored to v0.3.6; the receipt read “Update failed; restored the previous app”.
+
+The GUI update replaces the executables. The v0.3.6 archive carries the complete notice set, but an existing v0.3.5 installation that predates it should be reinstalled from the current source or a fresh portable archive if the local `share/licenses` tree is required.
 
 These are path-specific tests, not a guarantee for every distro, signing setup or device. The earlier Cargo-root install is not GUI-updatable.
 

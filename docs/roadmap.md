@@ -45,6 +45,10 @@ and the actual playback path understandable.
   install, helper restart and `melba 0.3.3` startup succeeded. The marker
   (`melba-portable.txt`) is required. The default installer now installs that
   portable layout, and `packaging/package-portable.sh` checks the marker.
+- [x] **v0.3.6 signed-update acceptance** — a portable v0.3.5 installation
+  checked, downloaded and installed the signed v0.3.6 release on 2026-10-27;
+  both binaries report 0.3.6 and the receipt read “Updated to 0.3.6”. The
+  v0.3.6 archive carries the complete Spotifast/third-party notice set.
 - [x] **Paired update rollback** — the portable installer and the v0.3.6 GUI
   helper both swap `melba` and `melbad` together and restore both on failure.
   GUI rollback was exercised with a deliberately broken test release; the
