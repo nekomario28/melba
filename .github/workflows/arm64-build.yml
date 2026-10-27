@@ -29,6 +29,8 @@ jobs:
       - name: collect third-party notices
         run: |
           cargo install cargo-about --version 0.8.4 --locked
+          cargo fetch --locked
+          cargo fetch --locked --manifest-path crates/melba/Cargo.toml
           ./ci/licenses.sh target/third-party
       - name: package portable arm64 archives
         run: |
