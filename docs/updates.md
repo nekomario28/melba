@@ -26,14 +26,16 @@ Do not commit the private key or treat a signing receipt as a full legal or secu
 
 ## Published releases and tested paths
 
-Signed **v0.3.5** release assets are published for `x86_64` and `aarch64` from the same source tag, with a detached signed checksum manifest. The arm64 binary is build-verified on a native arm64 GitHub runner but not run-verified on arm64 hardware. The native SDK presentation bridge is x86_64-only; arm64 uses browser sign-in. The optional decrypt wrapper/rootfs remains architecture-specific and user-supplied.
+Signed **v0.3.6** release assets are published for `x86_64` and `aarch64` from the same source tag, with a detached signed checksum manifest. The arm64 binary is build-verified on a native arm64 GitHub runner but not run-verified on arm64 hardware. The native SDK presentation bridge is x86_64-only; arm64 uses browser sign-in. The optional decrypt wrapper/rootfs remains architecture-specific and user-supplied.
 
-The v0.3.5 portable archives contain `NOTICE.md` and the project licences but predate the complete notice-packaging fix: they do not contain `SPOTIFAST-LICENSE` or the generated third-party bundles. Portable builds from current `main` do; a rebuilt release is required for the signed archive to carry them. Do not treat the v0.3.5 archive as a complete binary notice set.
+The v0.3.5 and older portable archives contain `NOTICE.md` and the project licences but predate the complete notice-packaging fix: they do not contain `SPOTIFAST-LICENSE` or the generated third-party bundles. v0.3.6 archives carry them. Do not treat an older archive as a complete binary notice set.
 
-The following cases were recorded on **2026-10-26**:
+v0.3.6 adds the complete binary notice set to the portable archives (`SPOTIFAST-LICENSE`, both generated dependency bundles and the receipt) and updates rustls, quinn-proto and the bundled CA data. The remaining rustls-webpki advisory has no fixed stable release yet.
+
+The following cases were recorded on **2026-10-26** and **2026-10-27**:
 
 - The portable GUI v0.3.2 → v0.3.3 update was driven end to end through the GUI and restarted into v0.3.3.
-- The v0.3.5 paired-update path moved a portable v0.3.5 installation to a test v0.3.6 with both binaries; the test release was removed afterwards.
+- The v0.3.5 paired-update path moved a portable v0.3.5 installation to a test build labelled v0.3.6 with both binaries; that test release was removed afterwards.
 - A deliberately broken v0.3.7 **test** release caused both executables to be restored to v0.3.6; the receipt read “Update failed; restored the previous app”.
 
 These are path-specific tests, not a guarantee for every distro, signing setup or device. The earlier Cargo-root install is not GUI-updatable.
