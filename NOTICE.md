@@ -53,10 +53,14 @@ metadata.
 The project root is dual MIT / Apache-2.0 (`LICENSE-MIT`, `LICENSE-APACHE`).
 The desktop app (`crates/melba`) is MIT-only and descends from Carmine
 Paolino's Spotifast; its original copyright and permission notice remains in
-`crates/melba/LICENSE`. The root's dual-license option does not relicense it. The Chromium CDM interface
+`crates/melba/LICENSE` and is shipped in portable archives as
+`SPOTIFAST-LICENSE`. The root's dual-license option does not relicense it. The Chromium CDM interface
 headers retain their BSD notice under `crates/melba-cdm/third_party/cdm-api/`.
 Font and icon notices live beside the assets. The generated bundles include
-these notices without replacing or editing their original terms.
+these notices without replacing or editing their original terms. Portable
+archives carry `NOTICE.md`, both project licences, the Spotifast notice, the
+generated per-binary notice bundles and their receipt; packaging refuses to
+build an archive when those inputs are missing.
 
 The Git dependencies, including fastframe and the egui/winit forks, belong to
 the Cargo dependency graphs above. Their resolved identities and original

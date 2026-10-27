@@ -26,11 +26,16 @@ jobs:
         run: |
           cargo build --release --locked --bin melbad
           cargo build --release --locked --manifest-path crates/melba/Cargo.toml --bin melba
+      - name: collect third-party notices
+        run: |
+          cargo install cargo-about --version 0.8.4 --locked
+          ./ci/licenses.sh target/third-party
       - name: package portable arm64 archives
         run: |
-          ./packaging/package-portable.sh release-aarch64 0.3.5 \
+          version=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["package"]["version"])')
+          ./packaging/package-portable.sh release-aarch64 "$version" \
             crates/melba/target/release/melba target/release/melbad \
-            aarch64-unknown-linux-gnu
+            aarch64-unknown-linux-gnu target/third-party
       - uses: actions/upload-artifact@v4
         with:
           name: melba-aarch64

@@ -102,6 +102,7 @@ if [ "$mode" = cargo ]; then
     for file in melba-THIRD-PARTY.txt receipt.json; do
         install -Dm644 "$notices/$file" "$install_root/share/licenses/melba/$file"
     done
+    install -Dm644 crates/melba/LICENSE         "$install_root/share/licenses/melba/SPOTIFAST-LICENSE"
 else
     # Portable mode: build into a private staging root, then replace the
     # portable binaries and marker as a unit. The marker is what the GUI
@@ -119,6 +120,7 @@ else
     for file in melba-THIRD-PARTY.txt receipt.json; do
         install -Dm644 "$notices/$file" "$build_root/share/licenses/melba/$file"
     done
+    install -Dm644 crates/melba/LICENSE         "$build_root/share/licenses/melba/SPOTIFAST-LICENSE"
 
     install_root=$portable_dir
     mkdir -p "$install_root"

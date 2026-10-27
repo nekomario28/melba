@@ -415,6 +415,9 @@ binary.chmod(0o755)
         for name in ("melbad-THIRD-PARTY.txt", "melba-THIRD-PARTY.txt"):
             text = (self.root / "share/licenses/melba" / name).read_text()
             self.assertIn("Copyright fixture author — preserve me", text)
+        spotifast = self.root / "share/licenses/melba/SPOTIFAST-LICENSE"
+        self.assertTrue(spotifast.is_file())
+        self.assertIn("Carmine Paolino", spotifast.read_text())
         self.assertTrue((self.root / "share/licenses/melba/receipt.json").is_file())
         self.assertFalse((self.work / "systemctl.log").exists())
         self.assertFalse((self.work / "config").exists())
@@ -430,20 +433,57 @@ class PortableArchiveTests(unittest.TestCase):
             melbad.write_text("#!/bin/sh\nexit 0\n")
             melba.chmod(0o755)
             melbad.chmod(0o755)
+            notices = work / "notices"
+            notices.mkdir()
+            (notices / "melba-THIRD-PARTY.txt").write_text("melba notices")
+            (notices / "melbad-THIRD-PARTY.txt").write_text("melbad notices")
+            (notices / "receipt.json").write_text("{}")
             out = work / "out"
             result = subprocess.run(
                 ["/bin/sh", str(ROOT / "packaging/package-portable.sh"),
-                 str(out), "9.9.9", str(melba), str(melbad), "x86_64-unknown-linux-gnu"],
+                 str(out), "9.9.9", str(melba), str(melbad), "x86_64-unknown-linux-gnu",
+                 str(notices)],
                 text=True, capture_output=True,
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             archive = out / "melba-v9.9.9-x86_64-unknown-linux-gnu.tar.gz"
             names = subprocess.run(["tar", "-tzf", str(archive)], check=True,
                                    text=True, capture_output=True).stdout.splitlines()
-            self.assertIn("melba-v9.9.9-x86_64-unknown-linux-gnu/melba-portable.txt", names)
-            self.assertIn("melba-v9.9.9-x86_64-unknown-linux-gnu/melbad", names)
+            stem = "melba-v9.9.9-x86_64-unknown-linux-gnu"
+            self.assertIn(f"{stem}/melba-portable.txt", names)
+            self.assertIn(f"{stem}/melbad", names)
+            self.assertIn(f"{stem}/SPOTIFAST-LICENSE", names)
+            self.assertIn(f"{stem}/melba-THIRD-PARTY.txt", names)
+            self.assertIn(f"{stem}/melbad-THIRD-PARTY.txt", names)
+            self.assertIn(f"{stem}/receipt.json", names)
             self.assertIn("melbad-v9.9.9-x86_64-unknown-linux-gnu.tar.gz",
                           [p.name for p in out.iterdir()])
+            # The daemon archive carries its own graph's notice.
+            daemon = out / "melbad-v9.9.9-x86_64-unknown-linux-gnu.tar.gz"
+            daemon_names = subprocess.run(["tar", "-tzf", str(daemon)], check=True,
+                                          text=True, capture_output=True).stdout.splitlines()
+            daemon_stem = "melbad-v9.9.9-x86_64-unknown-linux-gnu"
+            self.assertIn(f"{daemon_stem}/melbad-THIRD-PARTY.txt", daemon_names)
+            self.assertIn(f"{daemon_stem}/receipt.json", daemon_names)
+            self.assertIn(f"{daemon_stem}/SPOTIFAST-LICENSE", daemon_names)
+
+    def test_package_portable_refuses_missing_notices(self):
+        with tempfile.TemporaryDirectory(prefix="melba-portable-package-") as folder:
+            work = Path(folder)
+            melba = work / "melba"
+            melbad = work / "melbad"
+            melba.write_text("#!/bin/sh\nexit 0\n")
+            melbad.write_text("#!/bin/sh\nexit 0\n")
+            melba.chmod(0o755)
+            melbad.chmod(0o755)
+            result = subprocess.run(
+                ["/bin/sh", str(ROOT / "packaging/package-portable.sh"),
+                 str(work / "out"), "9.9.9", str(melba), str(melbad), "x86_64-unknown-linux-gnu",
+                 str(work / "missing")],
+                text=True, capture_output=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("run ./ci/licenses.sh", result.stderr)
 
 
 class WrapperStagingTests(unittest.TestCase):
