@@ -66,12 +66,12 @@ and the actual playback path understandable.
 - [~] **First-run audio setup** — `melbad setup` and the Settings picker work;
   a guided first-launch wizard remains.
 
-- [ ] **HDMI/AVR bit-perfect verification** — the HDMI PCM devices expose
-  S16_LE/S32_LE at up to 192 kHz, but this host currently reports no HDMI ELD
-  or sink. When an AVR/display is connected and selected, confirm
-  `monitor_present`/`eld_valid`, then run
-  `melbad play <track> --device hw:X,Y --require-bitperfect --verify`; persist
-  `audio_device` only after a `BITPERFECT` receipt.
+- [x] **HDMI/AVR bit-perfect verification** — a Yamaha RX-V6A on `hw:0,7`
+  reported a valid ELD (LPCM 8ch, 16/20/24 bits, 32–192 kHz). A 96 kHz/24-bit
+  FLAC, a 192 kHz/24-bit WAV and Apple Music ALAC 24/192 all produced
+  `BITPERFECT` receipts in the ALSA digital path; see
+  [the evidence](../evidence/hdmi-avr-bitperfect.md). Analog output, volume,
+  room correction and other AVR DSP remain outside this claim.
 - [ ] **Authentication release gate** — verify first sign-in, saved-session
   restore, rejected/expired sessions and sign-out. Keep diagnostic credentials
   and SDK state isolated from the live account. Fake peers do not establish
