@@ -5,7 +5,7 @@ exclude = ["vendor/fastframe-update"]
 
 [package]
 name = "melbad"
-version = "0.3.11"
+version = "0.3.12"
 edition = "2021"
 description = "native lightweight Linux music client — bit-perfect playback core"
 license = "MIT OR Apache-2.0"
