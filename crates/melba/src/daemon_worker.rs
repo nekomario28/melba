@@ -39,6 +39,25 @@ const IFACE: &str = "org.mpris.MediaPlayer2.Player";
 const POLL: Duration = Duration::from_millis(500);
 const CALL_TIMEOUT: Duration = Duration::from_millis(150);
 
+/// What to do about the daemon this process owns at this tick.
+#[derive(Debug, PartialEq, Eq)]
+enum DaemonAction {
+    /// Nothing to do: no owned daemon, or it is still running.
+    Idle,
+    /// The owned daemon exited and something else is serving MPRIS.
+    Reap,
+    /// The owned daemon exited and nothing is serving MPRIS: restart it.
+    Restart,
+    /// The owned daemon exited, nothing is serving, and restarts are
+    /// exhausted or too soon.
+    GiveUp,
+}
+
+/// How long to wait before restarting a daemon that died on its own.
+const DAEMON_RESTART_COOLDOWN: Duration = Duration::from_secs(3);
+/// Restarts allowed per app run before the app stops trying.
+const DAEMON_RESTART_LIMIT: u32 = 3;
+
 pub struct DaemonWorker {
     events: Sender<Event>,
     waker: crate::backend::Waker,
@@ -68,6 +87,14 @@ pub struct DaemonWorker {
     auth_events: Option<tokio::sync::mpsc::UnboundedSender<(u64, melba_auth::Event)>>,
     context_loads: Option<tokio::sync::mpsc::UnboundedSender<(u64, LoadSpec, Vec<String>)>>,
     load_epoch: u64,
+    /// The daemon this process started, kept so its exit can be noticed and
+    /// reaped. A child that dies unnoticed stays a zombie and leaves the app
+    /// unable to play for as long as it runs.
+    daemon: Option<std::process::Child>,
+    /// When the daemon last exited, so a crash loop does not spin.
+    daemon_lost_at: Option<Instant>,
+    /// How many times this run has restarted a daemon that died on its own.
+    daemon_restarts: u32,
 }
 
 pub(crate) fn daemon_command(executable: Option<std::path::PathBuf>) -> std::process::Command {
@@ -122,6 +149,9 @@ impl DaemonWorker {
             auth_events: None,
             context_loads: None,
             load_epoch: 0,
+            daemon: None,
+            daemon_lost_at: None,
+            daemon_restarts: 0,
         }
     }
 
@@ -793,6 +823,80 @@ impl DaemonWorker {
         });
     }
 
+    /// How long to wait before restarting a daemon that died on its own.
+    const DAEMON_RESTART_COOLDOWN: Duration = Duration::from_secs(3);
+    /// Restarts allowed per app run before the app stops trying.
+    const DAEMON_RESTART_LIMIT: u32 = 3;
+
+    fn daemon_action(
+        owns_child: bool,
+        child_exited: bool,
+        daemon_available: bool,
+        since_lost: Option<Duration>,
+        restarts: u32,
+    ) -> DaemonAction {
+        if !owns_child || !child_exited {
+            return DaemonAction::Idle;
+        }
+        if daemon_available {
+            // Another daemon answers: reap ours and leave theirs alone.
+            return DaemonAction::Reap;
+        }
+        if restarts >= DAEMON_RESTART_LIMIT {
+            return DaemonAction::GiveUp;
+        }
+        if since_lost.is_some_and(|elapsed| elapsed < DAEMON_RESTART_COOLDOWN) {
+            return DaemonAction::GiveUp;
+        }
+        DaemonAction::Restart
+    }
+
+    /// Reap and, when nothing else is serving MPRIS, restart the daemon we
+    /// started. Without this a dead daemon is a zombie the app never notices,
+    /// and "The playback request was rejected" is all the user ever sees.
+    fn supervise_daemon(&mut self) {
+        let child_exited = self
+            .daemon
+            .as_mut()
+            .is_some_and(|child| !matches!(child.try_wait(), Ok(None)));
+        if !child_exited {
+            return;
+        }
+        // Always reap first: the process table entry is ours to clear.
+        if let Some(mut child) = self.daemon.take() {
+            let _ = child.wait();
+        }
+        self.daemon_lost_at = Some(Instant::now());
+        match Self::daemon_action(
+            true,
+            true,
+            self.daemon_available(),
+            Some(Duration::ZERO),
+            self.daemon_restarts,
+        ) {
+            DaemonAction::Reap | DaemonAction::Idle => {}
+            DaemonAction::Restart => {
+                self.daemon_restarts += 1;
+                if let Some(child) = self.start_daemon() {
+                    log::warn!(
+                        "the playback daemon exited; restarted it ({} of {})",
+                        self.daemon_restarts,
+                        DAEMON_RESTART_LIMIT
+                    );
+                    self.daemon = Some(child);
+                }
+            }
+            DaemonAction::GiveUp => {
+                if self.daemon_restarts >= DAEMON_RESTART_LIMIT {
+                    self.emit(Event::Error(
+                        "The playback daemon keeps exiting. Reinstall Melba and melbad together."
+                            .into(),
+                    ));
+                }
+            }
+        }
+    }
+
     fn daemon_available(&self) -> bool {
         self.proxy()
             .and_then(|proxy| proxy.get::<dbus::arg::PropMap>(IFACE, "Metadata").ok())
@@ -918,6 +1022,8 @@ impl DaemonWorker {
         manage_daemon: bool,
     ) {
         let owned_daemon = manage_daemon.then(|| self.start_daemon()).flatten();
+        let daemon_managed = owned_daemon.is_some();
+        self.daemon = owned_daemon;
         let (auth_events, mut auth_results) = tokio::sync::mpsc::unbounded_channel();
         self.auth_events = Some(auth_events);
         let (completed, mut context_results) = tokio::sync::mpsc::unbounded_channel();
@@ -1002,6 +1108,9 @@ impl DaemonWorker {
                     }
                 }
                 _ = interval.tick() => {
+                    if daemon_managed {
+                        self.supervise_daemon();
+                    }
                     if self.poll_daemon() {
                         self.emit(Event::Local(Box::new(self.local.clone())));
                     }
@@ -1033,7 +1142,8 @@ impl DaemonWorker {
             job.cancel();
         }
         if manage_daemon {
-            self.stop_daemon(owned_daemon);
+            let owned = self.daemon.take();
+            self.stop_daemon(owned);
         }
     }
 }
@@ -1954,6 +2064,39 @@ mod tests {
         profile_user, sign_in_command,
     };
     use crate::api::models::Image;
+
+    #[test]
+    fn a_daemon_that_exits_is_reaped_and_restarted_when_nothing_serves_mpris() {
+        use super::DaemonAction as A;
+        use super::{DAEMON_RESTART_COOLDOWN as cooldown, DAEMON_RESTART_LIMIT as limit};
+        use super::DaemonWorker;
+        // No owned child, or one still running: nothing to do.
+        assert_eq!(DaemonWorker::daemon_action(false, false, false, None, 0), A::Idle);
+        assert_eq!(DaemonWorker::daemon_action(true, false, false, None, 0), A::Idle);
+        // Exited, and the bus has no MPRIS owner: restart it.
+        assert_eq!(
+            DaemonWorker::daemon_action(true, true, false, None, 0),
+            A::Restart
+        );
+        // Exited, but something else answers: reap ours, leave theirs alone.
+        assert_eq!(
+            DaemonWorker::daemon_action(true, true, true, None, 0),
+            A::Reap
+        );
+        // A crash loop must not spin: the cooldown and the limit both stop it.
+        assert_eq!(
+            DaemonWorker::daemon_action(true, true, false, Some(cooldown / 2), 0),
+            A::GiveUp
+        );
+        assert_eq!(
+            DaemonWorker::daemon_action(true, true, false, Some(cooldown * 2), 0),
+            A::Restart
+        );
+        assert_eq!(
+            DaemonWorker::daemon_action(true, true, false, Some(cooldown * 2), limit),
+            A::GiveUp
+        );
+    }
 
     #[test]
     fn the_stored_account_supplies_the_name_avatar_and_subscription() {

@@ -149,10 +149,12 @@ or infer bit-perfect playback from an ALAC label.
 - [x] **Real account name in the UI** — `ApiRequest::Me` now reads
   `/v1/me`'s social profile (id + display name); settings and the topbar
   show the real account instead of a fixed "Apple Music".
-- [ ] **Release binaries** — releases are source-only today; no artifact
-  pipeline, checksums, or download page. Decide whether GitHub release
-  artifacts or a native-package pipeline (`packaging/native-packages.yaml`,
-  untested) is worth the maintenance.
+- [x] **Release binaries** — signed `x86_64` and `aarch64` archives have
+  shipped since v0.3.1, with a detached Ed25519 signature over
+  `checksums.txt`, the publisher public key as a release asset and a download
+  page on the release. `packaging/package-portable.sh` fails closed when the
+  generated notices are missing. Still open: a native-package pipeline
+  (`packaging/native-packages.yaml`, untested) if the maintenance is worth it.
 
 ### Engineering debt
 
