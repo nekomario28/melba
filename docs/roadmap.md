@@ -59,8 +59,21 @@ and the actual playback path understandable.
   installer path has a package-level rollback test.
 - [x] **arm64 build path** — aarch64 release archives are built on the
   `ubuntu-24.04-arm` runner and published with the same signed manifest as
-  x86_64 in v0.3.4, v0.3.5 and v0.3.6. The x86_64-only native auth bridge is disabled on arm64
-  (browser sign-in); arm64 binaries are build-verified, not hardware-run.
+  x86_64 (v0.3.4 onward, up to v0.3.12). The x86_64-only native auth bridge is
+  disabled on arm64 (browser sign-in).
+- [ ] **arm64 hardware run** — blocked, not deferred: no arm64 machine is
+  available here, so `melbad`/`melba` on aarch64 are build-verified only. Do
+  not describe an arm64 binary as run-verified until someone runs it on that
+  hardware and records the receipt.
+- [ ] **Receiver-side audio behaviour** — never measured and not measurable
+  here: the Yamaha RX-V6A's input switching, standby, volume and room
+  correction act after the HDMI PCM input, so a `BITPERFECT` receipt says
+  nothing about them. Measure only with the receiver's own menus and a
+  reference the host does not control.
+- [ ] **Legal review** — not pursued, by the maintainer's decision. Publication
+  proceeded without clearance, and no release or document claims otherwise.
+  The materials are collected under
+  `research/alac-legal-review-20261026/` if that decision changes.
 - [x] **Choose the output from the app, over PipeWire** — `audio_device` in
   `~/.config/melba/config.json` selects `auto`, `default` or `hw:X,Y`;
   `auto` prefers a USB/analog hw device over HDMI, the Settings page lists
@@ -69,6 +82,18 @@ and the actual playback path understandable.
   opened rate/verdict beside the picker.
 - [~] **First-run audio setup** — `melbad setup` and the Settings picker work;
   a guided first-launch wizard remains.
+- [ ] **A paused daemon must not hold the output device** — `melbad serve
+  --paused` opens the exclusive `hw:` PCM and pauses it, so the card stays
+  away from every other client for as long as the desktop is open. Measured
+  2026-10-28 on `hw:0,7`: `fuser` showed the paused daemon holding the device.
+  Not implemented yet, and the reason is a contract, not effort:
+  `tests/transport.rs::desktop_startup_is_paused_and_mpris_actions_reach_the_frontend`
+  asserts `status == "Paused"` **and** `rate == 96000` at startup, and that
+  rate is published from the opened stream. Not opening the device therefore
+  needs `melba:sampleRate` to come from the decoded source instead of the
+  granted stream, which is a change to the startup contract and needs its own
+  verification (transport test, GUI acceptance, and a check that the device is
+  actually free with the app open). Do not ship it without those.
 
 - [x] **Busy output takeover** — a busy `hw:` output remains in Settings as
   “in use”; selecting it requests the session audio server's device
