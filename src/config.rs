@@ -158,7 +158,10 @@ mod tests {
     /// instead of assuming it.
     #[test]
     fn tests_never_resolve_a_user_directory_by_default() {
-        let home = PathBuf::from(std::env::var_os("HOME").unwrap_or_default());
+        let home = std::env::var("HOME")
+            .ok()
+            .map(PathBuf::from)
+            .unwrap_or_default();
         let configured = std::env::var_os("XDG_STATE_HOME")
             .map(PathBuf::from)
             .filter(|p| p.is_absolute());
