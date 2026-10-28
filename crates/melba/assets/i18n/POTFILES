@@ -13,7 +13,6 @@ src/settings.rs
 src/theme.rs
 src/ui/artist.rs
 src/ui/collection.rs
-src/ui/devices.rs
 src/ui/dialogs.rs
 src/ui/home.rs
 src/ui/keys.rs
@@ -22,7 +21,6 @@ src/ui/login.rs
 src/ui/mod.rs
 src/ui/radio.rs
 src/ui/search.rs
-src/ui/show.rs
 src/ui/topbar.rs
 src/ui/update.rs
 src/util.rs

@@ -2684,7 +2684,7 @@ impl App {
                         gettext(
                             self.locale,
                             // Translators: {query} is the words someone searched for.
-                            "Nothing on Apple Music matches \u{201c}{query}\u{201d}",
+                            "Nothing on Apple Music matches “{query}”",
                         )
                         .replace("{query}", &query),
                     ),
@@ -2692,7 +2692,7 @@ impl App {
                         gettext(
                             self.locale,
                             // Translators: {query} is the words someone searched for; {error} is an error message.
-                            "Couldn't search for \u{201c}{query}\u{201d}: {error}",
+                            "Couldn't search for “{query}”: {error}",
                         )
                         .replace("{query}", &query)
                         .replace("{error}", &error.to_string()),

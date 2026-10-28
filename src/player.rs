@@ -863,7 +863,7 @@ fn goto_valid(shared: &Shared, i: usize) -> bool {
 /// `~/.local/state/melba/queue.json` — the daemon's queue survives restarts.
 /// `None` with no state dir (no HOME): persistence is skipped, not written
 /// relative to cwd.
-fn queue_state_path() -> Option<PathBuf> {
+pub(crate) fn queue_state_path() -> Option<PathBuf> {
     crate::config::xdg_dir("XDG_STATE_HOME", ".local/state")
         .map(|b| b.join("melba").join("queue.json"))
 }

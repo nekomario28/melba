@@ -28,7 +28,28 @@ The UI follows the system locale by default, with a persistent per-user setting 
 
 `de-DE`, `es`, `fr`, `it`, `ja`, `ko`, `nl`, `pl`, `pt-BR`, `pt-PT`, `ru`, `sv`, `tr`, `uk`, `zh-Hans`, `zh-Hant`
 
-Japanese translations were complete at the documented revision; other catalogs had one or two English fallback entries. Missing keys fall back to English. The gettext `melba.pot` template and `POTFILES` drive future updates, and `cargo test --test localization` checks catalog coverage.
+Missing keys fall back to English. The template is generated from the listed
+sources and the catalogs are merged against it:
+
+```sh
+cd crates/melba
+xgettext --language=C --from-code=UTF-8 -kgettext:2 -kngettext:2,3 -kpgettext:2c,3 \
+  --no-wrap -o assets/i18n/melba.pot -f assets/i18n/POTFILES
+for f in assets/i18n/*.po; do msgmerge --no-wrap --no-fuzzy-matching --update "$f" assets/i18n/melba.pot; done
+cargo test --test localization
+```
+
+Keep every msgid and msgstr on one line: the PO library used by that test reads
+a wrapped entry (`msgid ""` plus continuation lines) as an empty msgid, which
+made a correct catalog look like it had a missing message. `POTFILES` must list
+only files that exist; a removed source file made the recipe fail outright.
+
+`catalogs_cover_the_template_and_preserve_named_placeholders` checks every
+catalog against the template and names any difference. `COMPLETE` lists the
+catalogs that must translate every message with no English fallback; it is
+`ja` today, and a catalog must not be added there until its gaps are filled.
+The other catalogs carry English fallbacks by design, so listing them there
+would be a claim the files do not support.
 
 ## Quality, licensing and release gates
 

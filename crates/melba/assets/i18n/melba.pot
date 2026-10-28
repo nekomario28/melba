@@ -4,582 +4,1120 @@
 #
 #, fuzzy
 msgid ""
-msgstr ""
-"Project-Id-Version: melba\n"
-"Report-Msgid-Bugs-To: https://github.com/nekomario28/melba/issues/new\n"
-"POT-Creation-Date: 2026-10-20 02:23+0900\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+msgstr "Project-Id-Version: melba\nReport-Msgid-Bugs-To: https://github.com/nekomario28/apple-music-linux/issues/new\nPOT-Creation-Date: 2026-10-28 14:20+0900\nPO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\nLast-Translator: FULL NAME <EMAIL@ADDRESS>\nLanguage-Team: LANGUAGE <LL@li.org>\nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nPlural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
-#: src/api/models.rs:284
-msgid "Single"
+#: src/ui/sidebar.rs:169
+msgid "Pause {name}"
 msgstr ""
 
-#: src/api/models.rs:285
-msgid "Compilation"
+#: src/ui/sidebar.rs:172
+msgid "Play {name}"
 msgstr ""
 
-#: src/api/models.rs:286 src/model.rs:829
-msgid "Appears On"
-msgstr ""
-
-#: src/api/models.rs:287 src/app.rs:2825 src/ui/prerelease.rs:71
-msgid "Album"
-msgstr ""
-
-#. Translators: {error} is a sentence saying why the proxy password could not be stored.
-#: src/app.rs:2079
-#, rust-format
-msgid ""
-"{error} The original settings file is kept intact; changed preferences are "
-"not saved yet."
-msgstr ""
-
-#. Translators: {version} is a version number such as 1.4.0.
-#: src/app.rs:2227
-#, rust-format
-msgid "Melba {version} is available"
-msgstr ""
-
-#: src/app.rs:2244
-msgid "Melba is up to date"
-msgstr ""
-
-#. Translators: {error} is an error message.
-#: src/app.rs:2252
-#, rust-format
-msgid "Couldn't check for updates: {error}"
-msgstr ""
-
-#. Translators: {error} is an error message from the playback engine.
-#: src/app.rs:2333
-#, rust-format
-msgid "Local playback: {error}"
-msgstr ""
-
-#: src/app.rs:2340
-msgid "Opening your browser to set up local playback"
-msgstr ""
-
-#: src/app.rs:2681
-msgid "Audio disconnected. Reconnecting local playback"
-msgstr ""
-
-#: src/app.rs:2783 src/app.rs:19070 src/demo.rs:1679 src/demo.rs:1721
-#: src/demo.rs:1723 src/demo.rs:2299 src/demo.rs:2315 src/ui/collection.rs:2127
-#: src/ui/home.rs:77 src/ui/keys.rs:264 src/ui/sidebar.rs:312
-#: src/ui/winamp/playlist.rs:653
-msgid "Liked Songs"
-msgstr ""
-
-#: src/app.rs:2791 src/app/radio.rs:191 src/ui/radio.rs:35 src/ui/radio.rs:77
-msgid "Radio"
-msgstr ""
-
-#: src/app.rs:2809 src/app.rs:19065 src/ui/collection.rs:1919
-#: src/ui/collection.rs:2134 src/ui/sidebar.rs:302
+#: src/ui/sidebar.rs:291 src/app.rs:3842 src/app.rs:16619
+#: src/ui/collection.rs:1827 src/ui/collection.rs:2039
 msgid "Playlist"
 msgstr ""
 
-#: src/app.rs:2844 src/ui/artist.rs:214 src/ui/artist.rs:357 src/ui/home.rs:440
-#: src/ui/library.rs:101 src/ui/search.rs:159 src/ui/search.rs:491
-#: src/ui/sidebar.rs:1189 src/ui/winamp/playlist.rs:746
-msgid "Artist"
+#: src/ui/sidebar.rs:301 src/app.rs:3816 src/app.rs:16624
+#: src/ui/collection.rs:2032 src/ui/home.rs:77 src/ui/keys.rs:242
+msgid "Liked Songs"
 msgstr ""
 
-#. Translators: {error} is an error message.
-#: src/app.rs:3597
-#, rust-format
-msgid ""
-"Proxy could not be applied: {error}. Previous connection settings are still "
-"in use."
+#: src/ui/sidebar.rs:340
+msgid "Library order"
 msgstr ""
 
-#: src/app.rs:5245
-msgid "Queue cleared"
+#: src/ui/sidebar.rs:343 src/ui/home.rs:314 src/ui/home.rs:324
+#: src/ui/home.rs:351
+msgid "Recently played"
 msgstr ""
 
-#. Translators: Keep {date} unchanged. It is a date in YYYY-MM-DD form.
-#: src/app.rs:5275 src/app.rs:19055
-#, rust-format
-msgid "Queue {date}"
+#: src/ui/sidebar.rs:345 src/ui/dialogs.rs:359 src/ui/dialogs.rs:516
+msgid "Name"
 msgstr ""
 
-#: src/app.rs:5784
-msgid "Your Apple Music sign-in expired. Please sign in again."
+#: src/ui/sidebar.rs:348
+msgid "Recently added"
 msgstr ""
 
-#. Translators: {error} is an error message.
-#: src/app.rs:5791
-#, rust-format
-msgid "Couldn't load your profile: {error}"
+#: src/ui/sidebar.rs:350
+msgid "Local custom order"
 msgstr ""
 
-#. Translators: {error} is an error message.
-#: src/app.rs:5852
-#, rust-format
-msgid "Couldn't list devices: {error}"
+#: src/ui/sidebar.rs:693 src/ui/search.rs:223
+msgid "Playlist • {owner}"
 msgstr ""
 
-#. Translators: {error} is an error message.
-#: src/app.rs:6204
-#, rust-format
-msgid "Couldn't load more playlists: {error}"
-msgstr ""
-
-#: src/app.rs:6250
-msgid ""
-"Apple Music hasn't confirmed your playlist changes yet. Try refreshing again."
-msgstr ""
-
-#. Translators: {name} is a playlist name.
-#: src/app.rs:6454
-#, rust-format
-msgid "Created {name}"
-msgstr ""
-
-#. Translators: {error} is an error message.
-#: src/app.rs:6480
-#, rust-format
-msgid "Couldn't create the playlist: {error}"
-msgstr ""
-
-#: src/app.rs:6534
-msgid "Playlist cover updated"
-msgstr ""
-
-#: src/app.rs:6543
-msgid "Playlist updated"
-msgstr ""
-
-#. Translators: {error} is an error message.
-#: src/app.rs:6553 src/app.rs:6670
-#, rust-format
-msgid "Couldn't update the playlist: {error}"
-msgstr ""
-
-#. Translators: {error} is an error message.
-#: src/app.rs:6627
-#, rust-format
-msgid "Playlist change failed: {error}"
-msgstr ""
-
-#: src/app.rs:6654
-msgid "Added to Your Library"
-msgstr ""
-
-#: src/app.rs:6656 src/app.rs:6861
-msgid "Removed from Your Library"
-msgstr ""
-
-#: src/app.rs:6854
-msgid "Added to Liked Songs"
-msgstr ""
-
-#: src/app.rs:6856
-msgid "Removed from Liked Songs"
-msgstr ""
-
-#: src/app.rs:6858
-msgid "Following artist"
-msgstr ""
-
-#: src/app.rs:6859
-msgid "Unfollowed artist"
-msgstr ""
-
-#: src/app.rs:6860
-msgid "Saved to Your Library"
-msgstr ""
-
-#. Translators: {error} is an error message.
-#: src/app.rs:6875
-#, rust-format
-msgid "Couldn't update your library: {error}"
-msgstr ""
-
-#: src/app.rs:6957 src/model.rs:703 src/ui/search.rs:668 src/ui/sidebar.rs:1042
-msgid "Playlists"
-msgstr ""
-
-#: src/app.rs:6983 src/demo.rs:1675 src/ui/keys.rs:251 src/ui/sidebar.rs:926
-msgid "Search"
-msgstr ""
-
-#. Translators: {error} is an error message.
-#: src/app.rs:7179
-#, rust-format
-msgid "Cannot open this song: {error}"
-msgstr ""
-
-#: src/app.rs:7236
-msgid "Couldn't add to queue: {error}"
-msgstr ""
-
-#: src/app.rs:7386
-msgid "This song's album is not on Apple Music"
-msgstr ""
-
-#: src/app.rs:7403
-msgid "Melba cannot open this kind of Apple Music link"
-msgstr ""
-
-#: src/app.rs:7651
-msgid "Nothing is playing. Pick something first"
-msgstr ""
-
-#: src/app.rs:8396 src/app.rs:8401
-msgid "Pick something to play"
-msgstr ""
-
-#: src/app.rs:8413 src/ui/player_bar.rs:407
-msgid "Pick a song, album, or playlist"
-msgstr ""
-
-#. Translators: {name} is an album name.
-#: src/app.rs:8680
-#, rust-format
-msgid "Loading {name} to queue…"
-msgstr ""
-
-#: src/app.rs:8699
-msgid "Playback device changed. Add the album to queue again"
-msgstr ""
-
-#: src/app.rs:8708 src/app.rs:8726 src/app.rs:8735
-msgid "Couldn't load the album's songs in order. Try again"
-msgstr ""
-
-#. Translators: {name} is an album name and {error} is an error message.
-#: src/app.rs:8715
-#, rust-format
-msgid "Couldn't add {name} to queue: {error}"
-msgstr ""
-
-#: src/app.rs:8773
-msgid "This album has no playable songs to queue"
-msgstr ""
-
-#. Translators: {count} is a number of songs and {name} is an album name.
-#: src/app.rs:8782
-#, rust-format
-msgid "{count} song from {name} added to queue"
-msgid_plural "{count} songs from {name} added to queue"
-msgstr[0] ""
-msgstr[1] ""
-
-#. Translators: {count} is a number of songs.
-#: src/app.rs:8826
-#, rust-format
-msgid "{count} song added to queue"
-msgid_plural "{count} songs added to queue"
-msgstr[0] ""
-msgstr[1] ""
-
-#. Translators: {name} is a song, episode, album, or playlist name.
-#: src/app.rs:8863
-#, rust-format
-msgid "{name} added to queue"
-msgstr ""
-
-#: src/app.rs:9273
-msgid "The clipboard has no Apple Music song links"
-msgstr ""
-
-#. Translators: {count} is the number of pasted links that failed.
-#: src/app.rs:9354
-#, rust-format
-msgid "{count} pasted link could not be added"
-msgid_plural "{count} pasted links could not be added"
-msgstr[0] ""
-msgstr[1] ""
-
-#: src/app.rs:9972
-msgid ""
-"Apple Music doesn't let apps remove a playlist description, so it was kept"
-msgstr ""
-
-#: src/app.rs:10020 src/app.rs:10033
-msgid "Link copied"
-msgstr ""
-
-#. Translators: {count} is a number of song links, always more than one.
-#: src/app.rs:10037
-#, rust-format
-msgid "{count} link copied"
-msgid_plural "{count} links copied"
-msgstr[0] ""
-msgstr[1] ""
-
-#: src/app.rs:10290
-msgid ""
-"Apple Music doesn't let apps reorder your playlists, so this order is saved "
-"on this computer"
-msgstr ""
-
-#: src/app.rs:10388 src/ui/settings.rs:328
-msgid "Playback needs an Apple Music subscription"
-msgstr ""
-
-#: src/app.rs:10439
-msgid "Play history cleared"
-msgstr ""
-
-#. Translators: {size} is a size in megabytes, such as 12.5.
-#: src/app.rs:10450
-#, rust-format
-msgid "Cleared {size} MB of artwork"
-msgstr ""
-
-#. Translators: {error} is an error message.
-#: src/app.rs:10456
-#, rust-format
-msgid "Couldn't clear artwork: {error}"
-msgstr ""
-
-#: src/app.rs:11580 src/demo.rs:2032 src/demo.rs:2075 src/ui/collection.rs:813
-#: src/ui/lyrics.rs:411 src/ui/widgets.rs:2638
-msgid "Loading…"
-msgstr ""
-
-#: src/app.rs:11692
-msgid ""
-"No audio output device was found. Connect or enable one, then press play "
-"again."
-msgstr ""
-
-#: src/app.rs:11751 src/app.rs:11765 src/ui/widgets.rs:2649
-msgid "Network connection error. Check your connection."
-msgstr ""
-
-#: src/app.rs:11756
-msgid ""
-"Apple Music doesn't make this playlist's songs available to third-party apps."
-msgstr ""
-
-#: src/app.rs:11877
-msgid ""
-"Apple Music sign-in expired. Sign in again, then retry the cover upload."
-msgstr ""
-
-#: src/app.rs:11882
-msgid ""
-"Apple Music refused this cover. Check that you own the playlist, then sign "
-"in again to grant image upload permission."
-msgstr ""
-
-#: src/app.rs:11886
-msgid "Apple Music rejected the image size. Choose a smaller image."
-msgstr ""
-
-#. Translators: {error} is an error message.
-#: src/app.rs:11889
-#, rust-format
-msgid "Couldn't upload the cover: {error}. Try again."
-msgstr ""
-
-#. Translators: Keep {track} unchanged. It is the name of the song,
-#. playlist, album, or artist the radio is based on, not translated.
-#: src/app.rs:19075 src/app/radio.rs:38
-#, rust-format
-msgid "{track} Radio"
-msgstr ""
-
-#: src/demo.rs:1390 src/ui/sidebar.rs:1022
-msgid "Library"
-msgstr ""
-
-#: src/demo.rs:1391 src/demo.rs:1705 src/ui/sidebar.rs:1006
-msgid "Search Your Library"
-msgstr ""
-
-#: src/demo.rs:1674 src/demo.rs:4804 src/i18n.rs:262 src/i18n.rs:265
-#: src/ui/keys.rs:260 src/ui/sidebar.rs:915 src/ui/topbar.rs:255
+#: src/ui/sidebar.rs:749 src/i18n.rs:248 src/i18n.rs:251 src/ui/keys.rs:238
+#: src/ui/topbar.rs:254
 msgid "Home"
 msgstr ""
 
-#: src/demo.rs:1676 src/ui/sidebar.rs:990
+#: src/ui/sidebar.rs:760 src/app.rs:2724 src/ui/keys.rs:229
+msgid "Search"
+msgstr ""
+
+#: src/ui/sidebar.rs:799
+msgid "Hide sidebar (Ctrl+B)"
+msgstr ""
+
+#: src/ui/sidebar.rs:800
+msgid "Hide sidebar (Cmd+B)"
+msgstr ""
+
+#: src/ui/sidebar.rs:809
+msgid "Show as list"
+msgstr ""
+
+#: src/ui/sidebar.rs:811
+msgid "Show as grid"
+msgstr ""
+
+#: src/ui/sidebar.rs:824
 msgid "Create a playlist"
 msgstr ""
 
-#: src/demo.rs:1677 src/model.rs:702 src/model.rs:827 src/ui/library.rs:17
-#: src/ui/search.rs:595 src/ui/sidebar.rs:1043
+#: src/ui/sidebar.rs:840
+msgid "Search Your Library"
+msgstr ""
+
+#: src/ui/sidebar.rs:856
+msgid "Library"
+msgstr ""
+
+#: src/ui/sidebar.rs:876 src/model.rs:678 src/ui/search.rs:633
+msgid "Playlists"
+msgstr ""
+
+#: src/ui/sidebar.rs:877 src/model.rs:677 src/model.rs:793 src/ui/library.rs:17
+#: src/ui/search.rs:560
 msgid "Albums"
 msgstr ""
 
-#: src/demo.rs:1678 src/model.rs:701 src/ui/library.rs:22 src/ui/search.rs:527
-#: src/ui/sidebar.rs:1044
+#: src/ui/sidebar.rs:878 src/model.rs:676 src/ui/library.rs:22
+#: src/ui/search.rs:492
 msgid "Artists"
 msgstr ""
 
-#: src/demo.rs:1718 src/ui/sidebar.rs:1085
+#: src/ui/sidebar.rs:891
+msgid "By You"
+msgstr ""
+
+#: src/ui/sidebar.rs:919
 msgid "Search in Your Library"
 msgstr ""
 
-#: src/demo.rs:1784 src/demo.rs:2306 src/ui/artist.rs:388
-#: src/ui/collection.rs:260 src/ui/player_bar.rs:686 src/ui/prerelease.rs:309
-#: src/ui/search.rs:408 src/ui/show.rs:371 src/ui/sidebar.rs:1934
-#: src/ui/widgets.rs:1144
+#: src/ui/sidebar.rs:1014 src/app.rs:3877 src/ui/artist.rs:211
+#: src/ui/artist.rs:341 src/ui/home.rs:440 src/ui/library.rs:92
+#: src/ui/search.rs:154 src/ui/search.rs:456
+msgid "Artist"
+msgstr ""
+
+#: src/ui/sidebar.rs:1070
+msgid "Nothing here yet."
+msgstr ""
+
+#: src/ui/sidebar.rs:1072
+msgid "No matches."
+msgstr ""
+
+#: src/ui/sidebar.rs:1618
+msgid "Sort by recently played"
+msgstr ""
+
+#: src/ui/sidebar.rs:1639 src/ui/player_bar.rs:428 src/ui/widgets.rs:1137
+#: src/ui/artist.rs:372 src/ui/collection.rs:260 src/ui/search.rs:375
 msgid "Play"
 msgstr ""
 
-#: src/demo.rs:1789 src/ui/player_bar.rs:823
-msgid "Volume (%)"
-msgstr ""
-
-#: src/demo.rs:1888 src/ui/queue.rs:152
-msgid "Save as a playlist"
-msgstr ""
-
-#: src/demo.rs:1907 src/ui/queue.rs:169
-msgid "Clear queue"
-msgstr ""
-
-#: src/demo.rs:1916 src/ui/queue.rs:80
-msgid "Recent"
-msgstr ""
-
-#: src/demo.rs:1924 src/demo.rs:2004 src/ui/lyrics.rs:78 src/ui/mod.rs:465
-#: src/ui/queue.rs:92
-msgid "Close"
-msgstr ""
-
-#: src/demo.rs:1951 src/demo.rs:1970 src/ui/lyrics.rs:102 src/ui/lyrics.rs:572
-msgctxt "lyrics"
-msgid "Follow"
-msgstr ""
-
-#: src/demo.rs:1960 src/ui/keys.rs:220 src/ui/lyrics.rs:90
-msgid "Full screen lyrics"
-msgstr ""
-
-#: src/demo.rs:1980 src/ui/lyrics.rs:560
-msgid "Leave full screen (Esc)"
-msgstr ""
-
-#: src/demo.rs:1993 src/ui/login.rs:106 src/ui/lyrics.rs:177
-#: src/ui/lyrics.rs:431 src/ui/lyrics.rs:646 src/ui/settings.rs:387
-msgid "Try again"
-msgstr ""
-
-#. Translators: Keep {error} unchanged. It is the original failure detail.
-#: src/demo.rs:2037 src/ui/lyrics.rs:171 src/ui/lyrics.rs:404
-#: src/ui/lyrics.rs:640
-#, rust-format
-msgid "Couldn't fetch the lyrics: {error}"
-msgstr ""
-
-#: src/demo.rs:2044 src/ui/lyrics.rs:188 src/ui/lyrics.rs:397
-#: src/ui/lyrics.rs:657
-msgid "No lyrics"
-msgstr ""
-
-#: src/demo.rs:2045 src/ui/lyrics.rs:189 src/ui/lyrics.rs:398
-#: src/ui/lyrics.rs:658
-msgid "No lyrics found for this track."
-msgstr ""
-
-#: src/demo.rs:2051 src/ui/lyrics.rs:198 src/ui/lyrics.rs:393
-#: src/ui/lyrics.rs:667
-msgid "Instrumental"
-msgstr ""
-
-#: src/demo.rs:2052 src/ui/lyrics.rs:199 src/ui/lyrics.rs:394
-#: src/ui/lyrics.rs:668
-msgid "No timed lyrics for this track."
-msgstr ""
-
-#: src/demo.rs:2081 src/demo.rs:2130 src/ui/collection.rs:1149
-#: src/ui/prerelease.rs:242 src/ui/queue.rs:474 src/ui/queue.rs:507
-#: src/ui/widgets.rs:2672
-msgid "Retry"
-msgstr ""
-
-#: src/demo.rs:2087 src/ui/queue.rs:302
-msgid "Nothing queued"
-msgstr ""
-
-#: src/demo.rs:2088 src/ui/queue.rs:303
-msgid "Queued songs appear here."
-msgstr ""
-
-#: src/demo.rs:2307 src/ui/sidebar.rs:1954
-msgid "Pin to top"
-msgstr ""
-
-#: src/demo.rs:2322 src/ui/sidebar.rs:1952
+#: src/ui/sidebar.rs:1657
 msgid "Unpin"
 msgstr ""
 
-#: src/demo.rs:4805 src/ui/settings.rs:787 src/ui/settings.rs:1933
-msgid "Language"
+#: src/ui/sidebar.rs:1659
+msgid "Pin to top"
 msgstr ""
 
-#. Translators: Keep {count} exactly as written. It becomes the number of liked songs.
-#: src/i18n.rs:184
-#, rust-format
+#: src/i18n.rs:190
 msgid "Playlist • {count} song"
 msgid_plural "Playlist • {count} songs"
 msgstr[0] ""
 msgstr[1] ""
 
-#. Translators: Keep {count} exactly as written. It becomes a number of songs.
-#. Translators: {count} is a number of songs.
-#. Translators: Keep {count} exactly as written. It becomes the number of selected songs.
-#: src/i18n.rs:195 src/ui/collection.rs:2222 src/ui/widgets.rs:695
-#, rust-format
+#: src/i18n.rs:201 src/ui/widgets.rs:695 src/ui/collection.rs:2125
 msgid "{count} song"
 msgid_plural "{count} songs"
 msgstr[0] ""
 msgstr[1] ""
 
-#. Translators: Keep {count} exactly as written. It becomes a number of playlists.
-#: src/i18n.rs:206
-#, rust-format
+#: src/i18n.rs:212
 msgid "{count} playlist"
 msgid_plural "{count} playlists"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/model.rs:699 src/model.rs:826
+#: src/ui/player_bar.rs:118 src/ui/lyrics.rs:131 src/ui/lyrics.rs:626
+msgid "Nothing playing"
+msgstr ""
+
+#: src/ui/player_bar.rs:124 src/app.rs:7124
+msgid "Pick a song, album, or playlist"
+msgstr ""
+
+#: src/ui/player_bar.rs:283 src/ui/widgets.rs:725 src/ui/widgets.rs:971
+#: src/ui/widgets.rs:1837
+msgid "Remove from Liked Songs"
+msgstr ""
+
+#: src/ui/player_bar.rs:290 src/ui/widgets.rs:728 src/ui/widgets.rs:974
+#: src/ui/widgets.rs:1839
+msgid "Save to Liked Songs"
+msgstr ""
+
+#: src/ui/player_bar.rs:372 src/ui/player_bar.rs:379 src/ui/collection.rs:314
+msgid "Shuffle"
+msgstr ""
+
+#: src/ui/player_bar.rs:393
+msgid "Previous"
+msgstr ""
+
+#: src/ui/player_bar.rs:426 src/ui/widgets.rs:2523 src/ui/collection.rs:258
+#: src/ui/home.rs:188
+msgid "Pause"
+msgstr ""
+
+#: src/ui/player_bar.rs:444
+msgid "Next"
+msgstr ""
+
+#: src/ui/player_bar.rs:452
+msgid "Repeat"
+msgstr ""
+
+#: src/ui/player_bar.rs:456
+msgid "Repeat one"
+msgstr ""
+
+#: src/ui/player_bar.rs:461
+msgid "Repeat off"
+msgstr ""
+
+#: src/ui/player_bar.rs:522
+msgid "Playback position (%)"
+msgstr ""
+
+#: src/ui/player_bar.rs:564
+msgid "Volume (%)"
+msgstr ""
+
+#: src/ui/player_bar.rs:597
+msgid "Unmute"
+msgstr ""
+
+#: src/ui/player_bar.rs:599
+msgid "Mute"
+msgstr ""
+
+#: src/ui/player_bar.rs:615
+msgid "This device's volume can't be changed from Melba"
+msgstr ""
+
+#: src/ui/player_bar.rs:630 src/ui/queue.rs:23 src/ui/queue.rs:79
+msgid "Queue"
+msgstr ""
+
+#: src/ui/player_bar.rs:656 src/ui/lyrics.rs:67 src/ui/lyrics.rs:549
+msgid "Lyrics"
+msgstr ""
+
+#: src/ui/queue.rs:80
+msgid "Recent"
+msgstr ""
+
+#: src/ui/queue.rs:92 src/ui/lyrics.rs:78 src/ui/mod.rs:447
+msgid "Close"
+msgstr ""
+
+#: src/ui/queue.rs:152
+msgid "Save as a playlist"
+msgstr ""
+
+#: src/ui/queue.rs:169
+msgid "Clear queue"
+msgstr ""
+
+#: src/ui/queue.rs:241
+msgid "Playing from"
+msgstr ""
+
+#: src/ui/queue.rs:261
+msgid "Now playing"
+msgstr ""
+
+#: src/ui/queue.rs:300
+msgid "Nothing queued"
+msgstr ""
+
+#: src/ui/queue.rs:301
+msgid "Queued songs appear here."
+msgstr ""
+
+#: src/ui/queue.rs:324
+msgid "Playing next"
+msgstr ""
+
+#: src/ui/queue.rs:431
+msgid "Next up"
+msgstr ""
+
+#: src/ui/queue.rs:472 src/ui/queue.rs:505 src/ui/widgets.rs:2608
+#: src/ui/collection.rs:1123
+msgid "Retry"
+msgstr ""
+
+#: src/ui/queue.rs:487
+msgid "No recent plays"
+msgstr ""
+
+#: src/ui/queue.rs:488
+msgid "Played songs appear here."
+msgstr ""
+
+#: src/ui/queue.rs:561 src/ui/artist.rs:193
+msgid "Load more"
+msgstr ""
+
+#: src/ui/lyrics.rs:90 src/ui/keys.rs:198
+msgid "Full screen lyrics"
+msgstr ""
+
+#: src/ui/lyrics.rs:102 src/ui/lyrics.rs:572
+msgctxt "lyrics"
+msgid "Follow"
+msgstr ""
+
+#: src/ui/lyrics.rs:132 src/ui/lyrics.rs:627
+msgid "Play a song to see its lyrics."
+msgstr ""
+
+#: src/ui/lyrics.rs:143 src/ui/lyrics.rs:160 src/ui/artist.rs:269
+#: src/ui/artist.rs:297 src/ui/collection.rs:596 src/ui/collection.rs:1448
+#: src/ui/collection.rs:1557 src/ui/collection.rs:1583
+#: src/ui/collection.rs:1640 src/ui/collection.rs:1747
+#: src/ui/collection.rs:1773 src/ui/collection.rs:2012 src/ui/home.rs:25
+#: src/ui/library.rs:172 src/ui/search.rs:89
+msgid "You're offline"
+msgstr ""
+
+#: src/ui/lyrics.rs:146 src/ui/lyrics.rs:163 src/ui/artist.rs:272
+#: src/ui/artist.rs:300 src/ui/collection.rs:599 src/ui/collection.rs:1451
+#: src/ui/collection.rs:1560 src/ui/collection.rs:1586
+#: src/ui/collection.rs:1643 src/ui/collection.rs:1750
+#: src/ui/collection.rs:1776 src/ui/collection.rs:2015 src/ui/home.rs:34
+#: src/ui/library.rs:175
+msgid "Melba will reconnect automatically when your connection returns."
+msgstr ""
+
+#: src/ui/lyrics.rs:171 src/ui/lyrics.rs:404 src/ui/lyrics.rs:640
+msgid "Couldn't fetch the lyrics: {error}"
+msgstr ""
+
+#: src/ui/lyrics.rs:177 src/ui/lyrics.rs:431 src/ui/lyrics.rs:646
+#: src/ui/login.rs:153
+msgid "Try again"
+msgstr ""
+
+#: src/ui/lyrics.rs:188 src/ui/lyrics.rs:397 src/ui/lyrics.rs:657
+msgid "No lyrics"
+msgstr ""
+
+#: src/ui/lyrics.rs:189 src/ui/lyrics.rs:398 src/ui/lyrics.rs:658
+msgid "No lyrics found for this track."
+msgstr ""
+
+#: src/ui/lyrics.rs:198 src/ui/lyrics.rs:393 src/ui/lyrics.rs:667
+msgid "Instrumental"
+msgstr ""
+
+#: src/ui/lyrics.rs:199 src/ui/lyrics.rs:394 src/ui/lyrics.rs:668
+msgid "No timed lyrics for this track."
+msgstr ""
+
+#: src/ui/lyrics.rs:411 src/ui/widgets.rs:2574 src/app.rs:9914
+#: src/ui/collection.rs:789
+msgid "Loading…"
+msgstr ""
+
+#: src/ui/lyrics.rs:560
+msgid "Leave full screen (Esc)"
+msgstr ""
+
+#: src/ui/widgets.rs:711 src/ui/widgets.rs:944 src/ui/widgets.rs:1159
+msgid "Add to queue"
+msgstr ""
+
+#: src/ui/widgets.rs:744 src/ui/widgets.rs:1035 src/ui/keys.rs:204
+msgid "Remove from this playlist"
+msgstr ""
+
+#: src/ui/widgets.rs:762
+msgid "Add to playlist"
+msgstr ""
+
+#: src/ui/widgets.rs:847
+msgid "Filter playlists"
+msgstr ""
+
+#: src/ui/widgets.rs:858 src/ui/dialogs.rs:352
+msgid "New playlist"
+msgstr ""
+
+#: src/ui/widgets.rs:887
+msgid "No editable playlists"
+msgstr ""
+
+#: src/ui/widgets.rs:889
+msgid "No matching playlists"
+msgstr ""
+
+#: src/ui/widgets.rs:959
+msgid "Remove from queue"
+msgstr ""
+
+#: src/ui/widgets.rs:984
+msgid "Save episode"
+msgstr ""
+
+#: src/ui/widgets.rs:1009
+msgid "Move up"
+msgstr ""
+
+#: src/ui/widgets.rs:1022
+msgid "Move down"
+msgstr ""
+
+#: src/ui/widgets.rs:1050
+msgid "Go to song radio"
+msgstr ""
+
+#: src/ui/widgets.rs:1067 src/ui/widgets.rs:1074
+msgid "Go to artist"
+msgstr ""
+
+#: src/ui/widgets.rs:1092
+msgid "Go to album"
+msgstr ""
+
+#: src/ui/widgets.rs:1109 src/ui/widgets.rs:1223
+msgid "Copy link"
+msgstr ""
+
+#: src/ui/widgets.rs:1117 src/ui/widgets.rs:1231
+msgid "Open in Apple Music"
+msgstr ""
+
+#: src/ui/widgets.rs:1149
+msgid "Shuffle play"
+msgstr ""
+
+#: src/ui/widgets.rs:1169
+msgctxt "artist"
+msgid "Unfollow"
+msgstr ""
+
+#: src/ui/widgets.rs:1170 src/ui/artist.rs:388
+msgctxt "artist"
+msgid "Follow"
+msgstr ""
+
+#: src/ui/widgets.rs:1171 src/ui/collection.rs:1876 src/ui/collection.rs:1898
+msgid "Remove from Your Library"
+msgstr ""
+
+#: src/ui/widgets.rs:1172 src/ui/collection.rs:1875
+msgid "Add to Your Library"
+msgstr ""
+
+#: src/ui/widgets.rs:1182 src/ui/dialogs.rs:451
+msgid "Edit details"
+msgstr ""
+
+#: src/ui/widgets.rs:1196 src/ui/dialogs.rs:73
+msgid "Delete"
+msgstr ""
+
+#: src/ui/widgets.rs:1207
+msgid "Go to playlist radio"
+msgstr ""
+
+#: src/ui/widgets.rs:1208
+msgid "Go to album radio"
+msgstr ""
+
+#: src/ui/widgets.rs:1209
+msgid "Go to artist radio"
+msgstr ""
+
+#: src/ui/widgets.rs:1402
+msgid "Play {title}, {subtitle}"
+msgstr ""
+
+#: src/ui/widgets.rs:1884 src/ui/artist.rs:402 src/ui/collection.rs:363
+msgid "More"
+msgstr ""
+
+#: src/ui/widgets.rs:2020
+msgid "{name} + {count} more"
+msgid_plural "{name} + {count} more"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/ui/widgets.rs:2135
+msgid "Sort by {column}"
+msgstr ""
+
+#: src/ui/widgets.rs:2185
+msgid "Sort by playlist order"
+msgstr ""
+
+#: src/ui/widgets.rs:2220
+msgid "Original order, reversed"
+msgstr ""
+
+#: src/ui/widgets.rs:2233
+msgctxt "column heading"
+msgid "TITLE"
+msgstr ""
+
+#: src/ui/widgets.rs:2250
+msgctxt "column heading"
+msgid "ALBUM"
+msgstr ""
+
+#: src/ui/widgets.rs:2259
+msgctxt "column heading"
+msgid "DATE ADDED"
+msgstr ""
+
+#: src/ui/widgets.rs:2280 src/ui/widgets.rs:2310
+msgid "Sort by duration"
+msgstr ""
+
+#: src/ui/widgets.rs:2585 src/app.rs:10016 src/app.rs:10030
+msgid "Network connection error. Check your connection."
+msgstr ""
+
+#: src/ui/widgets.rs:2843
+msgid "Cut"
+msgstr ""
+
+#: src/ui/widgets.rs:2848
+msgid "Copy"
+msgstr ""
+
+#: src/ui/widgets.rs:2853
+msgid "Paste"
+msgstr ""
+
+#: src/ui/widgets.rs:2870
+msgid "Select all"
+msgstr ""
+
+#: src/ui/widgets.rs:2977
+msgid "Clear"
+msgstr ""
+
+#: src/ui/widgets.rs:3029
+msgid "Based on {name} by Carmine Paolino"
+msgstr ""
+
+#: src/ui/widgets.rs:3177
+msgid "Host"
+msgstr ""
+
+#: src/ui/widgets.rs:3194
+msgid "Port"
+msgstr ""
+
+#: src/ui/widgets.rs:3212
+msgid "Username"
+msgstr ""
+
+#: src/ui/widgets.rs:3223 src/ui/login.rs:248
+msgid "Password"
+msgstr ""
+
+#: src/ui/widgets.rs:3241
+msgid "Proxy login applies to Web requests. Local playback uses this proxy only without a login."
+msgstr ""
+
+#: src/ui/widgets.rs:3245
+msgid "Apple Music hostnames are resolved by the proxy. Local playback connects directly."
+msgstr ""
+
+#: src/app.rs:1677
+msgid "Your Apple Music sign-in expired. Please sign in again."
+msgstr ""
+
+#: src/app.rs:1684
+msgid "Couldn't load your profile: {error}"
+msgstr ""
+
+#: src/app.rs:1700
+msgid "Couldn't list devices: {error}"
+msgstr ""
+
+#: src/app.rs:1719
+msgid "Audio output saved"
+msgstr ""
+
+#: src/app.rs:1723
+msgid "Couldn't set the audio output: {error}"
+msgstr ""
+
+#: src/app.rs:2071
+msgid "Couldn't load more playlists: {error}"
+msgstr ""
+
+#: src/app.rs:2117
+msgid "Apple Music hasn't confirmed your playlist changes yet. Try refreshing again."
+msgstr ""
+
+#: src/app.rs:2277
+msgid "Created {name}"
+msgstr ""
+
+#: src/app.rs:2303
+msgid "Couldn't create the playlist: {error}"
+msgstr ""
+
+#: src/app.rs:2357
+msgid "Playlist cover updated"
+msgstr ""
+
+#: src/app.rs:2366
+msgid "Playlist updated"
+msgstr ""
+
+#: src/app.rs:2376 src/app.rs:2491
+msgid "Couldn't update the playlist: {error}"
+msgstr ""
+
+#: src/app.rs:2450
+msgid "Playlist change failed: {error}"
+msgstr ""
+
+#: src/app.rs:2476
+msgid "Added to Your Library"
+msgstr ""
+
+#: src/app.rs:2478 src/app.rs:2631
+msgid "Removed from Your Library"
+msgstr ""
+
+#: src/app.rs:2624
+msgid "Added to Liked Songs"
+msgstr ""
+
+#: src/app.rs:2626
+msgid "Removed from Liked Songs"
+msgstr ""
+
+#: src/app.rs:2628
+msgid "Following artist"
+msgstr ""
+
+#: src/app.rs:2629
+msgid "Unfollowed artist"
+msgstr ""
+
+#: src/app.rs:2630
+msgid "Saved to Your Library"
+msgstr ""
+
+#: src/app.rs:2645
+msgid "Couldn't update your library: {error}"
+msgstr ""
+
+#: src/app.rs:2687
+msgid "Nothing on Apple Music matches “{query}”"
+msgstr ""
+
+#: src/app.rs:2695
+msgid "Couldn't search for “{query}”: {error}"
+msgstr ""
+
+#: src/app.rs:2878
+msgid "Cannot open this song: {error}"
+msgstr ""
+
+#: src/app.rs:2892 src/app.rs:2916
+msgid "Couldn't add to queue: {error}"
+msgstr ""
+
+#: src/app.rs:2961
+msgid "Loading {name} to queue…"
+msgstr ""
+
+#: src/app.rs:3314
+msgid "Melba {version} is available"
+msgstr ""
+
+#: src/app.rs:3332
+msgid "Melba is up to date"
+msgstr ""
+
+#: src/app.rs:3340
+msgid "Couldn't check for updates: {error}"
+msgstr ""
+
+#: src/app.rs:3422
+msgid "Local playback: {error}"
+msgstr ""
+
+#: src/app.rs:3429
+msgid "Opening your browser to set up local playback"
+msgstr ""
+
+#: src/app.rs:3725
+msgid "Audio disconnected. Reconnecting local playback"
+msgstr ""
+
+#: src/app.rs:3824 src/app/radio.rs:191 src/ui/radio.rs:35 src/ui/radio.rs:77
+msgid "Radio"
+msgstr ""
+
+#: src/app.rs:3858 src/api/models.rs:276
+msgid "Album"
+msgstr ""
+
+#: src/app.rs:5825
+msgid "Queue cleared"
+msgstr ""
+
+#: src/app.rs:5855 src/app.rs:16609
+msgid "Queue {date}"
+msgstr ""
+
+#: src/app.rs:6315
+msgid "This song's album is not on Apple Music"
+msgstr ""
+
+#: src/app.rs:6328
+msgid "Melba cannot open this kind of Apple Music link"
+msgstr ""
+
+#: src/app.rs:6475
+msgid "Nothing is playing. Pick something first"
+msgstr ""
+
+#: src/app.rs:6781
+msgid "Playback is not ready on this computer"
+msgstr ""
+
+#: src/app.rs:7107 src/app.rs:7112
+msgid "Pick something to play"
+msgstr ""
+
+#: src/app.rs:7301
+msgid "Playback device changed. Add the album to queue again"
+msgstr ""
+
+#: src/app.rs:7310 src/app.rs:7328 src/app.rs:7337
+msgid "Couldn't load the album's songs in order. Try again"
+msgstr ""
+
+#: src/app.rs:7317
+msgid "Couldn't add {name} to queue: {error}"
+msgstr ""
+
+#: src/app.rs:7375
+msgid "This album has no playable songs to queue"
+msgstr ""
+
+#: src/app.rs:7384
+msgid "{count} song from {name} added to queue"
+msgid_plural "{count} songs from {name} added to queue"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/app.rs:7428
+msgid "{count} song added to queue"
+msgid_plural "{count} songs added to queue"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/app.rs:7469
+msgid "{name} added to queue"
+msgstr ""
+
+#: src/app.rs:7871
+msgid "The clipboard has no Apple Music song links"
+msgstr ""
+
+#: src/app.rs:7952
+msgid "{count} pasted link could not be added"
+msgid_plural "{count} pasted links could not be added"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/app.rs:8566
+msgid "Apple Music doesn't let apps remove a playlist description, so it was kept"
+msgstr ""
+
+#: src/app.rs:8613 src/app.rs:8628
+msgid "Link copied"
+msgstr ""
+
+#: src/app.rs:8632
+msgid "{count} link copied"
+msgid_plural "{count} links copied"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/app.rs:8922
+msgid "Apple Music doesn't let apps reorder your playlists, so this order is saved on this computer"
+msgstr ""
+
+#: src/app.rs:9010
+msgid "Play history cleared"
+msgstr ""
+
+#: src/app.rs:9021
+msgid "Cleared {size} MB of artwork"
+msgstr ""
+
+#: src/app.rs:9027
+msgid "Couldn't clear artwork: {error}"
+msgstr ""
+
+#: src/app.rs:10007
+msgid "No audio output device was found. Connect or enable one, then press play again."
+msgstr ""
+
+#: src/app.rs:10021
+msgid "Apple Music doesn't make this playlist's songs available to third-party apps."
+msgstr ""
+
+#: src/app.rs:10144
+msgid "Apple Music sign-in expired. Sign in again, then retry the cover upload."
+msgstr ""
+
+#: src/app.rs:10149
+msgid "Apple Music refused this cover. Check that you own the playlist, then sign in again to grant image upload permission."
+msgstr ""
+
+#: src/app.rs:10153
+msgid "Apple Music rejected the image size. Choose a smaller image."
+msgstr ""
+
+#: src/app.rs:10156
+msgid "Couldn't upload the cover: {error}. Try again."
+msgstr ""
+
+#: src/app.rs:16629 src/app/radio.rs:38
+msgid "{track} Radio"
+msgstr ""
+
+#: src/ui/settings.rs:143 src/ui/keys.rs:254 src/ui/topbar.rs:452
+#: src/ui/topbar.rs:512
+msgid "Settings"
+msgstr ""
+
+#: src/ui/settings.rs:157
+msgid "Search settings"
+msgstr ""
+
+#: src/ui/settings.rs:173
+msgid "Account"
+msgstr ""
+
+#: src/ui/settings.rs:174 src/ui/topbar.rs:470
+msgid "Sign out"
+msgstr ""
+
+#: src/ui/settings.rs:200
+msgid "Playback needs an Apple Music subscription"
+msgstr ""
+
+#: src/ui/settings.rs:214
+msgid "Connected as {username}"
+msgstr ""
+
+#: src/ui/settings.rs:232
+msgid "Audio output"
+msgstr ""
+
+#: src/ui/settings.rs:237
+msgid "Direct hardware output (hw:X,Y) can be bit-perfect when its rate, depth and channels match. The OS mixer is never bit-perfect."
+msgstr ""
+
+#: src/ui/settings.rs:263 src/ui/settings.rs:277
+msgid "Auto (prefer USB/analog)"
+msgstr ""
+
+#: src/ui/settings.rs:265 src/ui/settings.rs:281
+msgid "OS mixer (not bit-perfect)"
+msgstr ""
+
+#: src/ui/settings.rs:297
+msgid "in use"
+msgstr ""
+
+#: src/ui/settings.rs:305
+msgid "Selecting this output will stop the current PipeWire audio and give Melba exclusive control."
+msgstr ""
+
+#: src/ui/settings.rs:307
+msgid "Use this direct hardware output."
+msgstr ""
+
+#: src/ui/settings.rs:322
+msgid "Refresh outputs"
+msgstr ""
+
+#: src/ui/settings.rs:340
+msgid "Audio cache"
+msgstr ""
+
+#: src/ui/settings.rs:341
+msgid "Appearance"
+msgstr ""
+
+#: src/ui/settings.rs:342
+msgid "Theme"
+msgstr ""
+
+#: src/ui/settings.rs:343
+msgid "How to make a theme"
+msgstr ""
+
+#: src/ui/settings.rs:344
+msgid "Open themes folder"
+msgstr ""
+
+#: src/ui/settings.rs:345
+msgid "Colour from album art"
+msgstr ""
+
+#: src/ui/settings.rs:346
+msgid "Compact library sidebar"
+msgstr ""
+
+#: src/ui/settings.rs:347
+msgid "Compact track list"
+msgstr ""
+
+#: src/ui/settings.rs:348
+msgid "Middle-click autoscroll"
+msgstr ""
+
+#: src/ui/settings.rs:349
+msgid "Custom title bar"
+msgstr ""
+
+#: src/ui/settings.rs:361
+msgid "Follow system uses your Omarchy colours."
+msgstr ""
+
+#: src/ui/settings.rs:365
+msgid "Follow system uses your desktop's light or dark appearance."
+msgstr ""
+
+#: src/ui/settings.rs:370 src/ui/settings.rs:939
+msgid "Language"
+msgstr ""
+
+#: src/ui/settings.rs:373
+msgid "System follows your computer's language. Untranslated text stays in English."
+msgstr ""
+
+#: src/ui/settings.rs:380
+msgid "Use the current cover's colour on pages and the player bar."
+msgstr ""
+
+#: src/ui/settings.rs:385
+msgid "Show names without covers in the sidebar."
+msgstr ""
+
+#: src/ui/settings.rs:389
+msgid "Show each track on one line without a cover."
+msgstr ""
+
+#: src/ui/settings.rs:392
+msgid "Interface zoom"
+msgstr ""
+
+#: src/ui/settings.rs:396
+msgid "Ctrl+Plus and Ctrl+Minus work anywhere; Ctrl+0 resets."
+msgstr ""
+
+#: src/ui/settings.rs:400
+msgid "Cmd+Plus and Cmd+Minus work anywhere; Cmd+0 resets."
+msgstr ""
+
+#: src/ui/settings.rs:409
+msgid "Middle-click a list, then move the pointer to scroll it. Off by default, because a middle click usually pastes on Linux."
+msgstr ""
+
+#: src/ui/settings.rs:417
+msgid "Draw Melba's own title bar and window buttons instead of the desktop's."
+msgstr ""
+
+#: src/ui/settings.rs:657
+msgid "Proxy"
+msgstr ""
+
+#: src/ui/settings.rs:659
+msgid "Mode, host, port, username and password"
+msgstr ""
+
+#: src/ui/settings.rs:662
+msgid "Off, System, HTTP or SOCKS5 proxy for network requests."
+msgstr ""
+
+#: src/ui/settings.rs:672
+msgctxt "proxy"
+msgid "Mode"
+msgstr ""
+
+#: src/ui/settings.rs:675
+msgid "Off ignores environment variables. System uses them, and the OS proxy on macOS and Windows."
+msgstr ""
+
+#: src/ui/settings.rs:727 src/ui/login.rs:377
+msgid "Apply settings"
+msgstr ""
+
+#: src/ui/settings.rs:739
+msgid "Not using a proxy."
+msgstr ""
+
+#: src/ui/settings.rs:740
+msgid "Using the system proxy."
+msgstr ""
+
+#: src/ui/settings.rs:749
+msgid "Storage"
+msgstr ""
+
+#: src/ui/settings.rs:752
+msgid "Artwork cache"
+msgstr ""
+
+#: src/ui/settings.rs:754 src/ui/settings.rs:760
+msgid "Stored in {folder}"
+msgstr ""
+
+#: src/ui/settings.rs:766
+msgid "Play history"
+msgstr ""
+
+#: src/ui/settings.rs:770
+msgid "Tracks played here are stored in {file}. This file is never uploaded."
+msgstr ""
+
+#: src/ui/settings.rs:775
+msgid "Sign-in"
+msgstr ""
+
+#: src/ui/settings.rs:778
+msgid "Session tokens are stored in owner-only files by melbad. The GUI does not save passwords or verification codes."
+msgstr ""
+
+#: src/ui/settings.rs:790
+msgid "Clear artwork"
+msgstr ""
+
+#: src/ui/settings.rs:804
+msgid "Clear history"
+msgstr ""
+
+#: src/ui/settings.rs:816
+msgid "About"
+msgstr ""
+
+#: src/ui/settings.rs:819
+msgid "Built with Rust and egui on Melba. Not affiliated with Apple."
+msgstr ""
+
+#: src/ui/settings.rs:821
+msgid "Check for updates"
+msgstr ""
+
+#: src/ui/settings.rs:822
+msgid "Checking…"
+msgstr ""
+
+#: src/ui/settings.rs:823 src/ui/dialogs.rs:140 src/ui/keys.rs:264
+#: src/ui/topbar.rs:460
+msgid "Keyboard shortcuts"
+msgstr ""
+
+#: src/ui/settings.rs:824
+msgid "Source code"
+msgstr ""
+
+#: src/ui/settings.rs:895
+msgid "No settings for “{query}”"
+msgstr ""
+
+#: src/ui/settings.rs:896
+msgid "Try fewer words, or check the spelling."
+msgstr ""
+
+#: src/ui/settings.rs:912
+msgctxt "language"
+msgid "System"
+msgstr ""
+
+#: src/api/models.rs:273
+msgid "Single"
+msgstr ""
+
+#: src/api/models.rs:274
+msgid "Compilation"
+msgstr ""
+
+#: src/api/models.rs:275 src/model.rs:795
+msgid "Appears On"
+msgstr ""
+
+#: src/model.rs:674 src/model.rs:792
 msgctxt "filter"
 msgid "All"
 msgstr ""
 
-#: src/model.rs:700 src/ui/search.rs:443
+#: src/model.rs:675 src/ui/search.rs:410
 msgid "Songs"
 msgstr ""
 
-#: src/model.rs:828
+#: src/model.rs:794
 msgid "Singles & EPs"
 msgstr ""
 
-#: src/settings.rs:160
+#: src/settings.rs:121
 msgctxt "theme"
 msgid "Dark"
 msgstr ""
 
-#: src/settings.rs:161
+#: src/settings.rs:122
 msgctxt "theme"
 msgid "Light"
 msgstr ""
 
-#: src/settings.rs:162
+#: src/settings.rs:123
 msgid "Follow system"
 msgstr ""
 
-#: src/settings.rs:188
+#: src/settings.rs:149
 msgctxt "proxy"
 msgid "Off"
 msgstr ""
 
-#: src/settings.rs:189
+#: src/settings.rs:150
 msgctxt "proxy"
 msgid "System"
 msgstr ""
@@ -589,9 +1127,7 @@ msgid "Loading local themes…"
 msgstr ""
 
 #: src/theme.rs:170
-msgid ""
-"The selected theme is unavailable. Keeping the last usable appearance. See "
-"the log for details."
+msgid "The selected theme is unavailable. Keeping the last usable appearance. See the log for details."
 msgstr ""
 
 #: src/theme.rs:174
@@ -599,102 +1135,56 @@ msgid "The themes folder could not be read. See the log for details."
 msgstr ""
 
 #: src/theme.rs:178
-msgid ""
-"The themes folder has more than 512 entries. Keep fewer files there to list "
-"the custom palettes."
+msgid "The themes folder has more than 512 entries. Keep fewer files there to list the custom palettes."
 msgstr ""
 
 #: src/theme.rs:182
-msgid ""
-"Only 128 custom palettes can be listed. Keep fewer JSON files in the themes "
-"folder to see the rest."
+msgid "Only 128 custom palettes can be listed. Keep fewer JSON files in the themes folder to see the rest."
 msgstr ""
 
 #: src/theme.rs:186
-msgid ""
-"The Omarchy palette could not be loaded. Keeping the last usable appearance. "
-"See the log for details."
+msgid "The Omarchy palette could not be loaded. Keeping the last usable appearance. See the log for details."
 msgstr ""
 
 #: src/theme.rs:190
-msgid ""
-"Custom themes could not be loaded. Run melba reload-themes to try again."
+msgid "Custom themes could not be loaded. Run melba reload-themes to try again."
 msgstr ""
 
-#: src/ui/artist.rs:32
+#: src/ui/artist.rs:31
 msgid "Popular"
 msgstr ""
 
-#: src/ui/artist.rs:84
+#: src/ui/artist.rs:81
 msgid "Show less"
 msgstr ""
 
-#: src/ui/artist.rs:86
+#: src/ui/artist.rs:83
 msgid "See more"
 msgstr ""
 
-#: src/ui/artist.rs:97
+#: src/ui/artist.rs:94
 msgid "No popular songs to show."
 msgstr ""
 
-#: src/ui/artist.rs:110
+#: src/ui/artist.rs:107
 msgid "Discography"
 msgstr ""
 
-#: src/ui/artist.rs:189
+#: src/ui/artist.rs:186
 msgid "Nothing in this category."
 msgstr ""
 
-#: src/ui/artist.rs:196 src/ui/queue.rs:565
-msgid "Load more"
-msgstr ""
-
-#: src/ui/artist.rs:215
+#: src/ui/artist.rs:212
 msgid "Fans also like"
 msgstr ""
 
-#: src/ui/artist.rs:272 src/ui/artist.rs:300 src/ui/collection.rs:618
-#: src/ui/collection.rs:1507 src/ui/collection.rs:1637
-#: src/ui/collection.rs:1663 src/ui/collection.rs:1727
-#: src/ui/collection.rs:1836 src/ui/collection.rs:1862
-#: src/ui/collection.rs:2107 src/ui/home.rs:25 src/ui/library.rs:259
-#: src/ui/lyrics.rs:143 src/ui/lyrics.rs:160 src/ui/search.rs:91
-#: src/ui/show.rs:60 src/ui/show.rs:106 src/ui/show.rs:136
-msgid "You're offline"
-msgstr ""
-
-#: src/ui/artist.rs:275 src/ui/artist.rs:303 src/ui/collection.rs:621
-#: src/ui/collection.rs:1510 src/ui/collection.rs:1640
-#: src/ui/collection.rs:1666 src/ui/collection.rs:1730
-#: src/ui/collection.rs:1839 src/ui/collection.rs:1865
-#: src/ui/collection.rs:2110 src/ui/home.rs:34 src/ui/library.rs:262
-#: src/ui/lyrics.rs:146 src/ui/lyrics.rs:163 src/ui/show.rs:63
-#: src/ui/show.rs:109 src/ui/show.rs:139
-msgid "Melba will reconnect automatically when your connection returns."
-msgstr ""
-
-#: src/ui/artist.rs:379 src/ui/collection.rs:246 src/ui/show.rs:206
-#: src/ui/show.rs:358
+#: src/ui/artist.rs:363 src/ui/collection.rs:246
 msgid "Starting…"
 msgstr ""
 
-#: src/ui/artist.rs:402
+#: src/ui/artist.rs:386
 msgctxt "artist"
 msgid "Following"
-msgstr ""
-
-#: src/ui/artist.rs:404 src/ui/widgets.rs:1177
-msgctxt "artist"
-msgid "Follow"
-msgstr ""
-
-#: src/ui/artist.rs:418 src/ui/collection.rs:363 src/ui/show.rs:247
-#: src/ui/show.rs:449 src/ui/widgets.rs:1931
-msgid "More"
-msgstr ""
-
-#: src/ui/collection.rs:258 src/ui/player_bar.rs:684
-msgid "Pause"
 msgstr ""
 
 #: src/ui/collection.rs:265
@@ -705,10 +1195,6 @@ msgstr ""
 msgid "Shuffle off"
 msgstr ""
 
-#: src/ui/collection.rs:314 src/ui/player_bar.rs:630 src/ui/player_bar.rs:637
-msgid "Shuffle"
-msgstr ""
-
 #: src/ui/collection.rs:350 src/ui/collection.rs:376
 msgid "Save as playlist"
 msgstr ""
@@ -717,7 +1203,7 @@ msgstr ""
 msgid "Refreshing…"
 msgstr ""
 
-#: src/ui/collection.rs:400 src/ui/devices.rs:211
+#: src/ui/collection.rs:400
 msgid "Refresh"
 msgstr ""
 
@@ -725,59 +1211,43 @@ msgstr ""
 msgid "Filter"
 msgstr ""
 
-#: src/ui/collection.rs:805 src/ui/collection.rs:832
+#: src/ui/collection.rs:781 src/ui/collection.rs:808
 msgid "Unavailable"
 msgstr ""
 
-#: src/ui/collection.rs:811
+#: src/ui/collection.rs:787
 msgid "You're offline. Reconnect to load more songs."
 msgstr ""
 
-#: src/ui/collection.rs:960
+#: src/ui/collection.rs:934
 msgid "Nothing here yet"
 msgstr ""
 
-#: src/ui/collection.rs:961
+#: src/ui/collection.rs:935
 msgid "Added songs appear here."
 msgstr ""
 
-#: src/ui/collection.rs:1413 src/ui/home.rs:551
+#: src/ui/collection.rs:1357 src/ui/home.rs:549
 msgid "Your top songs"
 msgstr ""
 
-#: src/ui/collection.rs:1422
+#: src/ui/collection.rs:1366
 msgid "Your most-played tracks from the last four weeks."
 msgstr ""
 
-#: src/ui/collection.rs:1917
+#: src/ui/collection.rs:1825
 msgid "Public Playlist"
 msgstr ""
 
-#: src/ui/collection.rs:1967 src/ui/widgets.rs:1179
-msgid "Add to Your Library"
-msgstr ""
-
-#: src/ui/collection.rs:1968 src/ui/collection.rs:1990 src/ui/show.rs:229
-#: src/ui/widgets.rs:1178
-msgid "Remove from Your Library"
-msgstr ""
-
-#: src/ui/collection.rs:1989
+#: src/ui/collection.rs:1897
 msgid "Save to Your Library"
 msgstr ""
 
-#. Translators: {count} is a number of songs and {duration} their total
-#. length, such as "2 hr 13 min".
-#: src/ui/collection.rs:2247
-#, rust-format
+#: src/ui/collection.rs:2138
 msgid "{count} song, {duration}"
 msgid_plural "{count} songs, {duration}"
 msgstr[0] ""
 msgstr[1] ""
-
-#: src/ui/devices.rs:198 src/ui/player_bar.rs:894
-msgid "Connect to a device"
-msgstr ""
 
 #: src/ui/dialogs.rs:43
 msgid "Delete playlist?"
@@ -787,20 +1257,12 @@ msgstr ""
 msgid "Remove from Your Library?"
 msgstr ""
 
-#. Translators: {name} is a playlist name.
 #: src/ui/dialogs.rs:53
-#, rust-format
 msgid "Delete “{name}”?"
 msgstr ""
 
-#. Translators: {name} is a playlist name.
 #: src/ui/dialogs.rs:56
-#, rust-format
 msgid "“{name}” will no longer appear in Your Library."
-msgstr ""
-
-#: src/ui/dialogs.rs:73 src/ui/widgets.rs:1203
-msgid "Delete"
 msgstr ""
 
 #: src/ui/dialogs.rs:75
@@ -808,7 +1270,7 @@ msgid "Remove"
 msgstr ""
 
 #: src/ui/dialogs.rs:83 src/ui/dialogs.rs:130 src/ui/dialogs.rs:418
-#: src/ui/dialogs.rs:599 src/ui/login.rs:89
+#: src/ui/dialogs.rs:599 src/ui/login.rs:129 src/ui/login.rs:143
 msgid "Cancel"
 msgstr ""
 
@@ -822,11 +1284,6 @@ msgstr ""
 
 #: src/ui/dialogs.rs:120
 msgid "Add anyway"
-msgstr ""
-
-#: src/ui/dialogs.rs:140 src/ui/keys.rs:306 src/ui/settings.rs:1816
-#: src/ui/topbar.rs:479
-msgid "Keyboard shortcuts"
 msgstr ""
 
 #: src/ui/dialogs.rs:186
@@ -846,50 +1303,30 @@ msgid "OK"
 msgstr ""
 
 #: src/ui/dialogs.rs:256
-#, rust-format
 msgid "This song is already in “{playlist}”. Add it again?"
 msgstr ""
 
 #: src/ui/dialogs.rs:263
-#, rust-format
 msgid "This song is already in “{playlist}”. Add them anyway?"
 msgstr ""
 
-#. Translators: {name} is a song name and {playlist} a playlist name.
 #: src/ui/dialogs.rs:268
-#, rust-format
 msgid "“{name}” is already in “{playlist}”. Add it again?"
 msgstr ""
 
 #: src/ui/dialogs.rs:276
-#, rust-format
 msgid "“{name}” is already in “{playlist}”. Add them anyway?"
 msgstr ""
 
 #: src/ui/dialogs.rs:285
-#, rust-format
 msgid "“{first}” and “{second}” are already in “{playlist}”. Add them anyway?"
 msgstr ""
 
-#. Translators: {first} and {second} are song names, {count} is how many more songs are already in the playlist, and {playlist} is a playlist name.
 #: src/ui/dialogs.rs:294
-#, rust-format
-msgid ""
-"“{first}”, “{second}”, and {count} more are already in “{playlist}”. Add "
-"them anyway?"
-msgid_plural ""
-"“{first}”, “{second}”, and {count} more are already in “{playlist}”. Add "
-"them anyway?"
+msgid "“{first}”, “{second}”, and {count} more are already in “{playlist}”. Add them anyway?"
+msgid_plural "“{first}”, “{second}”, and {count} more are already in “{playlist}”. Add them anyway?"
 msgstr[0] ""
 msgstr[1] ""
-
-#: src/ui/dialogs.rs:352 src/ui/widgets.rs:858
-msgid "New playlist"
-msgstr ""
-
-#: src/ui/dialogs.rs:359 src/ui/dialogs.rs:516 src/ui/sidebar.rs:358
-msgid "Name"
-msgstr ""
 
 #: src/ui/dialogs.rs:369
 msgid "My playlist"
@@ -900,9 +1337,7 @@ msgstr ""
 msgid "Public playlist"
 msgstr ""
 
-#. Translators: {count} is the number of songs.
 #: src/ui/dialogs.rs:390
-#, rust-format
 msgid "{count} song will be added."
 msgid_plural "{count} songs will be added."
 msgstr[0] ""
@@ -910,10 +1345,6 @@ msgstr[1] ""
 
 #: src/ui/dialogs.rs:408
 msgid "Create"
-msgstr ""
-
-#: src/ui/dialogs.rs:451 src/ui/widgets.rs:1189
-msgid "Edit details"
 msgstr ""
 
 #: src/ui/dialogs.rs:467
@@ -960,148 +1391,128 @@ msgstr ""
 msgid "Made for you"
 msgstr ""
 
-#. Translators: {owner} is the name of the playlist's owner.
-#: src/ui/home.rs:258 src/ui/search.rs:623
-#, rust-format
+#: src/ui/home.rs:258 src/ui/search.rs:588
 msgid "By {owner}"
-msgstr ""
-
-#: src/ui/home.rs:314 src/ui/home.rs:324 src/ui/home.rs:351
-#: src/ui/sidebar.rs:356
-msgid "Recently played"
 msgstr ""
 
 #: src/ui/home.rs:403 src/ui/home.rs:413 src/ui/home.rs:428
 msgid "Your top artists"
 msgstr ""
 
-#: src/ui/home.rs:552
+#: src/ui/home.rs:550
 msgid "Show more top songs"
 msgstr ""
 
-#: src/ui/home.rs:566
+#: src/ui/home.rs:564
 msgid "Recommended for you"
 msgstr ""
 
-#: src/ui/keys.rs:196
+#: src/ui/keys.rs:174
 msgctxt "key"
 msgid "Space"
 msgstr ""
 
-#: src/ui/keys.rs:197
+#: src/ui/keys.rs:175
 msgid "Play or pause"
 msgstr ""
 
-#: src/ui/keys.rs:201
+#: src/ui/keys.rs:179
 msgid "Previous or next"
 msgstr ""
 
-#: src/ui/keys.rs:205
+#: src/ui/keys.rs:183
 msgid "Seek 10 seconds"
 msgstr ""
 
-#: src/ui/keys.rs:209
+#: src/ui/keys.rs:187
 msgid "Volume up or down"
 msgstr ""
 
-#: src/ui/keys.rs:211
+#: src/ui/keys.rs:189
 msgid "Mute or unmute"
 msgstr ""
 
-#: src/ui/keys.rs:214
+#: src/ui/keys.rs:192
 msgid "Like or unlike the playing song"
 msgstr ""
 
-#: src/ui/keys.rs:216
+#: src/ui/keys.rs:194
 msgid "Toggle shuffle"
 msgstr ""
 
-#: src/ui/keys.rs:217
+#: src/ui/keys.rs:195
 msgid "Cycle repeat"
 msgstr ""
 
-#: src/ui/keys.rs:218
+#: src/ui/keys.rs:196
 msgid "Show the queue"
 msgstr ""
 
-#: src/ui/keys.rs:219
+#: src/ui/keys.rs:197
 msgid "Show the lyrics"
 msgstr ""
 
-#: src/ui/keys.rs:221
+#: src/ui/keys.rs:199
 msgid "Lyrics: leave full screen"
 msgstr ""
 
-#: src/ui/keys.rs:224
+#: src/ui/keys.rs:202
 msgid "Song list: extend or shrink the selection"
 msgstr ""
 
-#: src/ui/keys.rs:226 src/ui/widgets.rs:744 src/ui/widgets.rs:1035
-msgid "Remove from this playlist"
-msgstr ""
-
-#: src/ui/keys.rs:229
+#: src/ui/keys.rs:207
 msgid "Song list: select all"
 msgstr ""
 
-#: src/ui/keys.rs:233
+#: src/ui/keys.rs:211
 msgid "Song list: copy the selected songs' links"
 msgstr ""
 
-#: src/ui/keys.rs:237
+#: src/ui/keys.rs:215
 msgid "Playlist: cut the selected songs"
 msgstr ""
 
-#: src/ui/keys.rs:241
+#: src/ui/keys.rs:219
 msgid "Playlist: add the pasted song links"
 msgstr ""
 
-#. Translators: Keep the key names. Only the word "or" is translated.
-#: src/ui/keys.rs:246
+#: src/ui/keys.rs:224
 msgid "Cmd+F  or  /"
 msgstr ""
 
-#. Translators: Keep the key names. Only the word "or" is translated.
-#: src/ui/keys.rs:249
+#: src/ui/keys.rs:227
 msgid "Ctrl+F  or  /"
 msgstr ""
 
-#: src/ui/keys.rs:255
+#: src/ui/keys.rs:233
 msgid "Show or hide the sidebar"
 msgstr ""
 
-#: src/ui/keys.rs:257
+#: src/ui/keys.rs:235
 msgid "Back or forward"
 msgstr ""
 
-#: src/ui/keys.rs:268
+#: src/ui/keys.rs:246
 msgid "Go to the playing artist"
 msgstr ""
 
-#: src/ui/keys.rs:272
+#: src/ui/keys.rs:250
 msgid "Go to the playing album"
 msgstr ""
 
-#: src/ui/keys.rs:296 src/ui/settings.rs:269 src/ui/topbar.rs:471
-#: src/ui/topbar.rs:531
-msgid "Settings"
-msgstr ""
-
-#. Translators: Keep the key names. Only the word "or" is translated.
-#: src/ui/keys.rs:301
+#: src/ui/keys.rs:259
 msgid "Cmd+/ or ?"
 msgstr ""
 
-#. Translators: Keep the key names. Only the word "or" is translated.
-#: src/ui/keys.rs:304
+#: src/ui/keys.rs:262
 msgid "Ctrl+/ or ?"
 msgstr ""
 
-#: src/ui/keys.rs:310
+#: src/ui/keys.rs:268
 msgid "Close the window"
 msgstr ""
 
-#: src/ui/keys.rs:312 src/ui/winamp/mod.rs:727
+#: src/ui/keys.rs:270
 msgid "Quit"
 msgstr ""
 
@@ -1121,201 +1532,91 @@ msgstr ""
 msgid "Followed artists appear here."
 msgstr ""
 
-#: src/ui/login.rs:74
+#: src/ui/login.rs:113
 msgid "A native Apple Music client."
 msgstr ""
 
-#: src/ui/login.rs:82
+#: src/ui/login.rs:122
 msgid "Waiting for Apple Music in your browser…"
 msgstr ""
 
-#: src/ui/login.rs:85
+#: src/ui/login.rs:125
 msgid "Didn't open? Open the sign-in page again"
 msgstr ""
 
-#: src/ui/login.rs:97 src/ui/settings.rs:373
+#: src/ui/login.rs:141
 msgid "Connecting to Apple Music…"
 msgstr ""
 
-#: src/ui/login.rs:111
+#: src/ui/login.rs:158
 msgid "Sign in with Apple Music"
 msgstr ""
 
-#: src/ui/login.rs:117
-msgid ""
-"Sign in through your browser. Melba never sees your password. Playback needs "
-"an Apple Music subscription."
+#: src/ui/login.rs:164
+msgid "Use your browser, or sign in locally in Melba when the managed wrapper is installed. Credentials are not saved by the GUI. Playback needs an Apple Music subscription."
 msgstr ""
 
-#: src/ui/login.rs:131
+#: src/ui/login.rs:178
 msgid "Proxy Settings"
 msgstr ""
 
-#. Translators: {version} is the app's version number, such as 1.2.0.
-#: src/ui/login.rs:152
-#, rust-format
+#: src/ui/login.rs:199
 msgid "Melba {version} • not affiliated with Apple"
 msgstr ""
 
-#: src/ui/login.rs:213 src/ui/settings.rs:1255
-msgid "Apply settings"
+#: src/ui/login.rs:319
+msgid "Cancel sign-in"
 msgstr ""
 
-#: src/ui/lyrics.rs:67 src/ui/lyrics.rs:549 src/ui/player_bar.rs:939
-msgid "Lyrics"
-msgstr ""
-
-#: src/ui/lyrics.rs:131 src/ui/lyrics.rs:626 src/ui/player_bar.rs:401
-msgid "Nothing playing"
-msgstr ""
-
-#: src/ui/lyrics.rs:132 src/ui/lyrics.rs:627
-msgid "Play a song to see its lyrics."
-msgstr ""
-
-#: src/ui/mod.rs:462
+#: src/ui/mod.rs:444
 msgid "Minimize"
 msgstr ""
 
-#: src/ui/mod.rs:463
+#: src/ui/mod.rs:445
 msgid "Maximize"
 msgstr ""
 
-#: src/ui/mod.rs:464
+#: src/ui/mod.rs:446
 msgid "Restore"
-msgstr ""
-
-#: src/ui/player_bar.rs:541 src/ui/widgets.rs:725 src/ui/widgets.rs:971
-#: src/ui/widgets.rs:1884
-msgid "Remove from Liked Songs"
-msgstr ""
-
-#: src/ui/player_bar.rs:548 src/ui/widgets.rs:728 src/ui/widgets.rs:974
-#: src/ui/widgets.rs:1886
-msgid "Save to Liked Songs"
-msgstr ""
-
-#: src/ui/player_bar.rs:651
-msgid "Previous"
-msgstr ""
-
-#: src/ui/player_bar.rs:702
-msgid "Next"
-msgstr ""
-
-#: src/ui/player_bar.rs:710
-msgid "Repeat"
-msgstr ""
-
-#: src/ui/player_bar.rs:714
-msgid "Repeat one"
-msgstr ""
-
-#: src/ui/player_bar.rs:719
-msgid "Repeat off"
-msgstr ""
-
-#: src/ui/player_bar.rs:780
-msgid "Playback position (%)"
-msgstr ""
-
-#: src/ui/player_bar.rs:856
-msgid "Unmute"
-msgstr ""
-
-#: src/ui/player_bar.rs:858
-msgid "Mute"
-msgstr ""
-
-#: src/ui/player_bar.rs:874
-msgid "This device's volume can't be changed from Melba"
-msgstr ""
-
-#: src/ui/player_bar.rs:913 src/ui/queue.rs:23 src/ui/queue.rs:79
-msgid "Queue"
-msgstr ""
-
-#: src/ui/prerelease.rs:226 src/ui/widgets.rs:1117 src/ui/widgets.rs:1229
-msgid "Copy link"
-msgstr ""
-
-#: src/ui/prerelease.rs:230 src/ui/widgets.rs:1125 src/ui/widgets.rs:1237
-msgid "Open in Apple Music"
-msgstr ""
-
-#: src/ui/queue.rs:241
-msgid "Playing from"
-msgstr ""
-
-#: src/ui/queue.rs:261
-msgid "Now playing"
-msgstr ""
-
-#. Translators: Songs added manually, before the current playlist or album continues.
-#: src/ui/queue.rs:326
-msgid "Playing next"
-msgstr ""
-
-#. Translators: Upcoming songs from the current playlist or album, after manually queued songs.
-#: src/ui/queue.rs:433
-msgid "Next up"
-msgstr ""
-
-#: src/ui/queue.rs:489
-msgid "No recent plays"
-msgstr ""
-
-#: src/ui/queue.rs:490
-msgid "Played songs appear here."
 msgstr ""
 
 #: src/ui/radio.rs:106
 msgid "Radio comes from playback on this computer. Turn it on in Settings."
 msgstr ""
 
-#: src/ui/radio.rs:203
+#: src/ui/radio.rs:201
 msgid "Based on this playlist"
 msgstr ""
 
-#: src/ui/radio.rs:204
+#: src/ui/radio.rs:202
 msgid "Based on this album"
 msgstr ""
 
-#: src/ui/radio.rs:205
+#: src/ui/radio.rs:203
 msgid "Based on this artist"
 msgstr ""
 
-#: src/ui/radio.rs:206
+#: src/ui/radio.rs:204
 msgid "Based on this song"
 msgstr ""
 
-#. Translators: {first} is an artist name.
-#: src/ui/radio.rs:225
-#, rust-format
+#: src/ui/radio.rs:223
 msgid "With {first}"
 msgstr ""
 
-#. Translators: {first} and {second} are artist names.
-#: src/ui/radio.rs:228
-#, rust-format
+#: src/ui/radio.rs:226
 msgid "With {first} and {second}"
 msgstr ""
 
-#. Translators: {first}, {second} and {third} are artist names.
-#: src/ui/radio.rs:234
-#, rust-format
+#: src/ui/radio.rs:232
 msgid "With {first}, {second} and {third}"
 msgstr ""
 
-#. Translators: {first}, {second} and {third} are artist names; more follow.
-#: src/ui/radio.rs:241
-#, rust-format
+#: src/ui/radio.rs:239
 msgid "With {first}, {second}, {third} and more"
 msgstr ""
 
-#. Translators: {query} is the text the user searched for.
 #: src/ui/search.rs:66
-#, rust-format
 msgid "No results for “{query}”"
 msgstr ""
 
@@ -1323,466 +1624,83 @@ msgstr ""
 msgid "Check the spelling, or try fewer words."
 msgstr ""
 
-#: src/ui/search.rs:94
+#: src/ui/search.rs:92
 msgid "Connect to the internet to search songs, artists, and playlists."
 msgstr ""
 
-#: src/ui/search.rs:104 src/ui/winamp/playlist.rs:647
+#: src/ui/search.rs:102
 msgid "Search Apple Music"
 msgstr ""
 
-#: src/ui/search.rs:112
+#: src/ui/search.rs:103
+msgid "Find songs, artists, albums, and playlists."
+msgstr ""
+
+#: src/ui/search.rs:107
 msgid "Recent searches"
 msgstr ""
 
-#: src/ui/search.rs:151
+#: src/ui/search.rs:146
 msgid "Top result"
 msgstr ""
 
-#. Translators: {artists} is the album's artist names.
-#: src/ui/search.rs:202
-#, rust-format
+#: src/ui/search.rs:197
 msgid "Album • {artists}"
 msgstr ""
 
-#. Translators: {owner} is the name of the playlist's owner.
-#: src/ui/search.rs:228 src/ui/sidebar.rs:857
-#, rust-format
-msgid "Playlist • {owner}"
-msgstr ""
-
-#. Translators: Precedes the song's artist names, which follow as links.
-#: src/ui/search.rs:367
+#: src/ui/search.rs:334
 msgid "Song • "
 msgstr ""
 
-#: src/ui/settings.rs:283
-msgid "Search settings"
-msgstr ""
-
-#: src/ui/settings.rs:301
-msgid "Account"
-msgstr ""
-
-#: src/ui/settings.rs:302 src/ui/topbar.rs:489
-msgid "Sign out"
-msgstr ""
-
-#. Translators: {username} is the Apple Music account's user name.
-#: src/ui/settings.rs:342
-#, rust-format
-msgid "Connected as {username}"
-msgstr ""
-
-#: src/ui/settings.rs:385
-msgctxt "playback status"
-msgid "Unavailable"
-msgstr ""
-
-#: src/ui/settings.rs:404
-msgid "Audio cache"
-msgstr ""
-
-#: src/ui/settings.rs:464
-msgid ""
-"More buffering can prevent clicks on busy computers. Less buffering makes "
-"controls respond sooner."
-msgstr ""
-
-#: src/ui/settings.rs:756
-msgid "Appearance"
-msgstr ""
-
-#: src/ui/settings.rs:757
-msgid "Theme"
-msgstr ""
-
-#: src/ui/settings.rs:758
-msgid "How to make a theme"
-msgstr ""
-
-#: src/ui/settings.rs:759
-msgid "Open themes folder"
-msgstr ""
-
-#: src/ui/settings.rs:760
-msgid "Colour from album art"
-msgstr ""
-
-#: src/ui/settings.rs:761
-msgid "Compact library sidebar"
-msgstr ""
-
-#: src/ui/settings.rs:762
-msgid "Compact track list"
-msgstr ""
-
-#: src/ui/settings.rs:763
-msgid "Middle-click autoscroll"
-msgstr ""
-
-#: src/ui/settings.rs:764
-msgid "Custom title bar"
-msgstr ""
-
-#: src/ui/settings.rs:778
-msgid "Follow system uses your Omarchy colours."
-msgstr ""
-
-#: src/ui/settings.rs:782
-msgid "Follow system uses your desktop's light or dark appearance."
-msgstr ""
-
-#: src/ui/settings.rs:790
-msgid ""
-"System follows your computer's language. Untranslated text stays in English."
-msgstr ""
-
-#: src/ui/settings.rs:797
-msgid "Use the current cover's colour on pages and the player bar."
-msgstr ""
-
-#: src/ui/settings.rs:802
-msgid "Show names without covers in the sidebar."
-msgstr ""
-
-#: src/ui/settings.rs:806
-msgid "Show each track on one line without a cover."
-msgstr ""
-
-#: src/ui/settings.rs:809
-msgid "Interface zoom"
-msgstr ""
-
-#: src/ui/settings.rs:813
-msgid "Ctrl+Plus and Ctrl+Minus work anywhere; Ctrl+0 resets."
-msgstr ""
-
-#: src/ui/settings.rs:817
-msgid "Cmd+Plus and Cmd+Minus work anywhere; Cmd+0 resets."
-msgstr ""
-
-#: src/ui/settings.rs:826
-msgid ""
-"Middle-click a list, then move the pointer to scroll it. Off by default, "
-"because a middle click usually pastes on Linux."
-msgstr ""
-
-#: src/ui/settings.rs:834
-msgid "Draw Melba's own title bar and window buttons instead of the desktop's."
-msgstr ""
-
-#: src/ui/settings.rs:842
-msgid ""
-"Show the song moving behind the player bar's controls while it plays here."
-msgstr ""
-
-#: src/ui/settings.rs:853
-msgid ""
-"How often the player bar and mini player visualizers draw. Lower rates use "
-"fewer resources. MilkDrop has its own."
-msgstr ""
-
-#: src/ui/settings.rs:988
-msgid "Off"
-msgstr ""
-
-#: src/ui/settings.rs:1185
-msgid "Proxy"
-msgstr ""
-
-#: src/ui/settings.rs:1187
-msgid "Mode, host, port, username and password"
-msgstr ""
-
-#: src/ui/settings.rs:1190
-msgid "Off, System, HTTP or SOCKS5 proxy for network requests."
-msgstr ""
-
-#: src/ui/settings.rs:1200
-msgctxt "proxy"
-msgid "Mode"
-msgstr ""
-
-#: src/ui/settings.rs:1203
-msgid ""
-"Off ignores environment variables. System uses them, and the OS proxy on "
-"macOS and Windows."
-msgstr ""
-
-#: src/ui/settings.rs:1267
-msgid "Not using a proxy."
-msgstr ""
-
-#: src/ui/settings.rs:1268
-msgid "Using the system proxy."
-msgstr ""
-
-#: src/ui/settings.rs:1288
-msgid ""
-"Use classic Winamp .wsz skins. Press Ctrl+M or click the skin logo to "
-"return. Drop a skin on either window to add it."
-msgstr ""
-
-#: src/ui/settings.rs:1292
-msgid ""
-"Use classic Winamp .wsz skins. Press Cmd+Shift+M or click the skin logo to "
-"return. Drop a skin on either window to add it."
-msgstr ""
-
-#: src/ui/settings.rs:1322
-msgid ""
-"Keep a taskbar button for the mini player. The tray icon stays available "
-"when hidden."
-msgstr ""
-
-#: src/ui/settings.rs:1418
-#, rust-format
-msgid ""
-"Now showing {skin}. Another one is picked each time the mini player opens."
-msgstr ""
-
-#: src/ui/settings.rs:1482
-msgid ""
-"A projectM visualiser for local playback. Open it here, from the top bar, "
-"with Ctrl+Shift+K, or from the mini player's V menu. Press ? or F1 for its "
-"shortcuts."
-msgstr ""
-
-#: src/ui/settings.rs:1486
-msgid ""
-"A projectM visualiser for local playback. Open it here, from the top bar, "
-"with Cmd+Shift+K, or from the mini player's V menu. Press ? or F1 for its "
-"shortcuts."
-msgstr ""
-
-#. Translators: {folder} is the path of the MilkDrop presets folder.
-#: src/ui/settings.rs:1497
-#, rust-format
-msgid ""
-"None yet in {folder}. Add .milk files here. Melba downloads presets when "
-"MilkDrop first opens with an empty folder."
-msgstr ""
-
-#. Translators: {folder} is the path of the MilkDrop presets folder.
-#: src/ui/settings.rs:1503
-#, rust-format
-msgid ""
-"One preset in {folder}. Add .milk files here. Melba downloads presets when "
-"MilkDrop first opens with an empty folder."
-msgstr ""
-
-#. Translators: {count} is the number of presets, {folder} the path of the MilkDrop presets folder.
-#: src/ui/settings.rs:1509
-#, rust-format
-msgid ""
-"{count} preset in {folder}. Add .milk files here. Melba downloads presets when "
-"MilkDrop first opens with an empty folder."
-msgid_plural ""
-"{count} presets in {folder}. Add .milk files here. Melba downloads presets "
-"when MilkDrop first opens with an empty folder."
-msgstr[0] ""
-msgstr[1] ""
-
-#. Translators: {hz} is the screen's refresh rate in hertz.
-#: src/ui/settings.rs:1534
-#, rust-format
-msgid ""
-"Your screen refreshes at {hz} Hz. Higher rates do not add visible frames. "
-"Uncapped draws as fast as possible."
-msgstr ""
-
-#: src/ui/settings.rs:1665
-msgid ""
-"A ten-band equalizer for playback on this computer. It does not affect other "
-"devices."
-msgstr ""
-
-#: src/ui/settings.rs:1742
-msgid "Storage"
-msgstr ""
-
-#: src/ui/settings.rs:1745
-msgid "Artwork cache"
-msgstr ""
-
-#. Translators: {folder} is the path of a cache folder.
-#: src/ui/settings.rs:1747 src/ui/settings.rs:1753
-#, rust-format
-msgid "Stored in {folder}"
-msgstr ""
-
-#: src/ui/settings.rs:1759
-msgid "Play history"
-msgstr ""
-
-#. Translators: {file} is the path of the play history file.
-#: src/ui/settings.rs:1763
-#, rust-format
-msgid "Tracks played here are stored in {file}. This file is never uploaded."
-msgstr ""
-
-#: src/ui/settings.rs:1768
-msgid "Sign-in"
-msgstr ""
-
-#: src/ui/settings.rs:1771
-msgid "Sign-ins are saved in the system credential store when available."
-msgstr ""
-
-#: src/ui/settings.rs:1783
-msgid "Clear artwork"
-msgstr ""
-
-#: src/ui/settings.rs:1797
-msgid "Clear history"
-msgstr ""
-
-#: src/ui/settings.rs:1809 src/ui/show.rs:36
-msgid "About"
-msgstr ""
-
-#: src/ui/settings.rs:1812
-msgid "Built with Rust and egui on Melba. Not affiliated with Apple."
-msgstr ""
-
-#: src/ui/settings.rs:1814
-msgid "Check for updates"
-msgstr ""
-
-#: src/ui/settings.rs:1815
-msgid "Checking…"
-msgstr ""
-
-#: src/ui/settings.rs:1817
-msgid "Source code"
-msgstr ""
-
-#. Translators: {query} is the text typed into the settings search field.
-#: src/ui/settings.rs:1889
-#, rust-format
-msgid "No settings for “{query}”"
-msgstr ""
-
-#: src/ui/settings.rs:1890
-msgid "Try fewer words, or check the spelling."
-msgstr ""
-
-#: src/ui/settings.rs:1906
-msgctxt "language"
-msgid "System"
-msgstr ""
-
-#. Translators: The play button on a Library card. {name} is the playlist, album, artist, or podcast.
-#: src/ui/sidebar.rs:174
-#, rust-format
-msgid "Pause {name}"
-msgstr ""
-
-#. Translators: The play button on a Library card. {name} is the playlist, album, artist, or podcast.
-#: src/ui/sidebar.rs:177
-#, rust-format
-msgid "Play {name}"
-msgstr ""
-
-#: src/ui/sidebar.rs:353
-msgid "Library order"
-msgstr ""
-
-#: src/ui/sidebar.rs:361
-msgid "Recently added"
-msgstr ""
-
-#: src/ui/sidebar.rs:363
-msgid "Local custom order"
-msgstr ""
-
-#: src/ui/sidebar.rs:965
-msgid "Hide sidebar (Ctrl+B)"
-msgstr ""
-
-#: src/ui/sidebar.rs:966
-msgid "Hide sidebar (Cmd+B)"
-msgstr ""
-
-#: src/ui/sidebar.rs:975
-msgid "Show as list"
-msgstr ""
-
-#: src/ui/sidebar.rs:977
-msgid "Show as grid"
-msgstr ""
-
-#. Translators: Library filter for playlists created by the signed-in user.
-#: src/ui/sidebar.rs:1057
-msgid "By You"
-msgstr ""
-
-#: src/ui/sidebar.rs:1282
-msgid "Nothing here yet."
-msgstr ""
-
-#: src/ui/sidebar.rs:1284
-msgid "No matches."
-msgstr ""
-
-#: src/ui/sidebar.rs:1913
-msgid "Sort by recently played"
-msgstr ""
-
-#: src/ui/topbar.rs:244
+#: src/ui/topbar.rs:243
 msgid "Show sidebar (Ctrl+B)"
 msgstr ""
 
-#: src/ui/topbar.rs:245
+#: src/ui/topbar.rs:244
 msgid "Show sidebar (Cmd+B)"
 msgstr ""
 
-#: src/ui/topbar.rs:264
+#: src/ui/topbar.rs:263
 msgid "Back"
 msgstr ""
 
-#: src/ui/topbar.rs:275
+#: src/ui/topbar.rs:274
 msgid "Forward"
 msgstr ""
 
-#: src/ui/topbar.rs:305
+#: src/ui/topbar.rs:288
 msgid "Update ready"
 msgstr ""
 
-#: src/ui/topbar.rs:308 src/ui/update.rs:74
+#: src/ui/topbar.rs:291 src/ui/update.rs:74
 msgid "Downloading update…"
 msgstr ""
 
-#. Translators: {version} is a version number such as 1.2.0.
-#: src/ui/topbar.rs:312
-#, rust-format
+#: src/ui/topbar.rs:295
 msgid "Update to {version}"
 msgstr ""
 
-#: src/ui/topbar.rs:357
+#: src/ui/topbar.rs:338
 msgid "What do you want to play?"
 msgstr ""
 
-#: src/ui/topbar.rs:521
+#: src/ui/topbar.rs:502
 msgid "Melba is offline. Reconnecting automatically when connection returns."
 msgstr ""
 
-#: src/ui/topbar.rs:576
+#: src/ui/topbar.rs:523
 msgid "Updating your library…"
 msgstr ""
 
-#: src/ui/topbar.rs:577
+#: src/ui/topbar.rs:524
 msgid "Checking for updates…"
 msgstr ""
 
-#: src/ui/topbar.rs:578
+#: src/ui/topbar.rs:525
 msgid "Waiting for Apple Music…"
 msgstr ""
 
-#. Translators: {version} is a version number such as 1.2.0.
-#: src/ui/topbar.rs:618
-#, rust-format
+#: src/ui/topbar.rs:543
 msgid "Version {version} is available."
 msgstr ""
 
@@ -1802,9 +1720,7 @@ msgstr ""
 msgid "Checking download…"
 msgstr ""
 
-#. Translators: {received} and {total} are sizes in megabytes, such as 12.5.
 #: src/ui/update.rs:90
-#, rust-format
 msgid "{received} of {total} MB"
 msgstr ""
 
@@ -1836,203 +1752,19 @@ msgstr ""
 msgid "Download update"
 msgstr ""
 
-#: src/ui/widgets.rs:711 src/ui/widgets.rs:944 src/ui/widgets.rs:1166
-msgid "Add to queue"
-msgstr ""
-
-#: src/ui/widgets.rs:762
-msgid "Add to playlist"
-msgstr ""
-
-#: src/ui/widgets.rs:847
-msgid "Filter playlists"
-msgstr ""
-
-#: src/ui/widgets.rs:887
-msgid "No editable playlists"
-msgstr ""
-
-#: src/ui/widgets.rs:889
-msgid "No matching playlists"
-msgstr ""
-
-#: src/ui/widgets.rs:959
-msgid "Remove from queue"
-msgstr ""
-
-#: src/ui/widgets.rs:984
-msgid "Save episode"
-msgstr ""
-
-#: src/ui/widgets.rs:1009
-msgid "Move up"
-msgstr ""
-
-#: src/ui/widgets.rs:1022
-msgid "Move down"
-msgstr ""
-
-#: src/ui/widgets.rs:1050
-msgid "Go to song radio"
-msgstr ""
-
-#: src/ui/widgets.rs:1067 src/ui/widgets.rs:1074
-msgid "Go to artist"
-msgstr ""
-
-#: src/ui/widgets.rs:1092
-msgid "Go to album"
-msgstr ""
-
-#: src/ui/widgets.rs:1156
-msgid "Shuffle play"
-msgstr ""
-
-#: src/ui/widgets.rs:1176
-msgctxt "artist"
-msgid "Unfollow"
-msgstr ""
-
-#: src/ui/widgets.rs:1214
-msgid "Go to playlist radio"
-msgstr ""
-
-#: src/ui/widgets.rs:1215
-msgid "Go to album radio"
-msgstr ""
-
-#: src/ui/widgets.rs:1216
-msgid "Go to artist radio"
-msgstr ""
-
-#. Translators: {title} is a song or episode name, {subtitle} its artists or podcast.
-#: src/ui/widgets.rs:1416
-#, rust-format
-msgid "Play {title}, {subtitle}"
-msgstr ""
-
-#. Translators: The label beside the pointer while songs are dragged. {name} is the first song's name and {count} how many more songs are dragged with it.
-#: src/ui/widgets.rs:2067
-#, rust-format
-msgid "{name} + {count} more"
-msgid_plural "{name} + {count} more"
-msgstr[0] ""
-msgstr[1] ""
-
-#. Translators: {column} is a column heading of a song list, such as Title.
-#: src/ui/widgets.rs:2184
-#, rust-format
-msgid "Sort by {column}"
-msgstr ""
-
-#: src/ui/widgets.rs:2234
-msgid "Sort by playlist order"
-msgstr ""
-
-#: src/ui/widgets.rs:2269
-msgid "Original order, reversed"
-msgstr ""
-
-#: src/ui/widgets.rs:2282
-msgctxt "column heading"
-msgid "TITLE"
-msgstr ""
-
-#: src/ui/widgets.rs:2305
-msgctxt "column heading"
-msgid "ALBUM"
-msgstr ""
-
-#: src/ui/widgets.rs:2323
-msgctxt "column heading"
-msgid "DATE ADDED"
-msgstr ""
-
-#: src/ui/widgets.rs:2344 src/ui/widgets.rs:2374
-msgid "Sort by duration"
-msgstr ""
-
-#: src/ui/widgets.rs:2907
-msgid "Cut"
-msgstr ""
-
-#: src/ui/widgets.rs:2912
-msgid "Copy"
-msgstr ""
-
-#: src/ui/widgets.rs:2917
-msgid "Paste"
-msgstr ""
-
-#: src/ui/widgets.rs:2934
-msgid "Select all"
-msgstr ""
-
-#: src/ui/widgets.rs:3041
-msgid "Clear"
-msgstr ""
-
-#. Translators: {name} is replaced by the author's name, shown as a link.
-#: src/ui/widgets.rs:3086
-#, rust-format
-msgid "Built with love by {name}"
-msgstr ""
-
-#: src/ui/widgets.rs:3231
-msgid "Host"
-msgstr ""
-
-#: src/ui/widgets.rs:3248
-msgid "Port"
-msgstr ""
-
-#: src/ui/widgets.rs:3266
-msgid "Username"
-msgstr ""
-
-#: src/ui/widgets.rs:3277
-msgid "Password"
-msgstr ""
-
-#: src/ui/widgets.rs:3295
-msgid ""
-"Proxy login applies to Web requests. Local playback uses this proxy only "
-"without a login."
-msgstr ""
-
-#: src/ui/widgets.rs:3299
-msgid ""
-"Apple Music hostnames are resolved by the proxy. Local playback connects "
-"directly."
-msgstr ""
-
-#. Translators: Selects every song in the list.
-#: src/ui/winamp/playlist.rs:702
-msgctxt "selection"
-msgid "All"
-msgstr ""
-
-#. Translators: A length of time, abbreviated. Keep {hours} and {minutes}.
 #: src/util.rs:28 src/util.rs:47
-#, rust-format
 msgid "{hours} hr {minutes} min"
 msgstr ""
 
-#. Translators: A length of time, abbreviated. Keep {minutes} and {seconds}.
 #: src/util.rs:33
-#, rust-format
 msgid "{minutes} min {seconds} sec"
 msgstr ""
 
-#. Translators: A length of time, abbreviated. Keep {seconds}.
 #: src/util.rs:38
-#, rust-format
 msgid "{seconds} sec"
 msgstr ""
 
-#. Translators: A length of time, abbreviated. Keep {minutes}.
 #: src/util.rs:52
-#, rust-format
 msgid "{minutes} min"
 msgstr ""
 
@@ -2096,91 +1828,64 @@ msgctxt "month"
 msgid "Dec"
 msgstr ""
 
-#. Translators: A date. {month} is an abbreviated month name; reorder as your language writes dates.
 #: src/util.rs:94
-#, rust-format
 msgid "{month} {day}, {year}"
 msgstr ""
 
-#. Translators: A month and year. {month} is an abbreviated month name.
 #: src/util.rs:97
-#, rust-format
 msgid "{month} {year}"
 msgstr ""
 
-#. Translators: How long ago a song was added. Keep {count}.
 #: src/util.rs:123
-#, rust-format
 msgid "{count} second ago"
 msgid_plural "{count} seconds ago"
 msgstr[0] ""
 msgstr[1] ""
 
-#. Translators: How long ago a song was added. Keep {count}.
 #: src/util.rs:133
-#, rust-format
 msgid "{count} minute ago"
 msgid_plural "{count} minutes ago"
 msgstr[0] ""
 msgstr[1] ""
 
-#. Translators: How long ago a song was added. Keep {count}.
 #: src/util.rs:143
-#, rust-format
 msgid "{count} hour ago"
 msgid_plural "{count} hours ago"
 msgstr[0] ""
 msgstr[1] ""
 
-#. Translators: How long ago a song was added. Keep {count}.
 #: src/util.rs:151
-#, rust-format
 msgid "{count} day ago"
 msgid_plural "{count} days ago"
 msgstr[0] ""
 msgstr[1] ""
 
-#. Translators: How long ago a song was added. Keep {count}.
 #: src/util.rs:158
-#, rust-format
 msgid "{count} week ago"
 msgid_plural "{count} weeks ago"
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/util.rs:311
+#: src/util.rs:329
 msgid "Good morning"
 msgstr ""
 
-#: src/util.rs:312
+#: src/util.rs:330
 msgid "Good afternoon"
 msgstr ""
 
-#: src/util.rs:313
+#: src/util.rs:331
 msgid "Good evening"
 msgstr ""
 
-#: src/window.rs:39
+#: src/window.rs:29
 msgid "melba cannot open its window"
 msgstr ""
 
+#: src/window.rs:35
+msgid "On Windows on ARM, the OpenGL that melba draws with comes from Microsoft's OpenCL, OpenGL & Vulkan Compatibility Pack. Open its Microsoft Store page to install or repair it?"
+msgstr ""
+
 #: src/window.rs:45
-msgid ""
-"On Windows on ARM, the OpenGL that melba draws with comes from Microsoft's "
-"OpenCL, OpenGL & Vulkan Compatibility Pack. Open its Microsoft Store page to "
-"install or repair it?"
-msgstr ""
-
-#. Translators: Keep {url} exactly as written. It becomes the address
-#. of the melba download page.
-#: src/window.rs:55
-#, rust-format
-msgid ""
-"melba needs a graphics driver with OpenGL 2.0 or newer, and this PC or "
-"virtual machine does not provide one. Install the graphics driver, or turn "
-"on GPU acceleration for the virtual machine. Open {url} to read more?"
-msgstr ""
-
-#: src/app.rs
-msgid "Playback is not ready on this computer"
+msgid "melba needs a graphics driver with OpenGL 2.0 or newer, and this PC or virtual machine does not provide one. Install the graphics driver, or turn on GPU acceleration for the virtual machine. Open {url} to read more?"
 msgstr ""
