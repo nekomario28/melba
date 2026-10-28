@@ -891,6 +891,39 @@ fn persist_queue(shared: &Shared) {
     let tmp = path.with_extension("tmp");
     if std::fs::write(&tmp, serde_json::to_vec(&doc).unwrap_or_default()).is_ok() {
         let _ = std::fs::rename(&tmp, &path);
+        crate::player::note_queue_write(&path, &doc);
+    }
+}
+
+/// Append who wrote the queue, beside it.
+///
+/// The saved queue has been replaced by another process's fixtures twice, and
+/// each time the writer had to be guessed from a timestamp. One line per
+/// mutation (rare, not per packet) is what makes the next occurrence
+/// attributable instead of inferred. Best effort: a failure here never
+/// affects playback.
+fn note_queue_write(path: &std::path::Path, doc: &serde_json::Value) {
+    let Some(parent) = path.parent() else { return };
+    let record = serde_json::json!({
+        "pid": std::process::id(),
+        "ppid": unsafe { libc::getppid() },
+        "exe": std::env::current_exe().ok().map(|p| p.to_string_lossy().into_owned()),
+        "args": std::env::args().collect::<Vec<_>>(),
+        "state_home": std::env::var("XDG_STATE_HOME").ok(),
+        "home": std::env::var("HOME").ok(),
+        "idx": doc.get("idx"),
+        "len": doc.get("queue").and_then(|q| q.as_array()).map(|q| q.len()),
+        "first": doc.get("queue").and_then(|q| q.as_array()).and_then(|q| q.first()).cloned(),
+    });
+    let mut line = serde_json::to_vec(&record).unwrap_or_default();
+    line.push(b'\n');
+    use std::io::Write as _;
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(parent.join("queue-writes.jsonl"))
+    {
+        let _ = file.write_all(&line);
     }
 }
 
@@ -2158,6 +2191,43 @@ pub fn serve(
 #[cfg(test)]
 mod tests {
     use super::reorder_idx;
+
+    /// The recorder is the evidence a future occurrence is judged on, so its
+    /// shape is pinned: without the process identity it cannot name a writer.
+    #[test]
+    fn a_queue_write_records_who_wrote_it() {
+        let dir = std::env::temp_dir().join(format!("melba-queue-write-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("queue.json");
+        let doc = serde_json::json!({"idx": 2, "queue": ["stream:m0", "stream:new"], "titles": {}});
+        crate::player::note_queue_write(&path, &doc);
+        let text = std::fs::read_to_string(dir.join("queue-writes.jsonl")).unwrap();
+        let line: serde_json::Value = serde_json::from_str(text.lines().next().unwrap()).unwrap();
+        assert_eq!(line["pid"].as_u64().unwrap(), std::process::id() as u64);
+        assert!(line["ppid"].as_u64().is_some(), "{line}");
+        assert!(
+            line["exe"].as_str().is_some_and(|e| !e.is_empty()),
+            "{line}"
+        );
+        assert!(
+            line["args"].as_array().is_some_and(|a| !a.is_empty()),
+            "{line}"
+        );
+        assert_eq!(line["len"], 2);
+        assert_eq!(line["first"], "stream:m0");
+        assert_eq!(line["idx"], 2);
+        // Appending, not overwriting: a second write keeps the first.
+        crate::player::note_queue_write(&path, &doc);
+        assert_eq!(
+            std::fs::read_to_string(dir.join("queue-writes.jsonl"))
+                .unwrap()
+                .lines()
+                .count(),
+            2
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn metadata_reports_the_opened_source_not_the_requested_quality() {

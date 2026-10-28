@@ -54,6 +54,36 @@ sees a stable path across every call. A process-wide root made
 fail on the shared session lock, which is how the choice was checked rather
 than assumed.
 
+## What was ruled out by experiment
+
+Each candidate was run with the live daemon **running**, because the queue can
+only be written by a daemon and only a run that reaches one can replace it.
+
+| Candidate | Live queue |
+|---|---|
+| Full desktop suite, no isolation at all | unchanged |
+| The same suite with the directory hand-off disabled | unchanged |
+| `cargo test --test startup_diagnostics` (runs `--demo --demo-shot`) | unchanged — the test does not execute (0 tests run) |
+
+The first two were also run with the live app **stopped** and were unchanged
+there too, which is how the earlier "the tests did it" reading was falsified:
+stopping the app removes the daemon, and with it the only writer. The installed
+release build has no `--demo` flag at all (it is behind the `demo` feature), so
+a demo run against the live profile needs a development build.
+
+None of these names the writer, and thinking it had been named is what cost
+this investigation its time.
+
+## Recording the next occurrence
+
+`persist_queue` now appends one line to `queue-writes.jsonl` beside the queue:
+pid, ppid, executable, argv, `XDG_STATE_HOME`, `HOME`, and the queue's length,
+index and first entry. Each earlier occurrence had to be guessed from a file
+timestamp; this makes the next one attributable. It is best effort — a failure
+to record never affects playback — and one line per queue mutation, not per
+packet. `player::tests::a_queue_write_records_who_wrote_it` pins the fields,
+including that a second write appends rather than replaces.
+
 ## Contract change (desktop crate)
 
 The app now passes its own resolved directories to the daemon it starts
