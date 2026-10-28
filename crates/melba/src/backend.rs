@@ -645,6 +645,7 @@ impl Backend {
         });
         let art = ArtLoader::new(http.clone(), runtime.handle().clone(), dirs.art_cache_dir());
         // The daemon must resolve the same directories as this app.
+        #[cfg(target_os = "linux")]
         let daemon_dirs = crate::daemon_worker::DaemonDirs {
             config: dirs.config.clone(),
             state: dirs.state.clone(),

@@ -895,6 +895,20 @@ fn persist_queue(shared: &Shared) {
     }
 }
 
+/// The parent process, where the platform reports one.
+///
+/// `libc::getppid` is Unix-only; a None must not stop the record, which is the
+/// evidence a future occurrence is judged on.
+#[cfg(unix)]
+fn parent_pid() -> Option<u32> {
+    Some(unsafe { libc::getppid() } as u32)
+}
+
+#[cfg(not(unix))]
+fn parent_pid() -> Option<u32> {
+    None
+}
+
 /// Append who wrote the queue, beside it.
 ///
 /// The saved queue has been replaced by another process's fixtures twice, and
@@ -906,7 +920,7 @@ fn note_queue_write(path: &std::path::Path, doc: &serde_json::Value) {
     let Some(parent) = path.parent() else { return };
     let record = serde_json::json!({
         "pid": std::process::id(),
-        "ppid": unsafe { libc::getppid() },
+        "ppid": parent_pid(),
         "exe": std::env::current_exe().ok().map(|p| p.to_string_lossy().into_owned()),
         "args": std::env::args().collect::<Vec<_>>(),
         "state_home": std::env::var("XDG_STATE_HOME").ok(),
@@ -2205,6 +2219,7 @@ mod tests {
         let text = std::fs::read_to_string(dir.join("queue-writes.jsonl")).unwrap();
         let line: serde_json::Value = serde_json::from_str(text.lines().next().unwrap()).unwrap();
         assert_eq!(line["pid"].as_u64().unwrap(), std::process::id() as u64);
+        #[cfg(unix)]
         assert!(line["ppid"].as_u64().is_some(), "{line}");
         assert!(
             line["exe"].as_str().is_some_and(|e| !e.is_empty()),
