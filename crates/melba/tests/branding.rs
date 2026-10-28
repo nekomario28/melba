@@ -6,6 +6,20 @@ const COMMAND: &str = env!("CARGO_BIN_EXE_melba");
 struct Scratch(PathBuf);
 
 impl Scratch {
+    /// Every XDG variable, so a binary started here cannot reach the user's
+    /// real files. The app hands its own directories to the daemon it starts,
+    /// so isolating the app isolates that daemon too.
+    fn command(&self, program: &str) -> std::process::Command {
+        let mut command = std::process::Command::new(program);
+        command
+            .env("HOME", &self.0)
+            .env("XDG_CONFIG_HOME", self.0.join("config"))
+            .env("XDG_STATE_HOME", self.0.join("state"))
+            .env("XDG_CACHE_HOME", self.0.join("cache"))
+            .env("XDG_DATA_HOME", self.0.join("data"));
+        command
+    }
+
     fn new() -> Self {
         let path =
             std::env::temp_dir().join(format!("melba-branding-{:016x}", rand::random::<u64>()));
@@ -167,10 +181,14 @@ fn the_command_forwards_links_to_the_existing_instance_on_a_private_bus() {
     }
 
     let scratch = Scratch::new();
-    let result = Command::new(COMMAND).arg("reload-themes").output().unwrap();
+    let result = scratch
+        .command(COMMAND)
+        .arg("reload-themes")
+        .output()
+        .unwrap();
     assert_eq!(result.status.code(), Some(1));
     assert!(String::from_utf8_lossy(&result.stderr).contains("not running"));
-    let result = Command::new(COMMAND).arg("like").output().unwrap();
+    let result = scratch.command(COMMAND).arg("like").output().unwrap();
     assert_eq!(result.status.code(), Some(1));
     assert!(
         String::from_utf8_lossy(&result.stderr).contains("not running"),
@@ -195,13 +213,7 @@ fn the_command_forwards_links_to_the_existing_instance_on_a_private_bus() {
             "melba:search:%E6%9D%B1%E4%BA%AC",
         ),
     ] {
-        let mut child = Command::new(COMMAND)
-            .arg(link)
-            .env("XDG_CONFIG_HOME", scratch.0.join("config"))
-            .env("XDG_STATE_HOME", scratch.0.join("state"))
-            .env("XDG_CACHE_HOME", scratch.0.join("cache"))
-            .spawn()
-            .unwrap();
+        let mut child = scratch.command(COMMAND).arg(link).spawn().unwrap();
         let started = std::time::Instant::now();
         let status = loop {
             if let Some(status) = child.try_wait().unwrap() {
@@ -220,7 +232,11 @@ fn the_command_forwards_links_to_the_existing_instance_on_a_private_bus() {
             vec![ControlCommand::OpenLink(uri.into())]
         );
     }
-    let result = Command::new(COMMAND).arg("reload-themes").output().unwrap();
+    let result = scratch
+        .command(COMMAND)
+        .arg("reload-themes")
+        .output()
+        .unwrap();
     assert!(
         result.status.success(),
         "{}",
@@ -231,7 +247,7 @@ fn the_command_forwards_links_to_the_existing_instance_on_a_private_bus() {
         vec![ControlCommand::ReloadThemes],
         "a reload only asks for themes, never OpenLink or Show"
     );
-    let result = Command::new(COMMAND).arg("like").output().unwrap();
+    let result = scratch.command(COMMAND).arg("like").output().unwrap();
     assert!(
         result.status.success(),
         "{}",

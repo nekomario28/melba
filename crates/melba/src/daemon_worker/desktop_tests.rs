@@ -63,6 +63,7 @@ fn worker(events: Sender<Event>) -> DaemonWorker {
         crate::backend::Waker::default(),
         Arc::new(std::sync::atomic::AtomicU64::new(0)),
         crate::settings::ProxyConfig::Off,
+        crate::daemon_worker::DaemonDirs::default(),
     )
 }
 

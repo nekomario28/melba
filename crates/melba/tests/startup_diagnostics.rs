@@ -18,6 +18,13 @@ fn an_unavailable_display_leaves_a_useful_log_without_a_console() {
         .env("DISPLAY", "")
         .env("WAYLAND_DISPLAY", "missing-display")
         .env("XDG_RUNTIME_DIR", &directory)
+        // A binary started by a test must not reach the user's files, and the
+        // daemon it starts inherits these.
+        .env("HOME", &directory)
+        .env("XDG_CONFIG_HOME", directory.join("config"))
+        .env("XDG_STATE_HOME", directory.join("state"))
+        .env("XDG_CACHE_HOME", directory.join("cache"))
+        .env("XDG_DATA_HOME", directory.join("data"))
         .output()
         .unwrap();
     let log = std::fs::read_to_string(directory.join("state/melba.log")).unwrap();

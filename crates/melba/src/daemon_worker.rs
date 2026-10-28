@@ -95,15 +95,54 @@ pub struct DaemonWorker {
     daemon_lost_at: Option<Instant>,
     /// How many times this run has restarted a daemon that died on its own.
     daemon_restarts: u32,
+    /// Where this app keeps its files, handed to the daemon it starts.
+    dirs: DaemonDirs,
 }
 
-pub(crate) fn daemon_command(executable: Option<std::path::PathBuf>) -> std::process::Command {
+/// Where the app keeps its files, passed to the daemon it starts.
+///
+/// Both processes must resolve the same directories. They used to inherit
+/// them from the environment, so a test run that isolated only some variables
+/// — or that reached a `melbad` on `PATH` — could point a real daemon at the
+/// user's live state. Measured 2026-10-28: a desktop-crate test run replaced
+/// the user's queue with its own fixtures, twice.
+#[derive(Clone, Debug, Default)]
+pub struct DaemonDirs {
+    /// `<base>/melba`, as `paths::AppDirs` resolves it.
+    pub config: std::path::PathBuf,
+    pub state: std::path::PathBuf,
+    pub cache: std::path::PathBuf,
+}
+
+impl DaemonDirs {
+    /// The XDG base directory each app directory sits under. The daemon joins
+    /// the app name itself, exactly as `melbad`'s own `xdg_dir` callers do.
+    fn bases(&self) -> [(&'static str, Option<&std::path::Path>); 3] {
+        [
+            ("XDG_CONFIG_HOME", self.config.parent()),
+            ("XDG_STATE_HOME", self.state.parent()),
+            ("XDG_CACHE_HOME", self.cache.parent()),
+        ]
+    }
+}
+
+pub(crate) fn daemon_command(
+    executable: Option<std::path::PathBuf>,
+    dirs: &DaemonDirs,
+) -> std::process::Command {
     // Cargo's bin directory need not be in the desktop session's PATH.
     let daemon = executable
         .and_then(|exe| exe.parent().map(|directory| directory.join("melbad")))
         .filter(|path| path.is_file())
         .unwrap_or_else(|| "melbad".into());
     let mut command = std::process::Command::new(daemon);
+    // State first: the daemon must write where this app reads, whatever the
+    // environment it inherited says.
+    for (key, base) in dirs.bases() {
+        if let Some(base) = base {
+            command.env(key, base);
+        }
+    }
     command
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
@@ -111,8 +150,11 @@ pub(crate) fn daemon_command(executable: Option<std::path::PathBuf>) -> std::pro
     command
 }
 
-fn sign_in_command(executable: Option<std::path::PathBuf>) -> std::process::Command {
-    let mut command = daemon_command(executable);
+fn sign_in_command(
+    executable: Option<std::path::PathBuf>,
+    dirs: &DaemonDirs,
+) -> std::process::Command {
+    let mut command = daemon_command(executable, dirs);
     command.args(["auth", "gui"]);
     command
 }
@@ -123,6 +165,7 @@ impl DaemonWorker {
         waker: crate::backend::Waker,
         auth_epoch: Arc<std::sync::atomic::AtomicU64>,
         update_proxy: crate::settings::ProxyConfig,
+        dirs: DaemonDirs,
     ) -> Self {
         Self {
             events,
@@ -152,6 +195,7 @@ impl DaemonWorker {
             daemon: None,
             daemon_lost_at: None,
             daemon_restarts: 0,
+            dirs,
         }
     }
 
@@ -689,7 +733,7 @@ impl DaemonWorker {
             return;
         }
         self.current_attempt = attempt;
-        let mut command = sign_in_command(std::env::current_exe().ok());
+        let mut command = sign_in_command(std::env::current_exe().ok(), &self.dirs);
         if restore {
             command.arg("--restore");
         }
@@ -906,7 +950,7 @@ impl DaemonWorker {
     /// Runs only in a real desktop session, on the backend thread. Keep the
     /// child handle so a failed start or shutdown cannot orphan our process.
     fn start_daemon(&self) -> Option<std::process::Child> {
-        let mut command = daemon_command(std::env::current_exe().ok());
+        let mut command = daemon_command(std::env::current_exe().ok(), &self.dirs);
         command.args(["serve", "--paused"]);
         self.start_daemon_command(command)
     }
@@ -2065,14 +2109,63 @@ mod tests {
     };
     use crate::api::models::Image;
 
+    /// The daemon must be told where this app keeps its files. Inheriting the
+    /// environment let a test run point a real daemon at the user's live
+    /// state: it replaced their queue with test fixtures twice.
+    #[test]
+    fn the_started_daemon_is_told_where_this_app_keeps_its_files() {
+        use std::path::PathBuf;
+        let dirs = crate::daemon_worker::DaemonDirs {
+            config: PathBuf::from("/scratch/config/melba"),
+            state: PathBuf::from("/scratch/state/melba"),
+            cache: PathBuf::from("/scratch/cache/melba"),
+        };
+        let command = crate::daemon_worker::daemon_command(None, &dirs);
+        let env: std::collections::HashMap<_, _> = command
+            .get_envs()
+            .filter_map(|(key, value)| {
+                Some((
+                    key.to_string_lossy().into_owned(),
+                    value?.to_string_lossy().into_owned(),
+                ))
+            })
+            .collect();
+        // The base directory, not the app directory: `melbad` joins "melba" itself.
+        assert_eq!(
+            env.get("XDG_CONFIG_HOME").map(String::as_str),
+            Some("/scratch/config")
+        );
+        assert_eq!(
+            env.get("XDG_STATE_HOME").map(String::as_str),
+            Some("/scratch/state")
+        );
+        assert_eq!(
+            env.get("XDG_CACHE_HOME").map(String::as_str),
+            Some("/scratch/cache")
+        );
+        // An unset directory must not be passed as an empty value, which would
+        // resolve to the process's own idea of the variable's default.
+        let empty = crate::daemon_worker::daemon_command(
+            None,
+            &crate::daemon_worker::DaemonDirs::default(),
+        );
+        assert!(empty.get_envs().next().is_none(), "no dirs, no overrides");
+    }
+
     #[test]
     fn a_daemon_that_exits_is_reaped_and_restarted_when_nothing_serves_mpris() {
         use super::DaemonAction as A;
-        use super::{DAEMON_RESTART_COOLDOWN as cooldown, DAEMON_RESTART_LIMIT as limit};
         use super::DaemonWorker;
+        use super::{DAEMON_RESTART_COOLDOWN as cooldown, DAEMON_RESTART_LIMIT as limit};
         // No owned child, or one still running: nothing to do.
-        assert_eq!(DaemonWorker::daemon_action(false, false, false, None, 0), A::Idle);
-        assert_eq!(DaemonWorker::daemon_action(true, false, false, None, 0), A::Idle);
+        assert_eq!(
+            DaemonWorker::daemon_action(false, false, false, None, 0),
+            A::Idle
+        );
+        assert_eq!(
+            DaemonWorker::daemon_action(true, false, false, None, 0),
+            A::Idle
+        );
         // Exited, and the bus has no MPRIS owner: restart it.
         assert_eq!(
             DaemonWorker::daemon_action(true, true, false, None, 0),
@@ -2264,6 +2357,7 @@ mod tests {
             crate::backend::Waker::default(),
             Arc::new(std::sync::atomic::AtomicU64::new(0)),
             crate::settings::ProxyConfig::Off,
+            crate::daemon_worker::DaemonDirs::default(),
         );
         let tracks = vec![
             "melba:track:101".to_string(),
@@ -2504,6 +2598,7 @@ mod tests {
             crate::backend::Waker::default(),
             std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0)),
             crate::settings::ProxyConfig::Off,
+            crate::daemon_worker::DaemonDirs::default(),
         );
         // Deliberately leave the child-spawn channel absent: even a broken
         // startup guard cannot execute a real helper or read an account.
@@ -2541,7 +2636,7 @@ mod tests {
         }
         let executable = directory.join("app/melba");
         let invoke = |executable| {
-            let status = sign_in_command(executable)
+            let status = sign_in_command(executable, &crate::daemon_worker::DaemonDirs::default())
                 .env("PATH", directory.join("path"))
                 .env("MARKER", &marker)
                 .status()

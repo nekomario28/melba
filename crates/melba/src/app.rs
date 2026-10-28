@@ -3284,7 +3284,10 @@ impl App {
                         Err(error) => crate::updates::DownloadState::Failed(error),
                     };
                     if self.manual_update
-                        && matches!(self.update_download, crate::updates::DownloadState::Ready(_))
+                        && matches!(
+                            self.update_download,
+                            crate::updates::DownloadState::Ready(_)
+                        )
                         && !self.now_playing().is_some_and(|now| now.playing)
                     {
                         self.actions.push(Action::InstallUpdate);
@@ -18413,7 +18416,11 @@ mod tests {
                 "1.2.3",
             ),
         )))]);
-        assert!(app.actions.iter().any(|action| matches!(action, Action::InstallUpdate)));
+        assert!(
+            app.actions
+                .iter()
+                .any(|action| matches!(action, Action::InstallUpdate))
+        );
     }
 
     #[test]

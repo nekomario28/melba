@@ -15,16 +15,26 @@ The daemon stores queue entries as `stream:<id>`, so these are
 ## What is established
 
 - The **root crate's unit tests are clean**: with `XDG_STATE_HOME` set
-  explicitly (so the new guard cannot apply), the full `melbad --lib` suite
-  left the live file byte-identical.
-- The **desktop crate's test run is not**: with the same variable set, running
-  `cargo test --manifest-path crates/melba/Cargo.toml` changed the live file to
-  the `["stream:b","stream:a"]` shape.
-- Removing the offending test in October did not remove the writer. The queue
-  was destroyed again, so the class needs a structural guard rather than
-  another deletion.
+  explicitly (so the guard cannot apply), the full `melbad --lib` suite left
+  the live file byte-identical.
+- **The desktop crate's tests are clean too.** This corrects an earlier entry
+  in this file. The file changed while a desktop test run was in progress, and
+  that was read as the tests writing it — but the user's app and daemon were
+  running throughout, and they persist the queue themselves. Re-measured with
+  the live app stopped: the full desktop suite (`--all-features`, no XDG
+  isolation at all) leaves the live file byte-identical, and it does so **even
+  with the daemon-directory hand-off below disabled**. The earlier observation
+  was confounded by a concurrent writer; it is not evidence about the tests.
+- **The writer is therefore not established.** The two synthetic queues
+  (`stream:m0`/`stream:new`, `stream:b`/`stream:a`) are fixture-shaped, so
+  something ran the app or daemon against the live state directory. The
+  candidates are a manual `--demo` run, a screenshot/headless run, or the
+  daemon restoring a queue another process had already replaced. None is
+  proven, and this file must not name one until it is.
+- Removing the offending test in October did not remove the writer, and the
+  queue was destroyed again. Whatever the writer is, it is still at large.
 
-## Guard added
+## Guard added (root crate)
 
 `melbad`'s `config::xdg_dir` — the one leaf every module resolves user
 directories through — now resolves an **unset** variable inside a per-process
@@ -44,22 +54,17 @@ sees a stable path across every call. A process-wide root made
 fail on the shared session lock, which is how the choice was checked rather
 than assumed.
 
-## Still open
+## Contract change (desktop crate)
 
-The desktop crate reaches a **live** daemon in two ways that this guard does
-not cover:
+The app now passes its own resolved directories to the daemon it starts
+(`DaemonDirs`), so the pair always agrees on where state lives instead of
+inheriting the environment, and every test that starts a binary isolates all
+five variables (HOME plus the four XDG bases). A unit test pins the hand-off,
+including that an unset directory is not passed as an empty value.
 
-- `daemon_command` falls back to a `melbad` found on `PATH` when no sibling
-  binary sits next to the executable. On this machine that resolves to
-  `~/.local/bin/melbad`, the user's installed daemon.
-- Integration tests isolate some XDG variables and not others
-  (`tests/branding.rs` sets `XDG_CONFIG_HOME` alone at one call site), so the
-  daemon they start inherits the real state directory.
-
-The fix is for the app to pass its own resolved directories to the daemon it
-starts, so the pair always agrees on where state lives, and for every test that
-starts a binary to isolate all four XDG variables. Not applied yet: it changes
-the daemon-start contract and needs its own verification.
+This removes a real way for a test or a stray run to point a real daemon at the
+user's files. It is **not** claimed as the fix for the destruction above: the
+falsification run shows the tests were not writing the file in the first place.
 
 ## Recovery
 

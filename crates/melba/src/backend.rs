@@ -644,17 +644,29 @@ impl Backend {
             Http::unavailable(error)
         });
         let art = ArtLoader::new(http.clone(), runtime.handle().clone(), dirs.art_cache_dir());
+        // The daemon must resolve the same directories as this app.
+        let daemon_dirs = crate::daemon_worker::DaemonDirs {
+            config: dirs.config.clone(),
+            state: dirs.state.clone(),
+            cache: dirs.cache.clone(),
+        };
 
         let thread = std::thread::Builder::new()
             .name("melba-backend".to_string())
             .spawn(move || {
                 runtime.block_on(async move {
                     #[cfg(target_os = "linux")]
-                    crate::daemon_worker::DaemonWorker::new(event_tx, waker, worker_epoch, proxy)
-                        // Demo/headless sessions explicitly disable bootstrap:
-                        // they must never start or stop the user's daemon.
-                        .run(command_rx, restore_sign_in, restore_sign_in)
-                        .await;
+                    crate::daemon_worker::DaemonWorker::new(
+                        event_tx,
+                        waker,
+                        worker_epoch,
+                        proxy,
+                        daemon_dirs,
+                    )
+                    // Demo/headless sessions explicitly disable bootstrap:
+                    // they must never start or stop the user's daemon.
+                    .run(command_rx, restore_sign_in, restore_sign_in)
+                    .await;
                     #[cfg(not(target_os = "linux"))]
                     let _ = (event_tx, waker, command_rx, worker_epoch, restore_sign_in);
                 });
