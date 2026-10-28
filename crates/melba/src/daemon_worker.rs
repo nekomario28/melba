@@ -823,11 +823,6 @@ impl DaemonWorker {
         });
     }
 
-    /// How long to wait before restarting a daemon that died on its own.
-    const DAEMON_RESTART_COOLDOWN: Duration = Duration::from_secs(3);
-    /// Restarts allowed per app run before the app stops trying.
-    const DAEMON_RESTART_LIMIT: u32 = 3;
-
     fn daemon_action(
         owns_child: bool,
         child_exited: bool,
@@ -866,12 +861,17 @@ impl DaemonWorker {
         if let Some(mut child) = self.daemon.take() {
             let _ = child.wait();
         }
-        self.daemon_lost_at = Some(Instant::now());
+        // `None` means this is the first tick that noticed: recover at once.
+        // Later attempts carry the elapsed time, which the cooldown bounds.
+        let since_lost = self.daemon_lost_at.map(|at| at.elapsed());
+        if self.daemon_lost_at.is_none() {
+            self.daemon_lost_at = Some(Instant::now());
+        }
         match Self::daemon_action(
             true,
             true,
             self.daemon_available(),
-            Some(Duration::ZERO),
+            since_lost,
             self.daemon_restarts,
         ) {
             DaemonAction::Reap | DaemonAction::Idle => {}
