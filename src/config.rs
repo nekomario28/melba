@@ -19,11 +19,45 @@ fn config_dir() -> Option<PathBuf> {
 /// Every module resolves user dirs through this one leaf helper: a homeless
 /// process gets a clean "no HOME" failure or a skipped cache instead of a
 /// panic, or worse, a `.config` written relative to whatever cwd it ran in.
+///
+/// Under `cfg(test)` an unset variable resolves inside a per-process
+/// temporary root instead of `$HOME`. A test that drives the real code path —
+/// `melbad`'s queue persistence is reached by `advance()` — used to overwrite
+/// the live `~/.local/state/melba/queue.json` with its synthetic entries.
+/// That destroyed the user's queue twice: once with `["a","b"]` and again
+/// with the demo fixtures. Removing the offending test each time did not stop
+/// the class; this makes the write impossible by construction. A test that
+/// wants a real directory still sets the variable explicitly.
 pub fn xdg_dir(env: &str, under_home: &str) -> Option<PathBuf> {
-    std::env::var_os(env)
+    if let Some(dir) = std::env::var_os(env)
         .map(PathBuf::from)
         .filter(|p| p.is_absolute())
-        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(under_home)))
+    {
+        return Some(dir);
+    }
+    if cfg!(test) {
+        return Some(test_root().join(env));
+    }
+    std::env::var_os("HOME").map(|h| PathBuf::from(h).join(under_home))
+}
+
+/// The temporary root a test's XDG directories resolve under.
+///
+/// Keyed by thread: the harness gives each test its own thread, so two tests
+/// that both persist state never share a file, while one test sees a stable
+/// path across every call. A process-wide root would make them collide.
+#[cfg(test)]
+fn test_root() -> PathBuf {
+    let key = format!("{:?}", std::thread::current().id())
+        .replace(|c: char| !c.is_ascii_alphanumeric(), "");
+    let root = std::env::temp_dir().join(format!("melba-test-xdg-{}-{key}", std::process::id()));
+    let _ = std::fs::create_dir_all(&root);
+    root
+}
+
+#[cfg(not(test))]
+fn test_root() -> PathBuf {
+    unreachable!("only used under cfg(test)")
 }
 
 /// User-supplied Android-native wrapper service URL, when configured
@@ -113,6 +147,36 @@ pub fn set_audio_device(value: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The user's real state must be unreachable from a test process when
+    /// the XDG variable is unset. The fallback cannot be observed apart from
+    /// the environment, so this asserts its shape: the resolution lands under
+    /// this process's temporary root and never under `$HOME`.
+    ///
+    /// A harness that sets the variable explicitly opts back in (that is the
+    /// designed escape hatch), so the assertion follows the environment
+    /// instead of assuming it.
+    #[test]
+    fn tests_never_resolve_a_user_directory_by_default() {
+        let home = PathBuf::from(std::env::var_os("HOME").unwrap_or_default());
+        let configured = std::env::var_os("XDG_STATE_HOME")
+            .map(PathBuf::from)
+            .filter(|p| p.is_absolute());
+        let resolved = xdg_dir("XDG_STATE_HOME", ".local/state").expect("a state dir");
+        match configured {
+            Some(explicit) => assert_eq!(resolved, explicit, "an explicit value must win"),
+            None => {
+                assert!(resolved.starts_with(std::env::temp_dir()), "{resolved:?}");
+                assert!(
+                    !resolved.starts_with(&home),
+                    "a test reached $HOME: {resolved:?}"
+                );
+                let queue = crate::player::queue_state_path().expect("a queue path");
+                assert!(queue.starts_with(std::env::temp_dir()), "{queue:?}");
+                assert!(!queue.starts_with(&home), "{queue:?}");
+            }
+        }
+    }
 
     fn lock() -> std::sync::MutexGuard<'static, ()> {
         static L: std::sync::Mutex<()> = std::sync::Mutex::new(());
