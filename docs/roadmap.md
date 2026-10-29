@@ -6,6 +6,10 @@ Prioritize a reliable native Melba release over recreating the official UI.
 The next release should make audio preferences effective, playback dependable,
 and the actual playback path understandable.
 
+Current release: **v0.3.12** (signed x86_64 and aarch64). The entries below
+name the release each acceptance was measured on; an older version in an entry
+is a dated record, not the current one.
+
 - [ ] **Audio quality settings** — add AAC high-quality, lossless and hi-res
   lossless preferences, plus an explicit policy for allowing AAC fallback or
   requiring lossless. Select renditions using their verified format, not their
@@ -115,11 +119,12 @@ and the actual playback path understandable.
   restore, rejected/expired sessions and sign-out. Keep diagnostic credentials
   and SDK state isolated from the live account. Fake peers do not establish
   real SDK acceptance or SMS/voice delivery.
-- [ ] **Release audit and packaging** — review the complete pending changes,
-  finish license/credit and secret-handling checks, resolve test isolation,
-  and run the affected GUI, daemon and packaging gates on the release inputs.
-  Verify the intended installable artifacts and their checksums before claiming
-  binary-release readiness.
+- [x] **Binary release audit** — the gates run on every release input: the
+  daemon, GUI and packaging suites, the license/notice bundle check, the
+  secret scan, and a download of the published assets checked against
+  `checksums.txt` and its Ed25519 signature. Test isolation was the last
+  piece (v0.3.12). Still open: a native-package pipeline
+  (`packaging/native-packages.yaml`, untested).
 
 Keep requested quality, opened-source format and output-path properties
 separate. Do not expose controls for processing the daemon does not implement,
@@ -239,23 +244,21 @@ or infer bit-perfect playback from an ALAC label.
   `#[cfg(target_os = "linux")]`, CI checks every push). macOS is
   blocked by the absent Darwin SDK/toolchain, not by the code.
 
+- [x] **Gettext template and catalog parity** — the shipped template had
+  drifted from the sources (37 messages missing, 3 dead, two msgids
+  registered as `\u{201c}` escapes and therefore never translatable) and
+  `POTFILES` named two files that no longer exist, so the documented
+  regeneration recipe could not run. Regenerated in v0.3.12, Japanese
+  complete again, and the catalog test now runs in CI — it never had, because
+  CI ran `--lib` only. The earlier claim that this parity "was re-verified"
+  was wrong: the test did not run and would have failed. A catalog that wraps
+  a msgid across lines must not be added; the test's PO library reads the
+  continuation as an empty msgid.
 - [ ] **Optional ALAC wrapper path** — the user-supplied decrypt route is not
   part of this source distribution; provisioning compatibility remains
   untested here. Runtime-component boundaries are in
   [NOTICE.md](../NOTICE.md#runtime-components-and-research-materials).
 
-Done recently (kept for context): the dead-feature excision in two
-passes (the inherited librespot engine plus the visualizer/EQ/Winamp
-skin/mini-player/MilkDrop/rootlist/contributor/engine-era settings
-chains — 119 files total across both commits, ~61,000 lines removed,
-dead dependencies dropped from the manifest), the i18n catalog prune
-(dead msgids removed from the template and all 16 catalogs, with the
-template↔catalog parity test re-verified), the `aml`→`melba`/`melbad`
-rename end to end (daemon, CDM crate + FFI, MPRIS bus, config/cache/state
-paths, gettext catalogs in 16 locales, fixtures, scripts, packaging, CI
-models), browser sign-in loop completed
-in Melba (waiting card, cancel, failure paths, revoked-token recovery),
-Apple Music share-link parsing and copy-link on `music.apple.com`,
-bidi layout fix on ligature-shaping fonts, ALAC end-to-end verification
-through an external decrypt service, queue drag-reorder via `MelbaQueueReorder`,
-and `melba:artists`/`melba:artUrls` queue props.
+Completed work is recorded in the git history, not here: this file lists what
+is still open, what is blocked, and what each item is waiting on. A summary of
+what already shipped belongs in the release notes.
