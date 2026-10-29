@@ -69,15 +69,6 @@ is a dated record, not the current one.
   available here, so `melbad`/`melba` on aarch64 are build-verified only. Do
   not describe an arm64 binary as run-verified until someone runs it on that
   hardware and records the receipt.
-- [ ] **Receiver-side audio behaviour** — never measured and not measurable
-  here: the Yamaha RX-V6A's input switching, standby, volume and room
-  correction act after the HDMI PCM input, so a `BITPERFECT` receipt says
-  nothing about them. Measure only with the receiver's own menus and a
-  reference the host does not control.
-- [ ] **Legal review** — not pursued, by the maintainer's decision. Publication
-  proceeded without clearance, and no release or document claims otherwise.
-  The materials are collected under
-  `research/alac-legal-review-20261026/` if that decision changes.
 - [x] **Choose the output from the app, over PipeWire** — `audio_device` in
   `~/.config/melba/config.json` selects `auto`, `default` or `hw:X,Y`;
   `auto` prefers a USB/analog hw device over HDMI, the Settings page lists
@@ -130,7 +121,7 @@ Keep requested quality, opened-source format and output-path properties
 separate. Do not expose controls for processing the daemon does not implement,
 or infer bit-perfect playback from an ALAC label.
 
-### Publication and wrapper packaging
+### Publication
 
 - [x] **Keep the project's MIT/Apache-2.0 terms.** `NOASSERTION` was rejected:
   removing a license does not reduce DRM or contract exposure, drops the
@@ -139,32 +130,9 @@ or infer bit-perfect playback from an ALAC label.
   the license.
 - [ ] **Download/export stays outside Melba.** Saving full tracks is a
   separate product with its own legal review; Melba remains playback-only.
-- [ ] **Wrapper in the standard install (ideal, blocked).** The best
-  experience would be: install Melba, sign in, ALAC works. That requires
-  distributing a runtime bundle and rights not established here; the public
-  source must not contain or fetch Apple/Android libraries, a rootfs or an
-  APK. Until then the supported path is a user-supplied decrypt service.
-  Options: guided setup for a user-provided service, an officially permitted
-  SDK, or a separate service project with its own review. "Bundled" is not
-  approved. Bundling would not change the DRM/contract question, but it adds a
-  separate redistribution act for Apple/Android libraries; that extra act is
-  why it stays blocked even when the DRM risk is accepted.
-- [ ] **Public export scope.** Decide whether managed-mode code and runtime
-  staging scripts are excluded or shipped disabled; decide
-  history-inclusive repository vs current-tree export; complete the legal
-  review before any push, release or visibility change.
 
-### Deferred research and presentation
+### Deferred presentation
 
-- [ ] **Official Apple Music reference via WinBoat** — assess installation and
-  execution of the Windows client in a resource-budgeted, isolated VM. Use it
-  to investigate quality-setting semantics, rendition selection, fallback and
-  error behavior. Treat the proprietary client as `REFERENCE_ONLY`: document
-  behavior for an independent Melba implementation, not a redistributable fork
-  of Apple's code or assets. Minimize host sharing and keep live credentials
-  out of captures. RDP audio is not a bit-perfect reference. Background:
-  [WinBoat architecture](https://github.com/TibixDev/winboat#how-it-works) and
-  [Apple's lossless guide](https://support.apple.com/en-us/118295).
 - [ ] **Optional presentation and DSP work** — consider an official-inspired
   selectable style, EQ, loudness normalization/Sound Check-like behavior,
   crossfade and Atmos separately after the release-critical work. These are
