@@ -1032,31 +1032,31 @@ mod tests {
     #[test]
     fn library_song_prefers_reporting_id_over_stale_catalog_id() {
         let d = json!({
-            "id": "i.WmYR22RF6523BGo",
+            "id": "i.item_001",
             "type": "library-songs",
             "attributes": {
-                "name": "Eternal Star",
-                "artistName": "亜咲花",
+                "name": "Superseded Track",
+                "artistName": "Artist",
                 "durationInMillis": 262947,
                 "playParams": {
-                    "id": "i.WmYR22RF6523BGo",
-                    "catalogId": "1417843841",
-                    "reportingId": "6801365998"
+                    "id": "i.item_001",
+                    "catalogId": "1000000001",
+                    "reportingId": "2000000002"
                 }
             }
         });
         let t = song(&d);
-        assert_eq!(t.id.as_deref(), Some("6801365998"));
-        assert_eq!(t.uri, "melba:track:6801365998");
+        assert_eq!(t.id.as_deref(), Some("2000000002"));
+        assert_eq!(t.uri, "melba:track:2000000002");
         assert_eq!(
             t.linked_from.as_ref().map(|l| l.uri.as_str()),
-            Some("melba:track:1417843841")
+            Some("melba:track:1000000001")
         );
         // When catalogId equals reportingId, linked_from stays None
         let mut d_same = d.clone();
-        d_same["attributes"]["playParams"]["reportingId"] = json!("1417843841");
+        d_same["attributes"]["playParams"]["reportingId"] = json!("1000000001");
         let t_same = song(&d_same);
-        assert_eq!(t_same.id.as_deref(), Some("1417843841"));
+        assert_eq!(t_same.id.as_deref(), Some("1000000001"));
         assert!(t_same.linked_from.is_none());
     }
 
