@@ -53,6 +53,41 @@ melbad play fixtures/96k-24bit.flac --device hw:0,0 --require-bitperfect --verif
 
 `hw:0,0` は環境に応じて変更してください。判定表・注意事項・receipt は [音声仕様（英語）](docs/audio.md) にあります。
 
+### OS ミキサー（PipeWire）で使う場合
+
+Melba は共有出力を `SHARED` と表示し、bit-perfect とは判定しません。ただし次の条件がそろえば、PipeWire 経由でも PCM はそのまま出力されます。
+
+- 再生しているのが Melba だけ（通知音やブラウザなどが同時に鳴るとミックスされます）
+- リサンプリングしない（PipeWire が曲のレートに合わせて出力を切り替える設定にする）
+- Melba・アプリごとの音量・システム出力の音量がすべて 100%（音量は DAC / AV アンプ側で調整）
+
+```
+# ~/.config/pipewire/pipewire.conf.d/10-hires.conf
+context.properties = {
+    default.clock.rate = 48000
+    default.clock.allowed-rates = [ 44100 48000 88200 96000 176400 192000 ]
+}
+```
+
+HDMI の AV アンプでは、曲ごとにレートが変わる（例: 44.1 → 96 kHz）と、アンプが信号を合わせ直す間ミュートされ、曲の頭が切れることがあります。出力を開くたびに無音を先に流す設定で回避できます（曲のデータは変わりません）。
+
+```
+# ~/.config/wireplumber/wireplumber.conf.d/52-hdmi-start-delay.conf
+monitor.alsa.rules = [
+  {
+    matches = [ { node.name = "~alsa_output.pci-*hdmi*" } ]
+    actions = {
+      update-props = {
+        api.alsa.start-delay = 96000
+        session.suspend-timeout-seconds = 0
+      }
+    }
+  }
+]
+```
+
+`api.alsa.start-delay` の単位は秒ではなく**サンプル数**なので、高いレートほど無音は短くなります（24000 は 44.1 kHz で 0.54 秒、96 kHz では 0.25 秒）。Yamaha RX-V6A では 24000 だと 96 kHz の曲の頭が切れ、96000（96 kHz で 1 秒）で解消しました。反映は `systemctl --user restart pipewire pipewire-pulse wireplumber` です。ALSA のカード番号は起動ごとに変わることがあるので、`hw:X,Y` を指定する前に `/proc/asound/cards` で確認してください。詳細は [音声仕様（英語）](docs/audio.md#shared-output-pipewire-on-linux) を参照してください。
+
 ## 状態
 
 Apple Inc. の公式アプリではなく、提携・承認も受けていません。aarch64 リリースはビルド検証済みで、arm64 実機での動作検証は未実施です。ログイン、曲の再生可否、出力ハードウェア、ロスレス再生は利用環境で確認してください。[更新](docs/updates.md) と [ロードマップ](docs/roadmap.md) も参照してください。

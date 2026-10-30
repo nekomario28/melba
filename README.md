@@ -57,6 +57,8 @@ melbad play fixtures/96k-24bit.flac --device hw:0,0 --require-bitperfect --verif
 
 Replace `hw:0,0` with your device. The verdict table, caveats and receipt format are in [Audio and playback](docs/audio.md).
 
+Using the OS mixer instead? Its output can still pass through unchanged if Melba is the only stream, no resampling occurs and every volume is at 100%. Setup for PipeWire, and a fix for HDMI receivers that cut the start of a track when the sample rate changes, are in [Shared output (PipeWire) on Linux](docs/audio.md#shared-output-pipewire-on-linux).
+
 ## Status
 
 Unofficial; not affiliated with or endorsed by Apple Inc. The aarch64 release is build-verified, not run-verified on arm64 hardware. Live login, track availability, output hardware and lossless playback must be checked on your configuration. See [Updating](docs/updates.md) and [Roadmap](docs/roadmap.md).

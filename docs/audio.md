@@ -23,9 +23,11 @@ Both paths use the same transport: queue commands, MPRIS `OpenUri` / `MelbaEnque
 |---|---|
 | `auto` | Prefer direct USB/analog `hw:` output over HDMI; never intentionally select the OS mixer, but compatibility still depends on the actual device. |
 | `hw:X,Y` | Target a specific ALSA hardware PCM directly; preferred for checking exact format negotiation. |
+| `default` | Follow system audio via PipeWire/PulseAudio; regarded as shared output, not bit-perfect. |
 
 The Settings picker keeps a busy hardware output visible as “in use”. Selecting it asks PipeWire/WirePlumber to release that card through the standard D-Bus device reservation (`org.freedesktop.ReserveDevice1.RequestRelease`), then opens the direct `hw:` device. This intentionally stops other system audio on that card; a free device is not disturbed.
-| `default` | Follow system audio via PipeWire/PulseAudio; regarded as shared output, not bit-perfect. |
+
+ALSA card numbers are assigned at boot and can change: the RX-V6A HDMI output used in the evidence below was `hw:0,7` on 2026-10-27 and `hw:1,7` on 2026-10-30 on the same machine. Check `/proc/asound/cards` (or `aplay -l`) before pinning a `hw:X,Y` value.
 
 A 24-bit source needs a device that accepts at least 24 valid sample bits (for example an appropriate S24/S32 mode). A 16-bit-only S/PDIF interface cannot meet that requirement. For HDMI/AVR, verifying real sink capability requires a connected display/receiver and valid ELD; probing an unplugged HDMI device is insufficient.
 
@@ -65,6 +67,52 @@ The following is an abbreviated fixture receipt from the conversion path; see [t
 The buffer depth is requested as a duration, not a fixed frame count, because the playback loop decodes and writes on one thread: the granted `buffer_frames` and `period_frames` appear in the receipt, and recovered underruns are counted (`melbad now` → `xruns`). See [the HDMI/AVR dropout investigation](../evidence/hdmi-audio-dropouts.md).
 
 The receipt establishes the negotiated software output path reported by Melba; it is not a measurement of an arbitrary DAC's analog output. Do not infer bit-perfect from a codec label, a requested quality setting or a successful ALAC decode.
+
+## Shared output (PipeWire) on Linux
+
+Melba reports `default` / PipeWire as `SHARED` and never labels it bit-perfect, because it cannot see or control what the mixer does afterward. PipeWire can still pass PCM through unchanged; this is a property of the system configuration, not something Melba verifies. In practice that requires all of:
+
+- Melba is the only active stream on that output (notification sounds, a browser or another player cause mixing).
+- No resampling: the output runs at the source rate. By default PipeWire runs at 48 kHz and resamples 44.1 kHz content; allow the device rates so it switches per track instead.
+- Every software volume is exactly 100% (Melba, the per-application stream, the system output). Adjust loudness on the DAC/receiver.
+
+```
+# ~/.config/pipewire/pipewire.conf.d/10-hires.conf
+context.properties = {
+    default.clock.rate = 48000
+    default.clock.allowed-rates = [ 44100 48000 88200 96000 176400 192000 ]
+}
+```
+
+PipeWire opens most devices as `S32LE`; 16/24-bit samples are placed in that container with zero padding. While playing, `pactl list sinks short` and `/proc/asound/cardN/pcmMp/sub0/hw_params` show the rate and format actually in use. Paths and syntax follow current PipeWire/WirePlumber (WirePlumber 0.5+ `.conf` files; older releases used Lua). See the [ArchWiki PipeWire troubleshooting page](https://wiki.archlinux.org/title/PipeWire/Troubleshooting) for distribution-independent background.
+
+## HDMI receivers: track start cut off on a rate change
+
+With shared output and per-track rates, a change such as 48 → 44.1 kHz or 44.1 → 96 kHz makes PipeWire reopen the HDMI PCM. An AV receiver then re-locks to the new format and stays muted meanwhile, so the first part of the track is lost. The PC side shows no XRun or error; the gap is in the receiver.
+
+WirePlumber can play silence each time the output starts, before the stream's samples. The track's PCM is not modified:
+
+```
+# ~/.config/wireplumber/wireplumber.conf.d/52-hdmi-start-delay.conf
+monitor.alsa.rules = [
+  {
+    matches = [ { node.name = "~alsa_output.pci-*hdmi*" } ]
+    actions = {
+      update-props = {
+        api.alsa.start-delay = 96000
+        session.suspend-timeout-seconds = 0
+      }
+    }
+  }
+]
+```
+
+`api.alsa.start-delay` is a count of **samples**, so the silence is shorter at higher rates: 24000 is 0.54 s at 44.1 kHz but only 0.25 s at 96 kHz. On the Yamaha RX-V6A (2026-10-30, by listening), 24000 still cut the start of a 96 kHz track; 96000 (1 s at 96 kHz, about 2.2 s at 44.1 kHz) removed it. Lower the value until the cut returns if the extra gap between tracks matters. `session.suspend-timeout-seconds = 0` keeps the output from suspending when idle, which otherwise causes the same re-lock on every resume. Apply with:
+
+```sh
+systemctl --user restart pipewire pipewire-pulse wireplumber
+```
+
 
 ## Quality labels
 
