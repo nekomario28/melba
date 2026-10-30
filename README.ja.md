@@ -60,6 +60,10 @@ Apple Inc. の非公式クライアントであり、提携・承認は受けて
 - [Wrapper の制御](docs/wrapper.ja.md) · [Roadmap](docs/roadmap.md)
 - [公開範囲](PUBLICATION.md) · [第三者ライセンス](NOTICE.md) · [Agent-facing specs](specs/README.md)
 
+## 開発参加と Issue（Contributing）
+
+不具合報告やプルリクエストを歓迎します。バグ報告の際はログと再現手順を添えてください。大きな機能提案は事前に Issue でご相談ください。プロジェクトの設計方針や対象外の機能（ブラウザの内蔵、Apple Music 以外の外部音源、DRM 回避などはスコープ外です）については [`CONTRIBUTING.md`](crates/melba/CONTRIBUTING.md) を参照してください。
+
 ## クレジット・ライセンス
 
 デスクトップ UI は Carmine Paolino 氏の [Spotifast](https://github.com/crmne/spotifast) を基にしています（原著作権表示は [`crates/melba/LICENSE`](crates/melba/LICENSE)）。デーモンと共通コードは **MIT または Apache-2.0**、Spotifast 由来のデスクトップ crate は **MIT のみ**です。詳しくは [NOTICE.md](NOTICE.md) を参照してください。

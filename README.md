@@ -59,6 +59,10 @@ Unofficial; not affiliated with or endorsed by Apple Inc. The `aarch64` release 
 - [Wrapper control](docs/wrapper.md) · [日本語](docs/wrapper.ja.md) · [Roadmap](docs/roadmap.md)
 - [Publication scope](PUBLICATION.md) · [Third-party notices](NOTICE.md) · [Agent-facing specs](specs/README.md)
 
+## Contributing and issues
+
+Bug reports and pull requests are welcome. For bugs, include log output and reproduction steps; for feature ideas, open an issue first to discuss the workflow. Please check [`CONTRIBUTING.md`](crates/melba/CONTRIBUTING.md) for project principles and out-of-scope boundaries (e.g. no embedded browsers, third-party catalogues, or DRM bypasses).
+
 ## Credits and license
 
 The desktop frontend derives from [Spotifast](https://github.com/crmne/spotifast) by Carmine Paolino; its original notice is retained in [`crates/melba/LICENSE`](crates/melba/LICENSE). Daemon and shared code are MIT OR Apache-2.0; the Spotifast-derived desktop crate is MIT-only. See [NOTICE.md](NOTICE.md).
