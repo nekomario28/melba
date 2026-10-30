@@ -860,10 +860,24 @@ pub fn song(d: &Value) -> Track {
     let attrs = &d["attributes"];
     // library-songs carry i.* ids that nothing else resolves; the catalog id
     // lives in playParams.catalogId (verified live on /library/songs).
-    let id = attrs["playParams"]["catalogId"]
+    // When catalogId has been superseded or revoked by Apple, the active
+    // playback catalog id is supplied in playParams.reportingId. Prefer
+    // reportingId so stale library items resolve to active streams, while
+    // retaining the original catalogId in linked_from for equivalence.
+    let pp = &attrs["playParams"];
+    let id = pp["reportingId"]
         .as_str()
+        .filter(|s| !s.is_empty())
+        .or_else(|| pp["catalogId"].as_str().filter(|s| !s.is_empty()))
         .map(str::to_string)
         .unwrap_or_else(|| str_of(d, "id"));
+    let linked_from = pp["catalogId"]
+        .as_str()
+        .filter(|cid| !cid.is_empty() && *cid != id)
+        .map(|cid| crate::api::models::LinkedTrack {
+            id: Some(cid.to_string()),
+            uri: format!("melba:track:{cid}"),
+        });
     let album_rel = &d["relationships"]["albums"]["data"][0];
     let album_id = str_of(album_rel, "id");
     // Prefer relationship artwork when supplied; otherwise the song's
@@ -901,6 +915,7 @@ pub fn song(d: &Value) -> Track {
         external_ids: ExternalIds {
             isrc: Some(str_of(attrs, "isrc")).filter(|s| !s.is_empty()),
         },
+        linked_from,
         ..Track::default()
     }
 }
@@ -1012,6 +1027,37 @@ mod tests {
             "https://is1-ssl.mzstatic.com/640x640bb.jpg"
         );
         assert_eq!(album.images[0].width, Some(640));
+    }
+
+    #[test]
+    fn library_song_prefers_reporting_id_over_stale_catalog_id() {
+        let d = json!({
+            "id": "i.WmYR22RF6523BGo",
+            "type": "library-songs",
+            "attributes": {
+                "name": "Eternal Star",
+                "artistName": "亜咲花",
+                "durationInMillis": 262947,
+                "playParams": {
+                    "id": "i.WmYR22RF6523BGo",
+                    "catalogId": "1417843841",
+                    "reportingId": "6801365998"
+                }
+            }
+        });
+        let t = song(&d);
+        assert_eq!(t.id.as_deref(), Some("6801365998"));
+        assert_eq!(t.uri, "melba:track:6801365998");
+        assert_eq!(
+            t.linked_from.as_ref().map(|l| l.uri.as_str()),
+            Some("melba:track:1417843841")
+        );
+        // When catalogId equals reportingId, linked_from stays None
+        let mut d_same = d.clone();
+        d_same["attributes"]["playParams"]["reportingId"] = json!("1417843841");
+        let t_same = song(&d_same);
+        assert_eq!(t_same.id.as_deref(), Some("1417843841"));
+        assert!(t_same.linked_from.is_none());
     }
 
     #[test]
