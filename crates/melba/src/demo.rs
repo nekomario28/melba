@@ -7145,6 +7145,7 @@ mod tests {
             cache: root.join("cache"),
         };
         let ctx = egui::Context::default();
+        ctx.enable_accesskit();
         let waker = crate::backend::Waker::default();
         waker.attach(&ctx);
         let mut app = App::new(
@@ -7222,6 +7223,7 @@ mod tests {
             cache: root.join("cache"),
         };
         let ctx = egui::Context::default();
+        ctx.enable_accesskit();
         let waker = crate::backend::Waker::default();
         waker.attach(&ctx);
         let mut app = App::new(
