@@ -292,7 +292,7 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                     // not to a later explicit append after queue exhaustion.
                     shared.start_paused.store(false, Ordering::SeqCst);
                     if let Some((p, _)) = stream.take() {
-                        let _ = p.drain();
+                        let _ = p.drop();
                     }
                     shared.set_state(PlayState::Stopped);
                     match rx.recv() {
@@ -620,7 +620,7 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
             }
         } else {
             if let Some((p, _)) = stream.take() {
-                let _ = p.drain();
+                let _ = p.drop();
             }
             let opened = if want_dev == "auto" {
                 open_auto_result(&src)
@@ -650,7 +650,7 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
         *shared.verdict.lock().unwrap_or_else(|e| e.into_inner()) = verdict.to_string();
         if verdict != "BITPERFECT" && require_block(&shared) {
             if let Some((p, _)) = stream.take() {
-                let _ = p.drain();
+                let _ = p.drop();
             }
             continue 'outer;
         }
