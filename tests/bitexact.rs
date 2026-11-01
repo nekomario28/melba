@@ -164,14 +164,23 @@ fn apply_gain_math() {
 
 #[test]
 fn bitperfect_verdict_rejects_software_attenuation() {
-    use melbad::audio::{Granted, SourceFormat, verdict_with_gain};
+    use melbad::audio::{verdict_with_gain, Granted, SourceFormat};
     let src = SourceFormat {
-        path: "fixture".into(), codec: "alac".into(),
-        rate: 96_000, channels: 2, bits: 24, dur_ms: 1000,
+        path: "fixture".into(),
+        codec: "alac".into(),
+        rate: 96_000,
+        channels: 2,
+        bits: 24,
+        dur_ms: 1000,
     };
     let granted = Granted {
-        device: "hw:0,0".into(), rate: 96_000, format: "S32LE".into(),
-        msbits: 32, channels: 2, buffer_frames: 48_000, period_frames: 4096,
+        device: "hw:0,0".into(),
+        rate: 96_000,
+        format: "S32LE".into(),
+        msbits: 32,
+        channels: 2,
+        buffer_frames: 48_000,
+        period_frames: 4096,
     };
     assert_eq!(verdict_with_gain(&src, &granted, 1.0), "BITPERFECT");
     assert_eq!(verdict_with_gain(&src, &granted, 0.5), "DSP");

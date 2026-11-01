@@ -274,7 +274,12 @@ fn wait_bitperfect(shared: &Arc<Shared>, rx: &Receiver<Cmd>) -> bool {
             // MPRIS volume is an atomic property, not a transport command.
             // Retry if restoring unity gain can lift a strict DSP refusal.
             Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                if shared.verdict.lock().unwrap_or_else(|e| e.into_inner()).as_str() == "DSP"
+                if shared
+                    .verdict
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .as_str()
+                    == "DSP"
                     && f64::from_bits(shared.volume.load(Ordering::Relaxed)) >= 0.999
                 {
                     return true;
