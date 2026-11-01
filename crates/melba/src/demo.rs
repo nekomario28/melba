@@ -7203,8 +7203,9 @@ mod tests {
         assert_eq!(
             app.settings.pinned_contexts,
             vec![
-                "melba:playlist:pl4".to_string(),
+                // Legacy pin metadata remains intact but is never rendered.
                 crate::settings::LIKED_SONGS_KEY.to_string(),
+                "melba:playlist:pl4".to_string(),
                 "melba:playlist:pl2".to_string(),
             ],
         );
