@@ -658,7 +658,7 @@ pub fn verdict_str(src: &SourceFormat, g: &Granted) -> &'static str {
 /// the hardware accepted the source format unchanged.
 pub fn verdict_with_gain(src: &SourceFormat, g: &Granted, gain: f64) -> &'static str {
     let format_verdict = verdict_str(src, g);
-    if format_verdict == "BITPERFECT" && !(gain >= 0.999) {
+    if format_verdict == "BITPERFECT" && (gain.is_nan() || gain < 0.999) {
         "DSP"
     } else {
         format_verdict
