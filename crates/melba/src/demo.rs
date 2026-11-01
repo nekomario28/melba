@@ -7165,40 +7165,40 @@ mod tests {
             frame(&ctx, &mut app);
         }
 
-        // Sweep from the top: the first slot inside the list drops the
-        // dragged row above the other playlists. Where the list begins
-        // depends on the loaded fonts, so the sweep does not hardcode it.
-        let mut dropped = false;
-        for step in 0..40 {
-            let pos = egui::pos2(120.0, 100.0 + step as f32 * 10.0);
-            egui::DragAndDrop::set_payload(
-                &ctx,
-                DragEntry {
-                    uri: "melba:playlist:pl4".into(),
-                    title: "New Music Mix".into(),
-                    image: None,
-                },
-            );
-            frame_events(&ctx, &mut app, vec![egui::Event::PointerMoved(pos)]);
-            frame_events(
-                &ctx,
-                &mut app,
-                vec![egui::Event::PointerButton {
-                    pos,
-                    button: egui::PointerButton::Primary,
-                    pressed: false,
-                    modifiers: egui::Modifiers::NONE,
-                }],
-            );
-            egui::DragAndDrop::clear_payload(&ctx);
-            if app.settings.pinned_contexts.first().map(String::as_str)
-                == Some("melba:playlist:pl4")
-            {
-                dropped = true;
-                break;
-            }
-        }
-        assert!(dropped, "no sweep position landed in the pinned block");
+        // Aim at the actual first pinned row instead of guessing where the
+        // sidebar starts. Removing the virtual Liked Songs row changes its y.
+        let tree = accessible_frame(&ctx, &mut app, vec![]);
+        let bounds = tree
+            .nodes
+            .iter()
+            .find_map(|(_, node)| {
+                (node.role() == egui::accesskit::Role::Button
+                    && node.label() == Some("Sunday morning"))
+                .then(|| node.bounds())
+                .flatten()
+            })
+            .expect("first pinned playlist row");
+        let pos = egui::pos2(bounds.x0 as f32 + 8.0, bounds.y0 as f32 + 2.0);
+        egui::DragAndDrop::set_payload(
+            &ctx,
+            DragEntry {
+                uri: "melba:playlist:pl4".into(),
+                title: "New Music Mix".into(),
+                image: None,
+            },
+        );
+        frame_events(&ctx, &mut app, vec![egui::Event::PointerMoved(pos)]);
+        frame_events(
+            &ctx,
+            &mut app,
+            vec![egui::Event::PointerButton {
+                pos,
+                button: egui::PointerButton::Primary,
+                pressed: false,
+                modifiers: egui::Modifiers::NONE,
+            }],
+        );
+        egui::DragAndDrop::clear_payload(&ctx);
         assert_eq!(
             app.settings.pinned_contexts,
             vec![
@@ -7242,36 +7242,41 @@ mod tests {
             frame(&ctx, &mut app);
         }
 
-        // Sweep from the top, targeting the early unpinned rows.
-        let mut dropped = false;
-        for step in 0..40 {
-            let pos = egui::pos2(120.0, 100.0 + step as f32 * 10.0);
-            egui::DragAndDrop::set_payload(
-                &ctx,
-                DragEntry {
-                    uri: "melba:playlist:pl4".into(),
-                    title: "New Music Mix".into(),
-                    image: None,
-                },
-            );
-            frame_events(&ctx, &mut app, vec![egui::Event::PointerMoved(pos)]);
-            frame_events(
-                &ctx,
-                &mut app,
-                vec![egui::Event::PointerButton {
-                    pos,
-                    button: egui::PointerButton::Primary,
-                    pressed: false,
-                    modifiers: egui::Modifiers::NONE,
-                }],
-            );
-            egui::DragAndDrop::clear_payload(&ctx);
-            if !app.settings.sidebar_order.is_empty() {
-                dropped = true;
-                break;
-            }
-        }
-        assert!(dropped, "no sweep position landed between playlists");
+        // Drop just above the second real playlist, not at a screen y
+        // derived from the old virtual Liked Songs row.
+        let tree = accessible_frame(&ctx, &mut app, vec![]);
+        let bounds = tree
+            .nodes
+            .iter()
+            .find_map(|(_, node)| {
+                (node.role() == egui::accesskit::Role::Button
+                    && node.label() == Some("Late night focus"))
+                .then(|| node.bounds())
+                .flatten()
+            })
+            .expect("second playlist row");
+        let pos = egui::pos2(bounds.x0 as f32 + 8.0, bounds.y0 as f32 + 2.0);
+        egui::DragAndDrop::set_payload(
+            &ctx,
+            DragEntry {
+                uri: "melba:playlist:pl4".into(),
+                title: "New Music Mix".into(),
+                image: None,
+            },
+        );
+        frame_events(&ctx, &mut app, vec![egui::Event::PointerMoved(pos)]);
+        frame_events(
+            &ctx,
+            &mut app,
+            vec![egui::Event::PointerButton {
+                pos,
+                button: egui::PointerButton::Primary,
+                pressed: false,
+                modifiers: egui::Modifiers::NONE,
+            }],
+        );
+        egui::DragAndDrop::clear_payload(&ctx);
+        assert!(!app.settings.sidebar_order.is_empty(), "playlist drop produced no order");
         let expected: Vec<String> = [0, 4]
             .into_iter()
             .chain((1..PLAYLISTS.len()).filter(|index| *index != 4))
