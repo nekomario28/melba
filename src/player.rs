@@ -177,13 +177,46 @@ fn require_block(shared: &Shared) -> bool {
     true
 }
 
+/// Let a normally ended track's queued PCM reach the hardware, without
+/// risking an unbounded snd_pcm_drain() on a stalled or disconnected sink.
+/// An explicit skip or stop already called pcm.drop() and is not Running.
+fn finish_stream(pcm: &alsa::pcm::PCM) {
+    use alsa::pcm::State;
+    use std::time::{Duration, Instant};
+
+    if pcm.state() == State::Prepared && pcm.delay().is_ok_and(|frames| frames > 0) {
+        // A short track can end before ALSA's automatic start threshold.
+        let _ = pcm.start();
+    }
+    if pcm.state() == State::Running {
+        let deadline = Instant::now() + Duration::from_secs(2);
+        loop {
+            match pcm.delay() {
+                Ok(frames) if frames <= 0 => break,
+                Ok(_) if Instant::now() < deadline => {
+                    std::thread::sleep(Duration::from_millis(10));
+                }
+                Ok(_) => {
+                    eprintln!("[player] output tail timed out after 2s; dropping");
+                    break;
+                }
+                Err(error) => {
+                    eprintln!("[player] cannot measure output tail: {error}");
+                    break;
+                }
+            }
+        }
+    }
+    let _ = pcm.drop();
+}
+
 /// Wait while a required bit-perfect path is unavailable. Commands that can
 /// change the device or the selected track return true so the caller retries;
 /// everything else is applied (or ignored) without falling back to a mixer.
 fn wait_bitperfect(shared: &Arc<Shared>, rx: &Receiver<Cmd>) -> bool {
     loop {
-        match rx.recv() {
-            Ok(Cmd::Quit) | Err(_) => return false,
+        match rx.recv_timeout(std::time::Duration::from_millis(200)) {
+            Ok(Cmd::Quit) => return false,
             Ok(Cmd::SetDevice(d)) => {
                 *shared.device.lock().unwrap_or_else(|e| e.into_inner()) = d;
                 return true;
@@ -238,8 +271,21 @@ fn wait_bitperfect(shared: &Arc<Shared>, rx: &Receiver<Cmd>) -> bool {
                 shared.set_state(PlayState::Stopped);
                 shared.pos_ms.store(0, Ordering::SeqCst);
             }
-            // No stream is open while blocked; seek/pause/volume are not
-            // meaningful until a device opens.
+            // MPRIS volume is an atomic property, not a transport command.
+            // Retry if restoring unity gain can lift a strict DSP refusal.
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                if shared
+                    .verdict
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .as_str()
+                    == "DSP"
+                    && f64::from_bits(shared.volume.load(Ordering::Relaxed)) >= 0.999
+                {
+                    return true;
+                }
+            }
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => return false,
             Ok(_) => {}
         }
     }
@@ -249,9 +295,8 @@ fn wait_bitperfect(shared: &Arc<Shared>, rx: &Receiver<Cmd>) -> bool {
 pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
     // The ALSA stream survives across same-format tracks: the next track's
     // samples append to the still-running stream (gapless album playback).
-    // It is drained+dropped on format change and at queue end; a cmd-driven
-    // abort (Stop/Next/Prev) leaves it in a dropped state that the next reuse
-    // recovers with prepare().
+    // On normal end or format change, wait for queued PCM with a deadline;
+    // explicit skips/stops drop immediately.
     let mut stream: Option<(alsa::pcm::PCM, audio::Granted)> = None;
     // device string the open stream was granted against; SetDevice retargets it
     let mut cur_dev = shared
@@ -292,7 +337,7 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                     // not to a later explicit append after queue exhaustion.
                     shared.start_paused.store(false, Ordering::SeqCst);
                     if let Some((p, _)) = stream.take() {
-                        let _ = p.drop();
+                        finish_stream(&p);
                     }
                     shared.set_state(PlayState::Stopped);
                     match rx.recv() {
@@ -620,7 +665,7 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
             }
         } else {
             if let Some((p, _)) = stream.take() {
-                let _ = p.drop();
+                finish_stream(&p);
             }
             let opened = if want_dev == "auto" {
                 open_auto_result(&src)
@@ -646,7 +691,8 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
         }
         let (pcm, granted) = stream.as_ref().unwrap();
         *shared.sink.lock().unwrap_or_else(|e| e.into_inner()) = granted.device.clone();
-        let verdict = audio::verdict_str(&src, granted);
+        let gain = f64::from_bits(shared.volume.load(Ordering::Relaxed));
+        let verdict = audio::verdict_with_gain(&src, granted, gain);
         *shared.verdict.lock().unwrap_or_else(|e| e.into_inner()) = verdict.to_string();
         if verdict != "BITPERFECT" && require_block(&shared) {
             if let Some((p, _)) = stream.take() {
@@ -1331,11 +1377,20 @@ fn play_controlled(
                 continue;
             }
         };
+        let gain = f64::from_bits(shared.volume.load(Ordering::Relaxed));
+        let verdict = audio::verdict_with_gain(src, g, gain);
+        {
+            let mut current = shared.verdict.lock().unwrap_or_else(|e| e.into_inner());
+            if current.as_str() != verdict {
+                *current = verdict.to_string();
+            }
+        }
+        if verdict != "BITPERFECT" && require_block(shared) {
+            let _ = pcm.drop();
+            return Flow::Reload;
+        }
         let mut samples = audio::decoded_to_i32(decoded);
-        audio::apply_gain(
-            &mut samples,
-            f64::from_bits(shared.volume.load(Ordering::Relaxed)),
-        );
+        audio::apply_gain(&mut samples, gain);
         if g.format == "S16LE" {
             let io = match pcm.io_i16() {
                 Ok(i) => i,
@@ -1359,8 +1414,8 @@ fn play_controlled(
             Ordering::SeqCst,
         );
     }
-    // No drain here: the caller keeps the stream open for the next
-    // same-format track (gapless); it drains when the stream actually closes.
+    // No tail wait here: the caller keeps the stream open across
+    // same-format tracks (gapless), and waits only when closing it.
     Flow::Ended
 }
 
