@@ -1124,56 +1124,6 @@ impl App {
         }
     }
 
-    /// Whether a playlist is the official Apple Music Favorites / Liked songs playlist.
-    fn is_favorites_playlist(&self, id: &str) -> bool {
-        if let Some(playlists) = self.library.playlists.get() {
-            if let Some(p) = playlists.iter().find(|p| p.id == id) {
-                return Self::is_favorites_playlist_name(&p.name);
-            }
-        }
-        if let Some(page) = self.playlist_pages.get(id) {
-            if let Some(p) = page.playlist.get() {
-                return Self::is_favorites_playlist_name(&p.name);
-            }
-        }
-        false
-    }
-
-    pub(crate) fn is_favorites_playlist_name(name: &str) -> bool {
-    let lower = name.trim().to_lowercase();
-    lower == "お気に入りの曲"
-        || lower == "favorite songs"
-        || lower == "favorites"
-        || lower == "lieblingstitel"
-        || lower == "morceaux préférés"
-        || lower == "canciones favoritas"
-        || lower == "brani preferiti"
-        || lower == "favoriter"
-        || lower == "favoritsange"
-        || lower == "lempikappaleet"
-        || lower == "favoritter"
-        || lower == "favorecidos"
-        || lower == "faixas favoritas"
-        || lower == "ulubione utwory"
-        || lower == "kedvenc dalok"
-        || lower == "oblibené skladby"
-        || lower == "obľúbené skladby"
-        || lower == "omiljene pjesme"
-        || lower == "melodi favorit"
-        || lower == "lagu kegemaran"
-        || lower == "bài hát yêu thích"
-        || lower == "เพลงโปรด"
-        || lower == "любые песни"
-        || lower == "избранные песни"
-        || lower == "улюблені пісні"
-        || lower == "喜爱歌曲"
-        || lower == "喜愛的歌曲"
-        || lower == "最愛歌曲"
-        || lower == "즐겨찾는 노래"
-        || lower.contains("お気に入り")
-        || lower.contains("favorite")
-}
-
     /// Album, Single, EP, Compilation or Appears On, in the interface language.
     pub(crate) fn album_kind_label(&self, album: &Album) -> Cow<'static, str> {
         album.kind_label(self.locale)
@@ -2096,17 +2046,6 @@ impl App {
                     }
                     if next_offset.is_none() {
                         self.store_library_cache();
-                        if let Some(playlists) = self.library.playlists.get() {
-                            for p in playlists {
-                                if Self::is_favorites_playlist_name(&p.name) {
-                                    self.backend.api(ApiRequest::PlaylistItems {
-                                        id: p.id.clone(),
-                                        offset: 0,
-                                        generation: 0,
-                                    });
-                                }
-                            }
-                        }
                     }
                 }
                 Err(error) => {
@@ -2242,16 +2181,6 @@ impl App {
                 generation,
                 result,
             } => {
-                if let Ok(page) = &result
-                    && self.is_favorites_playlist(&id)
-                {
-                    for item in &page.items {
-                        if let Some(PlayableItem::Track(track)) = item.playable() {
-                            self.remember_track_recording(track);
-                            self.set_saved_state(track.uri.clone(), true);
-                        }
-                    }
-                }
                 if self.playlist_pages.get(&id).is_none_or(|page| {
                     page.generation != generation
                         || page.pending_writes > 0
@@ -2328,12 +2257,8 @@ impl App {
                         Err(error) => page.items.fail(friendly_page_error(self.locale, &error)),
                     }
                 }
-                let is_fav = self.is_favorites_playlist(&id);
                 for track in &tracks {
                     self.remember_track_recording(track);
-                    if is_fav {
-                        self.set_saved_state(track.uri.clone(), true);
-                    }
                 }
                 self.remember_page_tracks(tracks);
                 self.request_contains(uris);
@@ -23489,31 +23414,5 @@ mod tests {
         let server_err =
             widgets::sanitize_error_message("500 Internal Server Error", Locale::English);
         assert_eq!(server_err.as_ref(), "500 Internal Server Error");
-    }
-
-    #[test]
-    fn favorites_playlist_items_are_marked_saved_automatically() {
-        let mut app = headless_app();
-        app.library.playlists = Loadable::Loaded(vec![Playlist {
-            id: "fav_pl".into(),
-            name: "お気に入りの曲".into(),
-            ..Playlist::default()
-        }]);
-
-        let track_uri = "melba:track:synthetic_fav_01";
-        assert_eq!(app.is_saved(track_uri), None);
-
-        app.handle_api(ApiResponse::PlaylistItems {
-            id: "fav_pl".into(),
-            offset: 0,
-            generation: 0,
-            result: Ok(crate::api::models::Page {
-                items: vec![cached_playlist_row(track_uri)],
-                total: 1,
-                ..Default::default()
-            }),
-        });
-
-        assert_eq!(app.is_saved(track_uri), Some(true));
     }
 }

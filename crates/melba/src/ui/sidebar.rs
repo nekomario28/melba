@@ -633,13 +633,11 @@ fn paint_expanded_art(app: &mut App, ui: &mut egui::Ui, rect: Rect) {
     }
 }
 
-/// Project the playlist shelf without changing its saved order or pins.
-/// Liked Songs belongs to the account.
+/// Only real library playlists belong in this shelf. The legacy virtual
+/// Liked Songs collection remains elsewhere, but no longer adds a sidebar
+/// row. Apple Music provides playlist ids; localized names and owner labels
+/// are not stable identifiers for special playlists.
 fn playlist_rows(app: &App, needle: &str, entries: &mut Vec<Entry>) {
-    let liked = liked_entry(app);
-    if needle.is_empty() || liked.name.to_lowercase().contains(needle) {
-        entries.push(liked);
-    }
     let user_id = app.user_id().filter(|id| !id.is_empty());
     if let Some(playlists) = app.library.playlists.get() {
         for (index, playlist) in playlists.iter().enumerate() {
@@ -1928,6 +1926,51 @@ mod ordering_tests {
         entries
     }
 
+    #[test]
+    fn playlist_rows_use_api_identity_without_a_virtual_favorites_row() {
+        let mut app = ownership_app("playlist-identity");
+        let account = app.user_id().unwrap().to_string();
+        for locale in [Locale::English, Locale::Japanese] {
+            app.locale = locale;
+            assert_eq!(projected(&app, "").len(), 4);
+            assert!(projected(&app, "").iter().all(|row| !row.liked));
+        }
+        let playlists = app.library.playlists.get_mut().unwrap();
+        playlists.push(Playlist {
+            id: "p.user-named-favorites".into(),
+            uri: uri("owned-favorites"),
+            name: "お気に入りの曲".into(),
+            owner: crate::api::models::Owner {
+                id: Some(account),
+                ..Default::default()
+            },
+            ..Default::default()
+        });
+        playlists.push(Playlist {
+            id: "p.apple-favorites".into(),
+            uri: uri("apple-favorites"),
+            name: "お気に入りの曲".into(),
+            owner: crate::api::models::Owner {
+                id: Some("apple".into()),
+                display_name: Some("Apple Music".into()),
+                ..Default::default()
+            },
+            ..Default::default()
+        });
+        let rows = projected(&app, "お気に入りの曲");
+        assert_eq!(rows.len(), 2);
+        assert!(rows.iter().all(|row| !row.liked));
+        assert!(rows.iter().any(|row| row.page == Page::Playlist("p.user-named-favorites".into())));
+        assert!(rows.iter().any(|row| row.page == Page::Playlist("p.apple-favorites".into())));
+
+        app.settings.library_by_you = true;
+        let own = projected(&app, "");
+        assert_eq!(own.len(), 3);
+        assert!(own.iter().all(|row| row.owned && !row.liked));
+        assert_eq!(projected(&app, "お気に入りの曲").len(), 1);
+        app.backend.shutdown();
+    }
+
     /// Verify that ownership filtering composes with search and pins while
     /// retaining source indices, sort selection, and the saved local arrangement.
     #[test]
@@ -1937,7 +1980,7 @@ mod ordering_tests {
         app.settings.pinned_contexts = [uri("b"), uri("a")].to_vec();
         app.apply(Action::SetLibraryByYou(true), &egui::Context::default());
         let entries = projected(&app, "");
-        assert!(entries.iter().any(|entry| entry.liked));
+        assert!(entries.iter().all(|entry| !entry.liked));
         assert_eq!(
             ids(&entries)
                 .into_iter()
@@ -1970,7 +2013,7 @@ mod ordering_tests {
             [uri("c"), uri("a")]
         );
         app.apply(Action::SetLibraryByYou(false), &egui::Context::default());
-        assert_eq!(projected(&app, "").len(), 5);
+        assert_eq!(projected(&app, "").len(), 4);
         assert_eq!(
             app.settings.sidebar_order,
             [uri("b"), uri("c"), uri("a"), uri("d")]
@@ -1988,7 +2031,7 @@ mod ordering_tests {
         app.user.as_mut().unwrap().id = "someone-else".into();
         assert_eq!(ids(&projected(&app, "alpha")), ["b"]);
         app.user = None;
-        assert!(projected(&app, "").iter().all(|entry| entry.liked));
+        assert!(projected(&app, "").is_empty());
         app.library.playlists.get_mut().unwrap()[3].owner.id = Some(String::new());
         assert!(projected(&app, "beta").is_empty());
         app.backend.shutdown();
