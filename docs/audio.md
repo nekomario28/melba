@@ -43,6 +43,7 @@ Melba only assigns `BITPERFECT` when it opened direct `hw:` PCM, the **granted**
 | `SHARED` | A non-direct device such as `default`; no bit-perfect claim. |
 | `MISMATCH` | Granted rate or valid sample depth is below source requirements; exact output is refused. |
 | `CLAMPED` | Exact open unavailable, e.g. S16-only S/PDIF for 24-bit content, channel mismatch, or no exact device. Negative receipt. |
+| `DSP` | Direct hardware output has the correct format, but software gain changes samples, so output is not bit-perfect. |
 
 `--require-bitperfect` refuses shared or mismatched output. In daemon `serve` mode it waits for a compatible device/queue change instead of silently falling back through a shared mixer.
 

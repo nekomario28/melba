@@ -633,12 +633,23 @@ fn paint_expanded_art(app: &mut App, ui: &mut egui::Ui, rect: Rect) {
     }
 }
 
-/// Project the playlist shelf without changing its saved order or pins.
-/// Liked Songs belongs to the account.
+/// Show the real Apple Music Favorites playlist instead of the old
+/// Spotify-style Liked Songs tile, keeping a fallback while offline.
+fn has_official_favorites_playlist(app: &App) -> bool {
+    app.library.playlists.get().is_some_and(|playlists| {
+        playlists.iter().any(|playlist| {
+            playlist.owner_name().eq_ignore_ascii_case("Apple Music")
+                && matches!(playlist.name.trim(), "お気に入りの曲" | "Favorite Songs")
+        })
+    })
+}
+
 fn playlist_rows(app: &App, needle: &str, entries: &mut Vec<Entry>) {
-    let liked = liked_entry(app);
-    if needle.is_empty() || liked.name.to_lowercase().contains(needle) {
-        entries.push(liked);
+    if !has_official_favorites_playlist(app) {
+        let liked = liked_entry(app);
+        if needle.is_empty() || liked.name.to_lowercase().contains(needle) {
+            entries.push(liked);
+        }
     }
     let user_id = app.user_id().filter(|id| !id.is_empty());
     if let Some(playlists) = app.library.playlists.get() {
@@ -1926,6 +1937,28 @@ mod ordering_tests {
         playlist_rows(app, needle, &mut entries);
         order_entries(app, selected_sort(app, Filter::Playlists), &mut entries);
         entries
+    }
+
+    #[test]
+    fn apple_favorites_hides_legacy_liked_songs() {
+        let mut app = ownership_app("official-favorites");
+        app.library.playlists.get_mut().unwrap().push(Playlist {
+            id: "p.apple-favorites".into(),
+            name: "お気に入りの曲".into(),
+            uri: uri("apple-favorites"),
+            owner: crate::api::models::Owner {
+                display_name: Some("Apple Music".into()),
+                ..Default::default()
+            },
+            ..Default::default()
+        });
+        let entries = projected(&app, "");
+        assert!(entries.iter().all(|entry| !entry.liked));
+        assert!(entries.iter().any(|entry| {
+            entry.page == Page::Playlist("p.apple-favorites".into())
+        }));
+        assert_eq!(projected(&app, "お気に入りの曲").len(), 1);
+        app.backend.shutdown();
     }
 
     /// Verify that ownership filtering composes with search and pins while

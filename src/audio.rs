@@ -654,6 +654,17 @@ pub fn verdict_str(src: &SourceFormat, g: &Granted) -> &'static str {
     }
 }
 
+/// Software gain must not retain a BITPERFECT verdict merely because
+/// the hardware accepted the source format unchanged.
+pub fn verdict_with_gain(src: &SourceFormat, g: &Granted, gain: f64) -> &'static str {
+    let format_verdict = verdict_str(src, g);
+    if format_verdict == "BITPERFECT" && !(gain >= 0.999) {
+        "DSP"
+    } else {
+        format_verdict
+    }
+}
+
 #[cfg(test)]
 mod auto_tests {
     use super::*;
