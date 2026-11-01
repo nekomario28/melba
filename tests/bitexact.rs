@@ -183,8 +183,11 @@ fn bitperfect_verdict_rejects_software_attenuation() {
         period_frames: 4096,
     };
     assert_eq!(verdict_with_gain(&src, &granted, 1.0), "BITPERFECT");
+    assert_eq!(verdict_with_gain(&src, &granted, 0.999), "BITPERFECT");
+    assert_eq!(verdict_with_gain(&src, &granted, 0.998), "DSP");
     assert_eq!(verdict_with_gain(&src, &granted, 0.5), "DSP");
     assert_eq!(verdict_with_gain(&src, &granted, 0.0), "DSP");
+    assert_eq!(verdict_with_gain(&src, &granted, f64::NAN), "DSP");
 }
 
 /// Gapless reuse boundary: same rate+channels+format-class => the running
