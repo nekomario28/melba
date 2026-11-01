@@ -1390,13 +1390,13 @@ mod tests {
         let (ctx, mut app) = accessible_app("navigate");
         accessible_frame(&ctx, &mut app, vec![]);
         let tree = accessible_frame(&ctx, &mut app, vec![]);
-        let liked = accessible_node(&tree, "Liked Songs", Role::Button);
+        let playlist = accessible_node(&tree, "Late night focus", Role::Button);
         accessible_frame(
             &ctx,
             &mut app,
-            vec![accessible_action(liked, Action::Click, None)],
+            vec![accessible_action(playlist, Action::Click, None)],
         );
-        assert_eq!(app.page(), &Page::LikedSongs);
+        assert_eq!(app.page(), &Page::Playlist("pl1".into()));
         let tree = accessible_frame(&ctx, &mut app, vec![]);
         let pause = accessible_node(&tree, "Pause", Role::Button);
         assert!(app.believed_playing());
@@ -1436,7 +1436,9 @@ mod tests {
         );
         assert!(app.settings.library_by_you);
         let tree = accessible_frame(&ctx, &mut app, vec![]);
-        accessible_node(&tree, "Liked Songs", Role::Button);
+        assert!(tree.nodes.iter().all(|(_, node)| {
+            node.label() != Some("Liked Songs")
+        }));
         accessible_node(&tree, "Late night focus", Role::Button);
         assert!(
             !tree
@@ -1492,7 +1494,7 @@ mod tests {
             accessible_node(&tree, &gettext(locale, "Create a playlist"), Role::Button);
             accessible_node(&tree, &gettext(locale, "Albums"), Role::Button);
             accessible_node(&tree, &gettext(locale, "Artists"), Role::Button);
-            let liked = accessible_node(&tree, &gettext(locale, "Liked Songs"), Role::Button);
+            let playlist = accessible_node(&tree, "Late night focus", Role::Button);
             accessible_frame(
                 &ctx,
                 &mut app,
@@ -1507,14 +1509,14 @@ mod tests {
             accessible_frame(
                 &ctx,
                 &mut app,
-                vec![accessible_action(liked, AccessibleAction::Focus, None)],
+                vec![accessible_action(playlist, AccessibleAction::Focus, None)],
             );
             accessible_frame(
                 &ctx,
                 &mut app,
                 vec![keyboard(egui::Key::Enter, egui::Modifiers::NONE)],
             );
-            assert_eq!(app.page(), &Page::LikedSongs);
+            assert_eq!(app.page(), &Page::Playlist("pl1".into()));
 
             let tree = accessible_frame(&ctx, &mut app, vec![]);
             let library_search =
@@ -1534,9 +1536,9 @@ mod tests {
                 &gettext(locale, "Search in Your Library"),
                 Role::TextInput,
             );
-            app.library.filter = gettext(locale, "Liked Songs").to_uppercase();
+            app.library.filter = "LATE NIGHT FOCUS".into();
             let tree = accessible_frame(&ctx, &mut app, vec![]);
-            accessible_node(&tree, &gettext(locale, "Liked Songs"), Role::Button);
+            accessible_node(&tree, "Late night focus", Role::Button);
             assert!(
                 !tree
                     .nodes
@@ -2082,11 +2084,11 @@ mod tests {
         };
 
         let tree = accessible_frame(&ctx, &mut app, vec![]);
-        let liked = row(&tree, &gettext(Locale::German, "Liked Songs")).center();
+        let playlist = row(&tree, "Sunday morning").center();
         accessible_frame(
             &ctx,
             &mut app,
-            pointer_click(liked, egui::PointerButton::Secondary),
+            pointer_click(playlist, egui::PointerButton::Secondary),
         );
         let tree = accessible_frame(&ctx, &mut app, vec![]);
         accessible_node(&tree, &gettext(Locale::German, "Play"), Role::Button);
@@ -2098,11 +2100,11 @@ mod tests {
         );
 
         let tree = accessible_frame(&ctx, &mut app, vec![]);
-        let liked = row(&tree, &gettext(Locale::German, "Liked Songs")).center();
+        let playlist = row(&tree, "Sunday morning").center();
         accessible_frame(
             &ctx,
             &mut app,
-            pointer_click(liked, egui::PointerButton::Secondary),
+            pointer_click(playlist, egui::PointerButton::Secondary),
         );
         let tree = accessible_frame(&ctx, &mut app, vec![]);
         accessible_node(&tree, &gettext(Locale::German, "Unpin"), Role::Button);
@@ -2110,9 +2112,9 @@ mod tests {
     }
 
     #[test]
-    fn the_liked_songs_menu_is_as_narrow_as_the_other_menus() {
+    fn playlist_menu_is_as_narrow_as_the_other_menus() {
         use egui::accesskit::Role;
-        let (ctx, mut app) = accessible_app("liked-menu-width");
+        let (ctx, mut app) = accessible_app("playlist-menu-width");
         let button = |tree: &egui::accesskit::TreeUpdate, label: &str| {
             let bounds = tree
                 .nodes
@@ -2131,7 +2133,7 @@ mod tests {
         };
 
         let tree = accessible_frame(&ctx, &mut app, vec![]);
-        let (x0, x1, y0, y1) = button(&tree, "Liked Songs");
+        let (x0, x1, y0, y1) = button(&tree, "Sunday morning");
         accessible_frame(
             &ctx,
             &mut app,
@@ -2206,12 +2208,12 @@ mod tests {
             .nodes
             .iter()
             .find_map(|(_, node)| {
-                let bounds = (node.role() == Role::Button && node.label() == Some("Liked Songs"))
+                let bounds = (node.role() == Role::Button && node.label() == Some("Late night focus"))
                     .then(|| node.bounds())
                     .flatten()?;
                 Some(egui::pos2(bounds.x0 as f32 + 24.0, bounds.y0 as f32 + 24.0))
             })
-            .expect("Liked Songs card");
+            .expect("Playlist card");
         assert!(!art.contains(visible));
         let release = |app: &mut App, pos| {
             frame(&ctx, app, vec![egui::Event::PointerMoved(pos)]);
@@ -2286,11 +2288,11 @@ mod tests {
             .nodes
             .iter()
             .find_map(|(_, node)| {
-                (node.role() == Role::Button && node.label() == Some("Liked Songs"))
+                (node.role() == Role::Button && node.label() == Some("Late night focus"))
                     .then(|| node.bounds())
                     .flatten()
             })
-            .expect("Liked Songs card");
+            .expect("Playlist card");
         let pos = egui::pos2(liked.x0 as f32 + 24.0, liked.y0 as f32 + 24.0);
         egui::DragAndDrop::set_payload(
             &ctx,
@@ -6019,17 +6021,17 @@ mod tests {
     }
 
     #[test]
-    fn double_clicking_a_sidebar_liked_row_plays_the_collection() {
-        let (ctx, mut app) = accessible_app("sidebar-double-click-liked");
+    fn double_clicking_a_sidebar_playlist_plays_its_context() {
+        let (ctx, mut app) = accessible_app("sidebar-double-click-playlist");
         let view = crate::ui::sidebar::show;
         view_frame(&ctx, &mut app, vec![], view);
         let painted = view_frame(&ctx, &mut app, vec![], view);
-        let name = sidebar_text(&painted, "Liked Songs").center();
+        let name = sidebar_text(&painted, "Late night focus").center();
         app.actions.clear();
         let [first, second] = double_click(name);
         view_frame(&ctx, &mut app, first, view);
         view_frame(&ctx, &mut app, second, view);
-        assert_eq!(played_contexts(&app), ["melba:user:demo:collection"]);
+        assert_eq!(played_contexts(&app), ["melba:playlist:pl1"]);
         app.backend.shutdown();
     }
 
@@ -7143,6 +7145,7 @@ mod tests {
             cache: root.join("cache"),
         };
         let ctx = egui::Context::default();
+        ctx.enable_accesskit();
         let waker = crate::backend::Waker::default();
         waker.attach(&ctx);
         let mut app = App::new(
@@ -7163,45 +7166,46 @@ mod tests {
             frame(&ctx, &mut app);
         }
 
-        // Sweep from the top: the first slot inside the list drops the
-        // dragged row above Liked Songs. Where the list begins
-        // depends on the loaded fonts, so the sweep does not hardcode it.
-        let mut dropped = false;
-        for step in 0..40 {
-            let pos = egui::pos2(120.0, 100.0 + step as f32 * 10.0);
-            egui::DragAndDrop::set_payload(
-                &ctx,
-                DragEntry {
-                    uri: "melba:playlist:pl4".into(),
-                    title: "New Music Mix".into(),
-                    image: None,
-                },
-            );
-            frame_events(&ctx, &mut app, vec![egui::Event::PointerMoved(pos)]);
-            frame_events(
-                &ctx,
-                &mut app,
-                vec![egui::Event::PointerButton {
-                    pos,
-                    button: egui::PointerButton::Primary,
-                    pressed: false,
-                    modifiers: egui::Modifiers::NONE,
-                }],
-            );
-            egui::DragAndDrop::clear_payload(&ctx);
-            if app.settings.pinned_contexts.first().map(String::as_str)
-                == Some("melba:playlist:pl4")
-            {
-                dropped = true;
-                break;
-            }
-        }
-        assert!(dropped, "no sweep position landed in the pinned block");
+        // Aim at the actual first pinned row instead of guessing where the
+        // sidebar starts. Removing the virtual Liked Songs row changes its y.
+        let tree = accessible_frame(&ctx, &mut app, vec![]);
+        let bounds = tree
+            .nodes
+            .iter()
+            .find_map(|(_, node)| {
+                (node.role() == egui::accesskit::Role::Button
+                    && node.label() == Some("Sunday morning"))
+                .then(|| node.bounds())
+                .flatten()
+            })
+            .expect("first pinned playlist row");
+        let pos = egui::pos2(bounds.x0 as f32 + 8.0, bounds.y0 as f32 + 2.0);
+        egui::DragAndDrop::set_payload(
+            &ctx,
+            DragEntry {
+                uri: "melba:playlist:pl4".into(),
+                title: "New Music Mix".into(),
+                image: None,
+            },
+        );
+        frame_events(&ctx, &mut app, vec![egui::Event::PointerMoved(pos)]);
+        frame_events(
+            &ctx,
+            &mut app,
+            vec![egui::Event::PointerButton {
+                pos,
+                button: egui::PointerButton::Primary,
+                pressed: false,
+                modifiers: egui::Modifiers::NONE,
+            }],
+        );
+        egui::DragAndDrop::clear_payload(&ctx);
         assert_eq!(
             app.settings.pinned_contexts,
             vec![
-                "melba:playlist:pl4".to_string(),
+                // Legacy pin metadata remains intact but is never rendered.
                 crate::settings::LIKED_SONGS_KEY.to_string(),
+                "melba:playlist:pl4".to_string(),
                 "melba:playlist:pl2".to_string(),
             ],
         );
@@ -7220,6 +7224,7 @@ mod tests {
             cache: root.join("cache"),
         };
         let ctx = egui::Context::default();
+        ctx.enable_accesskit();
         let waker = crate::backend::Waker::default();
         waker.attach(&ctx);
         let mut app = App::new(
@@ -7240,38 +7245,41 @@ mod tests {
             frame(&ctx, &mut app);
         }
 
-        // Sweep from the top; the first slot inside the list is the one
-        // right under Liked Songs, between what were the first two
-        // unpinned playlists.
-        let mut dropped = false;
-        for step in 0..40 {
-            let pos = egui::pos2(120.0, 100.0 + step as f32 * 10.0);
-            egui::DragAndDrop::set_payload(
-                &ctx,
-                DragEntry {
-                    uri: "melba:playlist:pl4".into(),
-                    title: "New Music Mix".into(),
-                    image: None,
-                },
-            );
-            frame_events(&ctx, &mut app, vec![egui::Event::PointerMoved(pos)]);
-            frame_events(
-                &ctx,
-                &mut app,
-                vec![egui::Event::PointerButton {
-                    pos,
-                    button: egui::PointerButton::Primary,
-                    pressed: false,
-                    modifiers: egui::Modifiers::NONE,
-                }],
-            );
-            egui::DragAndDrop::clear_payload(&ctx);
-            if !app.settings.sidebar_order.is_empty() {
-                dropped = true;
-                break;
-            }
-        }
-        assert!(dropped, "no sweep position landed below Liked Songs");
+        // Drop just above the second real playlist, not at a screen y
+        // derived from the old virtual Liked Songs row.
+        let tree = accessible_frame(&ctx, &mut app, vec![]);
+        let bounds = tree
+            .nodes
+            .iter()
+            .find_map(|(_, node)| {
+                (node.role() == egui::accesskit::Role::Button
+                    && node.label() == Some("Late night focus"))
+                .then(|| node.bounds())
+                .flatten()
+            })
+            .expect("second playlist row");
+        let pos = egui::pos2(bounds.x0 as f32 + 8.0, bounds.y0 as f32 + 2.0);
+        egui::DragAndDrop::set_payload(
+            &ctx,
+            DragEntry {
+                uri: "melba:playlist:pl4".into(),
+                title: "New Music Mix".into(),
+                image: None,
+            },
+        );
+        frame_events(&ctx, &mut app, vec![egui::Event::PointerMoved(pos)]);
+        frame_events(
+            &ctx,
+            &mut app,
+            vec![egui::Event::PointerButton {
+                pos,
+                button: egui::PointerButton::Primary,
+                pressed: false,
+                modifiers: egui::Modifiers::NONE,
+            }],
+        );
+        egui::DragAndDrop::clear_payload(&ctx);
+        assert!(!app.settings.sidebar_order.is_empty(), "playlist drop produced no order");
         let expected: Vec<String> = [0, 4]
             .into_iter()
             .chain((1..PLAYLISTS.len()).filter(|index| *index != 4))
@@ -7287,171 +7295,20 @@ mod tests {
     }
 
     #[test]
-    fn dragging_liked_songs_moves_it_and_its_menu_can_pin_it_again() {
+    fn virtual_liked_songs_pins_do_not_create_sidebar_rows() {
         use crate::settings::LIKED_SONGS_KEY;
         use egui::accesskit::Role;
         for compact in [false, true] {
-            let (ctx, mut app) = accessible_app(&format!("liked-drag-{compact}"));
+            let (ctx, mut app) = accessible_app(&format!("legacy-pin-hidden-{compact}"));
             app.settings.sidebar_compact = compact;
-            app.settings.pinned_contexts = vec!["melba:playlist:pl2".into()];
-            app.settings.sidebar_order = (0..PLAYLISTS.len())
-                .filter(|index| *index != 2)
-                .map(|index| format!("melba:playlist:pl{index}"))
-                .collect();
-            let row = |tree: &egui::accesskit::TreeUpdate, label: &str| {
-                let bounds = tree
-                    .nodes
-                    .iter()
-                    .find(|(_, node)| {
-                        node.role() == Role::Button
-                            && node.label() == Some(label)
-                            && node.bounds().is_some_and(|bounds| bounds.x0 < 250.0)
-                    })
-                    .unwrap_or_else(|| panic!("missing sidebar row {label}"))
-                    .1
-                    .bounds()
-                    .unwrap();
-                egui::Rect::from_min_max(
-                    egui::pos2(bounds.x0 as f32, bounds.y0 as f32),
-                    egui::pos2(bounds.x1 as f32, bounds.y1 as f32),
-                )
-            };
-            accessible_frame(&ctx, &mut app, vec![]);
+            app.settings.pinned_contexts = vec![LIKED_SONGS_KEY.into()];
+            app.settings.sidebar_order = vec![LIKED_SONGS_KEY.into()];
             let tree = accessible_frame(&ctx, &mut app, vec![]);
-            let source = row(&tree, "Liked Songs").center();
-            let target = row(&tree, "Late night focus");
-            let target = egui::pos2(source.x, target.top() + 1.0);
-            accessible_frame(
-                &ctx,
-                &mut app,
-                vec![
-                    egui::Event::PointerMoved(source),
-                    egui::Event::PointerButton {
-                        pos: source,
-                        button: egui::PointerButton::Primary,
-                        pressed: true,
-                        modifiers: egui::Modifiers::NONE,
-                    },
-                ],
-            );
-            accessible_frame(
-                &ctx,
-                &mut app,
-                vec![egui::Event::PointerMoved(source + egui::vec2(12.0, 0.0))],
-            );
-            assert_eq!(
-                egui::DragAndDrop::payload::<DragEntry>(&ctx).unwrap().uri,
-                LIKED_SONGS_KEY
-            );
-            accessible_frame(&ctx, &mut app, vec![egui::Event::PointerMoved(target)]);
-            accessible_frame(
-                &ctx,
-                &mut app,
-                vec![egui::Event::PointerButton {
-                    pos: target,
-                    button: egui::PointerButton::Primary,
-                    pressed: false,
-                    modifiers: egui::Modifiers::NONE,
-                }],
-            );
-            assert!(!app.settings.liked_songs_pinned);
-            assert_eq!(
-                &app.settings.sidebar_order[..3],
-                ["melba:playlist:pl0", LIKED_SONGS_KEY, "melba:playlist:pl1"]
-            );
-            let expected = app.settings.sidebar_order.clone();
-            let path = app.dirs.config.join("liked-placement.json");
-            app.settings.save(&path);
-            app.settings = Settings::load(&path);
-            let tree = accessible_frame(&ctx, &mut app, vec![]);
-            assert_eq!(app.settings.sidebar_order, expected);
-            assert!(row(&tree, "Favorites Mix").top() < row(&tree, "Liked Songs").top());
-            assert!(row(&tree, "Liked Songs").top() < row(&tree, "Late night focus").top());
-            let source = row(&tree, "Liked Songs").center();
-            accessible_frame(
-                &ctx,
-                &mut app,
-                pointer_click(source, egui::PointerButton::Secondary),
-            );
-            let tree = accessible_frame(&ctx, &mut app, vec![]);
-            let pin = accessible_node(&tree, "Pin to top", Role::Button);
-            accessible_frame(
-                &ctx,
-                &mut app,
-                vec![accessible_action(pin, egui::accesskit::Action::Click, None)],
-            );
-            assert_eq!(
-                app.settings.library_pins(),
-                ["melba:playlist:pl2", LIKED_SONGS_KEY]
-            );
-            assert!(
-                !app.settings
-                    .sidebar_order
-                    .iter()
-                    .any(|key| key == LIKED_SONGS_KEY)
-            );
-            let tree = accessible_frame(&ctx, &mut app, vec![]);
-            let source = row(&tree, "Liked Songs").center();
-            accessible_frame(
-                &ctx,
-                &mut app,
-                pointer_click(source, egui::PointerButton::Secondary),
-            );
-            let tree = accessible_frame(&ctx, &mut app, vec![]);
-            let unpin = accessible_node(&tree, "Unpin", Role::Button);
-            accessible_frame(
-                &ctx,
-                &mut app,
-                vec![accessible_action(
-                    unpin,
-                    egui::accesskit::Action::Click,
-                    None,
-                )],
-            );
-            assert!(!app.settings.liked_songs_pinned);
-            let tree = accessible_frame(&ctx, &mut app, vec![]);
-            let target = row(&tree, "Liked Songs").center();
-            app.saved.insert("melba:track:trk0".into(), false);
-            let source = egui::pos2(40.0, 755.0);
-            accessible_frame(
-                &ctx,
-                &mut app,
-                vec![
-                    egui::Event::PointerMoved(source),
-                    egui::Event::PointerButton {
-                        pos: source,
-                        button: egui::PointerButton::Primary,
-                        pressed: true,
-                        modifiers: egui::Modifiers::NONE,
-                    },
-                ],
-            );
-            accessible_frame(
-                &ctx,
-                &mut app,
-                vec![egui::Event::PointerMoved(source + egui::vec2(16.0, 0.0))],
-            );
-            assert_eq!(
-                egui::DragAndDrop::payload::<DragTrack>(&ctx).unwrap().items[0].uri(),
-                "melba:track:trk0"
-            );
-            accessible_frame(&ctx, &mut app, vec![egui::Event::PointerMoved(target)]);
-            accessible_frame(
-                &ctx,
-                &mut app,
-                vec![egui::Event::PointerButton {
-                    pos: target,
-                    button: egui::PointerButton::Primary,
-                    pressed: false,
-                    modifiers: egui::Modifiers::NONE,
-                }],
-            );
-            assert_eq!(
-                app.is_saved("melba:track:trk0"),
-                Some(true),
-                "dropping a song on the relocated row still saves it"
-            );
-            assert!(app.backend.take_playlist_add_requests().is_empty());
+            assert!(!tree.nodes.iter().any(|(_, node)| {
+                node.role() == Role::Button && node.label() == Some("Liked Songs")
+            }));
+            accessible_node(&tree, "Late night focus", Role::Button);
+            assert!(app.settings.library_pins().iter().any(|key| key == LIKED_SONGS_KEY));
             app.backend.shutdown();
         }
     }
