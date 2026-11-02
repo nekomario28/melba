@@ -77,8 +77,7 @@ jobs:
           RELEASE_TARGET: ${{ matrix.target }}
         run: |
           set -eu
-          version=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml","rb"))["package"]["version"])')
-          # Ubuntu 22.04 python3 may be 3.10 and does not have tomllib.
+          # Ubuntu 22.04 has Python 3.10 (tomllib is not available).
           version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -1)
           ./packaging/package-portable.sh release-candidate "$version" \
             crates/melba/target/release/melba target/release/melbad \
