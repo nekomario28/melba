@@ -749,7 +749,7 @@ pub fn login(user: &str, pass: &str) -> Result<String, String> {
 
 pub fn setup(apk: Option<&Path>) -> Result<String, String> {
     let _lease = session_lock()?;
-    crate::auth_gui::invalidate_binding()?;
+    const DEPS_SCRIPT: &str = include_str!("../packaging/install-deps.sh");
     const SCRIPT: &str = include_str!("../packaging/install-wrapper.sh");
     const SCRUB_SRC: &str = include_str!("../packaging/argv-scrub.c");
     let d = dir().ok_or("no XDG_DATA_HOME or HOME")?;
@@ -758,6 +758,25 @@ pub fn setup(apk: Option<&Path>) -> Result<String, String> {
     // both in one hidden dir so the sibling lookup works.
     let sdir = d.join(".install");
     std::fs::create_dir_all(&sdir).map_err(|e| e.to_string())?;
+    // This is also the post-install ALAC command. Prepare any missing
+    // system tools first, not only during initial Melba installation.
+    // Never invalidate an existing auth binding when prerequisites fail.
+    let deps = sdir.join("install-deps.sh");
+    std::fs::write(&deps, DEPS_SCRIPT).map_err(|e| e.to_string())?;
+    let deps_status = Command::new("/bin/sh")
+        .arg(&deps)
+        .arg("--alac")
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .status()
+        .map_err(|e| format!("ALAC prerequisites: {e}"))?;
+    if !deps_status.success() {
+        return Err(format!(
+            "ALAC prerequisites failed ({deps_status}); wrapper not changed"
+        ));
+    }
+    crate::auth_gui::invalidate_binding()?;
     let script = sdir.join("install-wrapper.sh");
     std::fs::write(&script, SCRIPT).map_err(|e| e.to_string())?;
     std::fs::write(sdir.join("argv-scrub.c"), SCRUB_SRC).map_err(|e| e.to_string())?;

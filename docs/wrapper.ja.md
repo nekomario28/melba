@@ -2,14 +2,15 @@
 
 [English](wrapper.md) | **日本語**
 
-通常の Melba インストーラは wrapper を**ダウンロード・インストール・同梱・再配布しません**。
-この文書は、利用者が用意して既にインストールしたサービスの制御だけを扱います。
+Melba は wrapper を**同梱・再配布しません**。ただし、ソース版・Release版のインストーラで
+明示的に `[Y/n]` に同意した場合（または `--with-alac` を指定した場合）には、
+外部のwrapperを取得して配置します。利用者が追加したサービスの制御について説明します。
 payload とその利用条件はこのリポジトリの外です（[NOTICE.md](../NOTICE.md)、
 [PUBLICATION.md](../PUBLICATION.md)）。
 
 ## インストール
 
-推奨手順は [ALAC 導入ガイド](installation.md#enable-alac-lossless) に記載しています。Melba 導入済みなら[外部bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap)を clone し、`./install.sh --wrapper-only` と `melbad wrapper status` を実行してください。その後 GUI でサインインします。対応する managed service では別途 CLI ログインは不要です。外部ランタイムの利用条件を確認してください。
+推奨手順は[ALAC導入ガイド](installation.md#enable-alac-lossless)に記載しています。Melba導入済みなら`melbad wrapper setup`、続けて`melbad wrapper status`を実行します。この変更を含む新しいビルドでは、必要な準備ツールが不足している場合、対応Linuxディストリビューションで自動導入します。**公開済みのv0.3.12は未対応**なので、ツールが不足する場合は[署名付きReleaseインストーラを`--with-alac`で再実行](installation.md#enable-alac-lossless)してください。個別にスクリプトを調べたい場合、[外部bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap)のcloneによる手動導入も可能です。GUIでサインインしてください。対応managed serviceでは別途CLIログインは不要です。外部ランタイムの利用条件を確認してください。
 
 ## モード
 

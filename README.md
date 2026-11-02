@@ -21,7 +21,7 @@ Linux `x86_64` and `aarch64` are supported. **Recommended on modern Linux (glibc
 curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/install-release.sh | sh
 ```
 
-The installer verifies the release signature and binary checksum, installs both `melba` and `melbad`, and offers optional ALAC setup with `[Y/n]` when interactive. ALAC can also be added later without reinstalling; see the [single-command instructions](docs/installation.md#enable-alac-lossless). You can opt out with `--no-alac` or opt in during non-interactive use with `--with-alac` (for example `curl -fsSL URL | sh -s -- --with-alac`).
+The installer verifies the publisher signature and SHA-256 checksum, installs both `melba` and `melbad`, and offers optional ALAC setup with `[Y/n]` on an interactive terminal. Missing Linux runtime libraries are installed through the distro package manager where supported; `sudo` may prompt for authorization. ALAC can be added later without rebuilding; see the [single-command instructions](docs/installation.md#enable-alac-lossless). Use `--no-alac` to skip or `--with-alac` to explicitly opt in when non-interactive (see [options](docs/installation.md)).
 
 **For developers building from source** (the installer can provision missing Rust/build dependencies):
 
@@ -36,16 +36,9 @@ melba
 
 ## Enable ALAC (lossless)
 
-ALAC requires a separate, user-supplied decrypt service. During interactive installation you can opt in with `[Y/n]`; if Melba is already installed, the [single-command setup](docs/installation.md#enable-alac-lossless) is preferred. Alternatively, explicitly stage the independent [wrapper bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap):
+ALAC requires a separately supplied decrypt service with its own terms. Select **Y** during interactive installation or use the [one-command setup](docs/installation.md#enable-alac-lossless) at any later time. New Melba builds check and provision missing staging tools on supported distributions; the published `v0.3.12` binary predates that improvement. Until a new Release is published, re-run the [signed installer with ALAC enabled](docs/installation.md#enable-alac-lossless) if those tools are missing. No Git clone, Rust or Cargo is needed for the prebuilt path. The independently maintained [wrapper bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap) remains an alternative for people who want to inspect and run its scripts separately.
 
-```sh
-git clone https://github.com/nekomario28/melba-wrapper-bootstrap.git
-cd melba-wrapper-bootstrap
-./install.sh --wrapper-only
-melbad wrapper status
-```
-
-For wrapper-only setup, you need `git`, `curl`, `unzip`, `file`, and a C compiler (`cc`); the full [source-build dependencies](docs/installation.md#requirements) are only needed to build Melba itself. Then use Melba's GUI to sign in and play an ALAC track. The managed service starts when needed; no separate CLI password or manual token copying is required. Review the bootstrap script, its security notes, and the external runtime's terms before executing it. If the service is unavailable, playback falls back to AAC. Source losslessness and bit-perfect output are different. See the [full setup guide](docs/installation.md#enable-alac-lossless).
+Sign in through Melba's GUI and play an ALAC track. The managed service starts on demand; no separate CLI password or manual token copying is needed. Staging does **not** guarantee ALAC playback, and source losslessness differs from bit-perfect output. Review the [full guide](docs/installation.md#enable-alac-lossless) and external runtime security notes.
 
 ## Play music
 

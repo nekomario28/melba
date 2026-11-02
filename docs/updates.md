@@ -26,7 +26,7 @@ Do not commit the private key or treat a signing receipt as a full legal or secu
 
 ## Published releases and tested paths
 
-Signed **v0.3.12** release assets are published for `x86_64` and `aarch64` from the same source tag, with a detached signed checksum manifest. The arm64 binary is build-verified on a native arm64 GitHub runner but not run-verified on arm64 hardware. The native SDK presentation bridge is x86_64-only; arm64 uses browser sign-in. The optional decrypt wrapper/rootfs remains architecture-specific and user-supplied.
+Signed **v0.3.12** release assets are published for `x86_64` and `aarch64` from the same source tag, with a detached signed checksum manifest. The current Linux binaries require **glibc 2.43+**, so older systems (including Ubuntu 24.04 / glibc 2.39) must use a source build until releases are built against an older baseline ([Issue #18](https://github.com/nekomario28/melba/issues/18)). The arm64 binary is build-verified on a native arm64 GitHub runner but not run-verified on arm64 hardware. The native SDK presentation bridge is x86_64-only; arm64 uses browser sign-in. The optional decrypt wrapper/rootfs remains architecture-specific and user-supplied.
 
 The v0.3.5 and older portable archives contain `NOTICE.md` and the project licences but predate the complete notice-packaging fix: they do not contain `SPOTIFAST-LICENSE` or the generated third-party bundles. v0.3.6 archives carry them. Do not treat an older archive as a complete binary notice set.
 

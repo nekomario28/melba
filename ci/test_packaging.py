@@ -292,6 +292,47 @@ binary.chmod(0o755)
             cwd=self.work, env=self.env, text=True, capture_output=True,
         )
 
+    def test_late_alac_setup_provisions_missing_cachyos_tools(self):
+        # This same shell helper is embedded in melbad for wrapper setup.
+        # Isolate PATH so an installed unzip on the CI runner does not hide
+        # a missing system dependency.
+        os_release = self.work / "os-release"
+        os_release.write_text("ID=cachyos\nID_LIKE=arch\n")
+        for program in ("bash", "curl", "file", "cc", "sed", "tr", "id"):
+            self.fakebin.joinpath(program).symlink_to(shutil.which(program))
+        self.env.update(PATH=str(self.fakebin),
+                        MELBA_INSTALL_OS_RELEASE=str(os_release),
+                        MELBA_INSTALL_AUTO_DEPS="1",
+                        PACMAN_TRACE=str(self.work / "pacman.log"),
+                        INSTALL_TEST_UNZIP=str(shutil.which("unzip")),
+                        INSTALL_TEST_FAKEBIN=str(self.fakebin))
+        self.stub("sudo", '#!/bin/sh\n"$@"\n')
+        self.stub("pacman", '''#!/bin/sh
+printf "%s\\n" "$*" >> "$PACMAN_TRACE"
+/bin/ln -s "$INSTALL_TEST_UNZIP" "$INSTALL_TEST_FAKEBIN/unzip"
+''')
+        result = subprocess.run(
+            ["/bin/sh", str(ROOT / "packaging/install-deps.sh"), "--alac"],
+            env=self.env, text=True, capture_output=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("-S --needed --noconfirm unzip",
+                      (self.work / "pacman.log").read_text())
+        self.assertIn("Installing missing ALAC staging tools", result.stdout)
+
+    def test_late_alac_setup_can_disable_package_provisioning(self):
+        self.env["MELBA_INSTALL_AUTO_DEPS"] = "0"
+        for program in ("bash", "curl", "file", "cc"):
+            self.fakebin.joinpath(program).symlink_to(shutil.which(program))
+        self.env["PATH"] = str(self.fakebin)
+        result = subprocess.run(
+            ["/bin/sh", str(ROOT / "packaging/install-deps.sh"), "--alac"],
+            env=self.env, text=True, capture_output=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("missing optional ALAC tools: unzip", result.stderr)
+        self.assertFalse((self.work / "pacman.log").exists())
+
     def test_missing_cargo_about_is_bootstrapped_without_changing_host(self):
         seed = self.work / "cargo-about-seed"
         installed = self.fakebin / "cargo-about"
@@ -305,6 +346,13 @@ binary.chmod(0o755)
         self.assertTrue((self.root / "bin/cargo-about").is_file())
         self.assertIn("install cargo-about --version 0.8.4 --locked",
                       (self.work / "cargo.log").read_text())
+
+    def test_wrong_cargo_about_version_is_rejected_when_auto_disabled(self):
+        self.stub("cargo-about", '#!/bin/sh\necho "cargo-about 0.8.3"\n')
+        self.env["MELBA_INSTALL_AUTO_DEPS"] = "0"
+        result = self.install("--no-unit")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("cargo-about 0.8.4 required", result.stderr)
 
     def test_rustup_without_default_toolchain_initializes_stable(self):
         marker = self.work / "rust-ready"
