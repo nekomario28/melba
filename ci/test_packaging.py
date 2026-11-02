@@ -634,6 +634,41 @@ if os.environ.get("OPENSSL_FAIL"):
         self.assertIn("webki"+"t2gtk-4.1", (self.work / "pacman.log").read_text())
 
     @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
+    def test_release_chooses_legacy_alsa_package_when_apt_has_no_t64(self):
+        os_release = self.work / "os-release"
+        os_release.write_text("ID=ubuntu\nID_LIKE=debian\nVERSION_ID=22.04\n")
+        ready = self.work / "alsa-ready"
+        self.env.update(MELBA_INSTALL_AUTO_DEPS="1",
+                        MELBA_INSTALL_OS_RELEASE=str(os_release),
+                        RUNTIME_READY=str(ready),
+                        APT_TRACE=str(self.work / "apt.log"))
+        self.stub("ldd", '#!/bin/sh\n[ -f "$RUNTIME_READY" ] || echo "libasound.so.2 => not found"\n')
+        self.stub("apt-cache", '#!/bin/sh\nexit 1\n')
+        self.stub("sudo", '#!/bin/sh\n"$@"\n')
+        self.stub("apt-get", '#!/bin/sh\nprintf "%s\\n" "$*" >> "$APT_TRACE"\ntouch "$RUNTIME_READY"\n')
+        result = self.install("--no-alac")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("install -y libasound2", (self.work / "apt.log").read_text())
+        self.assertNotIn("libasound2t64", (self.work / "apt.log").read_text())
+
+    @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
+    def test_release_uses_t64_alsa_package_when_available(self):
+        os_release = self.work / "os-release"
+        os_release.write_text("ID=debian\nID_LIKE=debian\nVERSION_ID=13\n")
+        ready = self.work / "alsa-ready"
+        self.env.update(MELBA_INSTALL_AUTO_DEPS="1",
+                        MELBA_INSTALL_OS_RELEASE=str(os_release),
+                        RUNTIME_READY=str(ready),
+                        APT_TRACE=str(self.work / "apt.log"))
+        self.stub("ldd", '#!/bin/sh\n[ -f "$RUNTIME_READY" ] || echo "libasound.so.2 => not found"\n')
+        self.stub("apt-cache", '#!/bin/sh\nexit 0\n')
+        self.stub("sudo", '#!/bin/sh\n"$@"\n')
+        self.stub("apt-get", '#!/bin/sh\nprintf "%s\\n" "$*" >> "$APT_TRACE"\ntouch "$RUNTIME_READY"\n')
+        result = self.install("--no-alac")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("install -y libasound2t64", (self.work / "apt.log").read_text())
+
+    @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
     def test_release_refuses_missing_runtime_with_auto_deps_disabled(self):
         self.stub("ldd", '#!/bin/sh\necho "libwebkit2gtk-4.1.so.0 => not found"\n')
         result = self.install("--no-alac")
