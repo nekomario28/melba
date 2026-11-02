@@ -13,6 +13,46 @@ use super::widgets;
 
 const PLAYBACK_DIRTY_ID: &str = "playback-settings-dirty";
 const SETTINGS_FILTER_ID: &str = "settings-filter";
+const ALAC_STATUS_ID: &str = "alac-setup-status";
+const ALAC_SETUP_URL: &str =
+    "https://github.com/nekomario28/melba/blob/main/docs/installation.md#enable-alac-lossless";
+
+/// A configured service is not necessarily running or authenticated.
+/// The UI checks only local paths and configuration, never network ports.
+fn alac_service_configured(config_base: &std::path::Path, data_base: &std::path::Path) -> bool {
+    let config = std::fs::read(config_base.join("melba/config.json"))
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok());
+    if config
+        .as_ref()
+        .and_then(|value| value["wrapper_url"].as_str())
+        .is_some_and(|url| !url.trim().is_empty())
+    {
+        return true;
+    }
+    ["run", "wrapper-lite-qemu", "wrapper-lite", "wrapper"]
+        .iter()
+        .any(|binary| data_base.join("melba/wrapper").join(binary).is_file())
+}
+
+fn alac_service_configured_for_user() -> bool {
+    let xdg_dir = |variable: &str, fallback: &str| {
+        std::env::var_os(variable)
+            .map(std::path::PathBuf::from)
+            .filter(|path| path.is_absolute())
+            .or_else(|| {
+                std::env::var_os("HOME")
+                    .map(|home| std::path::PathBuf::from(home).join(fallback))
+            })
+    };
+    match (
+        xdg_dir("XDG_CONFIG_HOME", ".config"),
+        xdg_dir("XDG_DATA_HOME", ".local/share"),
+    ) {
+        (Some(config), Some(data)) => alac_service_configured(&config, &data),
+        _ => false,
+    }
+}
 
 /// Whether a settings row matches the filter query (case-insensitive).
 /// An empty query matches everything, so the page reads exactly as
@@ -226,6 +266,45 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                 });
                 ui.add_space(10.0);
             }
+        });
+    }
+
+
+    let alac_title = gettext(locale, "Lossless audio (ALAC)");
+    // Local file checks are cached so they do not run on every paint.
+    // An external installation is detected on return to Settings.
+    let now = ui.input(|input| input.time);
+    let status_id = egui::Id::new(ALAC_STATUS_ID);
+    let alac_configured = match ui.data(|data| data.get_temp::<(f64, bool)>(status_id)) {
+        Some((checked_at, configured)) if now - checked_at < 15.0 => configured,
+        _ => {
+            let configured = alac_service_configured_for_user();
+            ui.data_mut(|data| data.insert_temp(status_id, (now, configured)));
+            configured
+        }
+    };
+    let alac_detail = if alac_configured {
+        gettext(locale, "ALAC service configured. Lossless playback still requires a valid sign-in.")
+    } else {
+        gettext(locale, "ALAC requires an external service; installing Melba alone does not enable lossless playback.")
+    };
+    let alac_rows = [RowText::new(alac_title.clone(), alac_detail)];
+    if section_matches(&needle, &alac_title, &alac_rows) {
+        any_visible = true;
+        section(ui, &palette, &alac_title, |ui| {
+            filtered_row(ui, &palette, &needle, &alac_title, &alac_rows[0], |ui| {
+                let button = if alac_configured {
+                    gettext(locale, "ALAC setup guide")
+                } else {
+                    gettext(locale, "Set up ALAC")
+                };
+                if theme::soft_button(ui, &palette, Some(Icon::ExternalLink), &button, false)
+                    .clicked()
+                {
+                    // No download or installation occurs without user action.
+                    ui.ctx().open_url(egui::OpenUrl::new_tab(ALAC_SETUP_URL));
+                }
+            });
         });
     }
 
@@ -947,7 +1026,34 @@ fn language_picker(app: &mut App, ui: &mut egui::Ui) {
 
 #[cfg(test)]
 mod tests {
-    use super::{RowText, row_matches, section_matches};
+    use super::{RowText, alac_service_configured, row_matches, section_matches};
+
+    #[test]
+    fn alac_setup_detects_missing_managed_and_external_services() {
+        let root = std::env::temp_dir().join(format!(
+            "melba-alac-setup-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let config = root.join("config");
+        let data = root.join("data");
+        let _ = std::fs::remove_dir_all(&root);
+        assert!(!alac_service_configured(&config, &data));
+
+        let wrapper = data.join("melba/wrapper/run");
+        std::fs::create_dir_all(wrapper.parent().unwrap()).unwrap();
+        std::fs::write(&wrapper, b"test").unwrap();
+        assert!(alac_service_configured(&config, &data));
+        std::fs::remove_file(wrapper).unwrap();
+
+        let file = config.join("melba/config.json");
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        std::fs::write(&file, br#"{"wrapper_url":"tcp://127.0.0.1:10020"}"#).unwrap();
+        assert!(alac_service_configured(&config, &data));
+        std::fs::write(&file, b"{invalid").unwrap();
+        assert!(!alac_service_configured(&config, &data));
+        std::fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn empty_filter_matches_everything() {
