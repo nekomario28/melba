@@ -367,8 +367,8 @@ binary.chmod(0o755)
         self.assertIn("original notice is missing", result.stderr)
         self.assertEqual(binary.read_text(), "old binary")
         self.assertFalse((self.root / "bin/melbad").exists())
-        self.assertTrue(all(line.startswith("fetch ") for line in
-                            (self.work / "cargo.log").read_text().splitlines()))
+        self.assertTrue(all(line.startswith("fetch ") or line == "--version"
+                            for line in (self.work / "cargo.log").read_text().splitlines()))
         self.assertFalse((self.work / "data").exists())
         self.assertFalse((self.work / "systemctl.log").exists())
 

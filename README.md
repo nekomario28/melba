@@ -21,7 +21,7 @@ Linux `x86_64` and `aarch64` are supported. **Recommended: install the prebuilt,
 curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/install-release.sh | sh
 ```
 
-The installer verifies the release signature and binary checksum, installs both `melba` and `melbad`, and offers optional ALAC setup with `[Y/n]` when interactive. Later ALAC setup is one command: `melbad wrapper setup`. You can opt out with `--no-alac` or opt in during non-interactive use with `--with-alac` (for example `curl -fsSL URL | sh -s -- --with-alac`).
+The installer verifies the release signature and binary checksum, installs both `melba` and `melbad`, and offers optional ALAC setup with `[Y/n]` when interactive. ALAC can also be added later without reinstalling; see the [single-command instructions](docs/installation.md#enable-alac-lossless). You can opt out with `--no-alac` or opt in during non-interactive use with `--with-alac` (for example `curl -fsSL URL | sh -s -- --with-alac`).
 
 **For developers building from source** (the installer can provision missing Rust/build dependencies):
 
@@ -36,7 +36,7 @@ melba
 
 ## Enable ALAC (lossless)
 
-ALAC requires a separate, user-supplied decrypt service; the normal Melba installer does **not** enable lossless playback. If Melba is already installed, explicitly stage the independent [wrapper bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap):
+ALAC requires a separate, user-supplied decrypt service. During interactive installation you can opt in with `[Y/n]`; if Melba is already installed, the [single-command setup](docs/installation.md#enable-alac-lossless) is preferred. Alternatively, explicitly stage the independent [wrapper bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap):
 
 ```sh
 git clone https://github.com/nekomario28/melba-wrapper-bootstrap.git

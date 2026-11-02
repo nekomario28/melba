@@ -22,7 +22,7 @@ Linux `x86_64` / `aarch64` 対応。**通常はビルド済みの署名付きRel
 curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/install-release.sh | sh
 ```
 
-Releaseの署名・チェックサムを検証し、`melba`と`melbad`を導入します。対話環境では任意のALAC導入を`[Y/n]`で確認します。後から追加する場合は`melbad wrapper setup`の1コマンドで導入できます。非対話環境では`--with-alac`で明示的に指定できます。
+Releaseの署名・チェックサムを検証し、`melba`と`melbad`を導入します。対話環境では任意のALAC導入を`[Y/n]`で確認します。後から追加する場合も[1コマンドで導入できます](docs/installation.md#enable-alac-lossless)。非対話環境では`--with-alac`で明示的に指定できます。
 
 **開発者向けソースビルド**では不足する開発パッケージ・Rust・`cargo-about`を自動導入します（必要に応じて`sudo`を使用）。
 
