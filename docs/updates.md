@@ -24,6 +24,52 @@ openssl pkeyutl -sign -rawin -inkey "$MELBA_SIGNING_KEY" -in checksums.txt -out 
 
 Do not commit the private key or treat a signing receipt as a full legal or security audit.
 
+## Preparing and publishing a new signed Release
+
+The fully CI-validated v0.3.13 release preparation is at
+[PR #33](https://github.com/nekomario28/melba/pull/33). The `portable-baseline`
+workflow builds x86_64 and aarch64 on Ubuntu 22.04 (glibc 2.35), then tests
+the **actual unsigned candidates** in eight supported Linux containers.
+These are **not** public trusted Release assets until signed.
+
+After the source version update is merged into `main`, the repository maintainer
+must register the **existing** Ed25519 private publisher key in GitHub
+**Settings → Secrets and variables → Actions**, as the repository secret
+`MELBA_SIGNING_KEY_PEM` (or a secret with that name in the protected
+`release` environment). Use the complete PEM private-key content, never a
+newly generated key: already-installed clients trust the pinned public key.
+
+To register the PEM from a private local file without printing it to a shell
+history or placing it in the repository, the maintainer can use:
+
+```sh
+gh secret set MELBA_SIGNING_KEY_PEM < /secure/path/to/existing-publisher-key.pem
+```
+
+Once the secret exists, go to **Actions → Publish signed portable Release →
+Run workflow**, select **main**, enter `0.3.13`, and check the explicit
+publication confirmation. Alternatively:
+
+```sh
+gh workflow run release-publish.yml --ref main \
+  -f version=0.3.13 -F confirm_publish=true
+```
+
+The workflow rejects existing tags, mismatched source versions, a missing or
+incorrect private key, missing or malformed release assets, failed ABI tests,
+or any failed distro smoke. Only after all gates succeed will it create a public
+Release with both binaries for x86_64 and aarch64, the four archive SHA-256
+entries, the existing publisher's Ed25519 signature, and public key files.
+After publishing it downloads those assets and verifies them again. The
+`release` environment can be configured with required reviewers in
+GitHub's environment protection settings for an additional approval gate.
+
+**Keep the current published-release compatibility table unchanged until the
+signed release is publicly visible and the actual `install-release.sh` path has
+been smoke-tested against it.** The native Nix package contains fixed
+v0.3.12 archive hashes; refresh those in a separate reviewed change only after
+the new release archives exist.
+
 ## Published releases and tested paths
 
 Signed **v0.3.12** release assets are published for `x86_64` and `aarch64` from the same source tag, with a detached signed checksum manifest. The current Linux binaries require **glibc 2.43+**, so older systems (including Ubuntu 24.04 / glibc 2.39) must use a source build until releases are built against an older baseline ([Issue #18](https://github.com/nekomario28/melba/issues/18)). The arm64 binary is build-verified on a native arm64 GitHub runner but not run-verified on arm64 hardware. The native SDK presentation bridge is x86_64-only; arm64 uses browser sign-in. The optional decrypt wrapper/rootfs remains architecture-specific and user-supplied.

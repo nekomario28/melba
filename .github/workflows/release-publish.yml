@@ -109,7 +109,7 @@ jobs:
           gh release create "$TAG" release-assets/* \
             --target "$GITHUB_SHA" \
             --title "Melba $TAG" \
-            --notes-file docs/releases/v0.3.13.md \
+            --notes-file "docs/releases/$TAG.md" \
             --latest
       - name: Verify published signature and all four published archives
         shell: bash
