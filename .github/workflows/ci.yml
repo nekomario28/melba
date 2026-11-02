@@ -42,6 +42,30 @@ jobs:
       # /proc/asound → probe, no session bus → mpris, no gx tools → gx.*).
       - run: MELBA_BIN=./target/debug/melbad ./ci/check.sh
 
+  # End-to-end smoke tests the real signed public Release (not fixture data).
+  release-install-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Verify signed release and install paired binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          export MELBA_PORTABLE_DIR="$RUNNER_TEMP/melba-install-smoke/app"
+          export XDG_BIN_HOME="$RUNNER_TEMP/melba-install-smoke/bin"
+          export XDG_DATA_HOME="$RUNNER_TEMP/melba-install-smoke/data"
+          sh packaging/install-release.sh --no-alac
+          test -f "$MELBA_PORTABLE_DIR/melba-portable.txt"
+          test -L "$XDG_BIN_HOME/melba"
+          test -L "$XDG_BIN_HOME/melbad"
+          test -f "$XDG_DATA_HOME/applications/melba.desktop"
+          "$MELBA_PORTABLE_DIR/melba" --version
+          "$MELBA_PORTABLE_DIR/melbad" --version
+          gui=$("$MELBA_PORTABLE_DIR/melba" --version)
+          daemon=$("$MELBA_PORTABLE_DIR/melbad" --version)
+          test "${gui#melba }" = "${daemon#melbad }"
+
   # The melba crate must keep compiling on the other desktop targets; a
   # cfg gate once swallowed eframe::run_native entirely. A check build
   # never links, so no MinGW toolchain is needed on the runner.
