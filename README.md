@@ -15,7 +15,7 @@ Melba is an unofficial, Rust-based Apple Music desktop player (`melba`) paired w
 
 ## Install
 
-Linux `x86_64` and `aarch64` are supported. **Recommended on modern Linux (glibc 2.43+)**: install the prebuilt, publisher-signed release without Git or Rust. Older glibc systems must build from source:
+Linux `x86_64` and `aarch64` are supported. **Recommended on modern Linux (glibc 2.43+)**: install the prebuilt, publisher-signed release without Git or Rust. Older glibc systems (including Debian 13, Ubuntu 24.04 and Fedora 43) must build from source; NixOS has a separate paired Nix package:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/install-release.sh | sh
@@ -23,7 +23,7 @@ curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/in
 
 The installer verifies the publisher signature and SHA-256 checksum, installs both `melba` and `melbad`, and offers optional ALAC setup with `[Y/n]` on an interactive terminal. Missing Linux runtime libraries are installed through the distro package manager where supported; `sudo` may prompt for authorization. ALAC can be added later without rebuilding; see the [single-command instructions](docs/installation.md#enable-alac-lossless). Use `--no-alac` to skip or `--with-alac` to explicitly opt in when non-interactive (see [options](docs/installation.md)).
 
-**For developers building from source** (the installer can provision missing Rust/build dependencies):
+**On Nix/NixOS**, use the reproducible [paired Nix package](docs/installation.md#nix-and-nixos), which includes both the GUI and daemon; do not pipe the generic Linux installer into NixOS. **For developers and distributions with older glibc**, build from source (the installer can provision missing Rust/build dependencies):
 
 ```sh
 git clone https://github.com/nekomario28/melba.git

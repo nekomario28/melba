@@ -36,6 +36,21 @@ cargo install cargo-about --version 0.8.4 --locked
 
 Firefox session import also needs the `sqlite3` CLI (`sqlite3` on Debian/Ubuntu; `sqlite` on Fedora/Arch). For AAC subscription playback, a usable Widevine CDM must already be installed; Melba does not download it.
 
+## Distro compatibility of the published v0.3.12 release
+
+The signed portable archive currently needs glibc 2.43 or newer. Our CI runs the **actual** apt/dnf package managers and signed Release installer in real containers (without real desktop/audio or Apple sign-in):
+
+| Distro | glibc | Signed portable v0.3.12 | Verified installer behavior |
+| --- | --- | --- | --- |
+| Debian 13 (trixie) | 2.41 | No | ALAC helper packages install; incompatible release is refused |
+| Ubuntu 24.04 LTS | 2.39 | No | ALAC helper packages install; incompatible release is refused |
+| Ubuntu 26.04 LTS | 2.43 | Yes | Runtime libraries are installed; both binaries execute |
+| Fedora 43 | 2.42 | No | ALAC helper packages install; incompatible release is refused |
+| Fedora 44 | 2.43 | Yes | Runtime libraries are installed; both binaries execute |
+| Current Arch/CachyOS | 2.43+ | Yes | Real pacman test using CachyOS OS metadata passed |
+
+For older distros use the [source installer](#source-install-developers); do **not** attempt to upgrade glibc manually to run an application. Lowering the release glibc baseline is tracked in [Issue #18](https://github.com/nekomario28/melba/issues/18). NixOS uses the [Nix package](#nix-and-nixos), not the generic portable installer.
+
 ## Recommended: signed prebuilt release
 
 On Linux `x86_64` or `aarch64` with **glibc 2.43 or newer** (for example current CachyOS/Arch or Ubuntu 26.04), skip the Rust toolchain and Git checkout. Current published binaries require glibc 2.43; on Ubuntu 24.04 (glibc 2.39) and older distributions use the [source installer](#source-install-developers) instead. Adding system runtime packages does not upgrade the glibc ABI:

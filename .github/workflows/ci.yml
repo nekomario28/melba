@@ -201,12 +201,8 @@ jobs:
         run: |
           set -euo pipefail
           nix --version
-          # Probe the current nixos-unstable lock. Published Melba requires
-          # GLIBC_2.43 while the old 2026-08 input provided glibc 2.42.
-          nix flake update nixpkgs --flake ./crates/melba
-          echo "=== UPDATED FLAKE LOCK START ==="
-          cat crates/melba/flake.lock
-          echo "=== UPDATED FLAKE LOCK END ==="
+          # Never update the checked-in flake.lock in CI: validate the
+          # reviewed, reproducible nixpkgs revision as delivered.
           nix-instantiate --parse crates/melba/flake.nix >/dev/null
           # Pinned nixpkgs 26.11 intentionally drops x86_64-darwin; evaluate
           # the supported Linux package rather than every legacy output.
