@@ -79,6 +79,8 @@ cd melba-wrapper-bootstrap
 ./install.sh
 ```
 
+For reference, the **v1.2.3 bootstrap entry script** is available at https://raw.githubusercontent.com/nekomario28/melba-wrapper-bootstrap/v1.2.3/install.sh. Clone the repository for the documented workflow above: the pinned standalone entry script may resolve its supporting files from the bootstrap repository's current default branch, so the URL alone does not pin the entire operation. Inspect the scripts and external runtime sources before proceeding.
+
 The bootstrap does not use `sudo`, install system packages, accept Apple's terms, handle account credentials or redistribute the external payload as part of Melba. Staging alone does **not** establish a working ALAC stream.
 
 1. Launch Melba, select **Sign in with Apple Music** and complete the GUI sign-in (and MFA if requested). No separate CLI password step is required for the supported managed service.
