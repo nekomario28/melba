@@ -486,6 +486,115 @@ binary.chmod(0o755)
         self.assertFalse((self.work / "config").exists())
 
 
+
+class ReleaseInstallerTests(unittest.TestCase):
+    """The public release path must not require Cargo or git."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix="melba-release-test-")
+        self.addCleanup(self.tmp.cleanup)
+        self.work = Path(self.tmp.name)
+        self.fakebin = self.work / "fakebin"
+        self.fakebin.mkdir()
+        self.env = {
+            **os.environ,
+            "HOME": str(self.work / "home"),
+            "XDG_BIN_HOME": str(self.work / "home/.local/bin"),
+            "XDG_DATA_HOME": str(self.work / "data"),
+            "MELBA_PORTABLE_DIR": str(self.work / "portable"),
+            "MELBA_INSTALL_AUTO_DEPS": "0",
+            "SHELL": "/bin/sh",
+            "OPENSSL_TRACE": str(self.work / "openssl.log"),
+            "PATH": f"{self.fakebin}:/usr/bin:/bin",
+        }
+        import hashlib
+        import tarfile
+        target = "x86_64-unknown-linux-gnu"
+        self.archive = f"melba-v0.3.12-{target}.tar.gz"
+        folder = self.work / self.archive.removesuffix(".tar.gz")
+        folder.mkdir()
+        for name in ("melba", "melbad"):
+            binary = folder / name
+            binary.write_text(
+                f"#!/bin/sh\\nprintf '{name} 0.3.12\\n'\\n"
+            )
+            binary.chmod(0o755)
+        (folder / "melba-portable.txt").write_text("melba-portable-v1\n")
+        for notice in ("NOTICE.md", "LICENSE-MIT", "LICENSE-APACHE",
+                       "SPOTIFAST-LICENSE", "melba-THIRD-PARTY.txt",
+                       "melbad-THIRD-PARTY.txt", "receipt.json"):
+            (folder / notice).write_text(f"fixture {notice}\n")
+        with tarfile.open(self.work / self.archive, "w:gz") as tar:
+            tar.add(folder, arcname=folder.name)
+        digest = hashlib.sha256((self.work / self.archive).read_bytes()).hexdigest()
+        (self.work / "checksums.txt").write_text(f"{digest}  {self.archive}\n")
+        (self.work / "checksums.txt.sig").write_bytes(bytes(64))
+        self.env["RELEASE_FIXTURE"] = str(self.work)
+        self.stub("curl", '''#!/usr/bin/env python3
+import os, pathlib, shutil, sys
+args = sys.argv[1:]
+out = pathlib.Path(args[args.index("-o") + 1])
+file = args[args.index("-o") - 1].rsplit("/", 1)[-1]
+shutil.copyfile(pathlib.Path(os.environ["RELEASE_FIXTURE"]) / file, out)
+''')
+        self.stub("openssl", '''#!/usr/bin/env python3
+import os, sys
+with open(os.environ["OPENSSL_TRACE"], "a") as out:
+    out.write(" ".join(sys.argv[1:]) + "\\n")
+if os.environ.get("OPENSSL_FAIL"):
+    sys.exit(1)
+''')
+
+    def stub(self, name, body):
+        p = self.fakebin / name
+        p.write_text(body)
+        p.chmod(0o755)
+
+    def install(self, *flags):
+        return subprocess.run(
+            ["/bin/sh", str(ROOT / "packaging/install-release.sh"), *flags],
+            env=self.env, cwd=self.work, text=True, capture_output=True,
+        )
+
+    @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
+    def test_release_installs_verified_pair_without_rust_or_git(self):
+        result = self.install("--no-alac")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        root = self.work / "portable"
+        for name in ("melba", "melbad"):
+            self.assertTrue((root / name).is_file())
+        self.assertEqual((root / "melba-portable.txt").read_text(), "melba-portable-v1\n")
+        self.assertIn("-verify -rawin -pubin", (self.work / "openssl.log").read_text())
+        self.assertIn("ALAC skipped", result.stdout)
+        self.assertTrue((self.work / "data/applications/melba.desktop").is_file())
+        self.assertEqual((self.work / "home/.local/bin/melba").resolve(), root / "melba")
+
+    @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
+    def test_release_refuses_invalid_publisher_signature_before_install(self):
+        self.env["OPENSSL_FAIL"] = "1"
+        result = self.install("--no-alac")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("publisher signature verification failed", result.stderr)
+        self.assertFalse((self.work / "portable/melba").exists())
+
+    @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
+    def test_release_refuses_modified_archive(self):
+        with (self.work / self.archive).open("ab") as out:
+            out.write(b"tampered")
+        result = self.install("--no-alac")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("signed checksum", result.stderr)
+        self.assertFalse((self.work / "portable/melba").exists())
+
+    def test_release_script_is_posix_shell_syntax(self):
+        result = subprocess.run(
+            ["/bin/sh", "-n", str(ROOT / "packaging/install-release.sh")],
+            capture_output=True, text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+
+
 class PortableArchiveTests(unittest.TestCase):
     def test_package_portable_always_includes_the_marker(self):
         with tempfile.TemporaryDirectory(prefix="melba-portable-package-") as folder:
