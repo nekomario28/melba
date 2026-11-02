@@ -20,16 +20,19 @@ set -eu
 cd "$(dirname "$0")/.."
 
 need_unit=1
+alac=ask
 mode=portable
 portable_dir=${MELBA_PORTABLE_DIR:-$HOME/.local/opt/melba}
 
 usage() {
-    echo "usage: sh packaging/install.sh [--portable|--cargo] [--portable-dir DIR] [--no-unit]" >&2
+    echo "usage: sh packaging/install.sh [--portable|--cargo] [--portable-dir DIR] [--no-unit] [--with-alac|--no-alac]" >&2
 }
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --no-unit) need_unit=0; shift;;
+        --with-alac) alac=yes; shift;;
+        --no-alac) alac=no; shift;;
         --portable) mode=portable; shift;;
         --cargo) mode=cargo; shift;;
         --portable-dir)
@@ -39,38 +42,10 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
-command -v cargo >/dev/null || {
-    echo "cargo not found — install a Rust toolchain first" >&2
-    exit 1
-}
-command -v pkg-config >/dev/null || {
-    echo "pkg-config not found — see README Install for system deps" >&2
-    exit 1
-}
-missing=""
-for pc in dbus-1 alsa webkit2gtk-4.1; do
-    pkg-config --exists "$pc" || missing="$missing $pc"
-done
-if [ -n "$missing" ]; then
-    echo "missing system dev packages for:$missing" >&2
-    echo "  Debian/Ubuntu: apt install libdbus-1-dev libasound2-dev libwebkit2gtk-4.1-dev" >&2
-    echo "  Fedora:        dnf install dbus-devel alsa-lib-devel webkit2gtk4.1-devel" >&2
-    echo "  Arch:          pacman -S dbus alsa-lib webkit2gtk-4.1" >&2
-    exit 1
-fi
-
-command -v xdg-open >/dev/null || {
-    echo "xdg-open not found — install xdg-utils for browser sign-in" >&2
-    exit 1
-}
-command -v python3 >/dev/null || {
-    echo "python3 not found — needed to collect license notices" >&2
-    exit 1
-}
-command -v cargo-about >/dev/null || {
-    echo "cargo-about not found — run: cargo install cargo-about --version 0.8.4 --locked" >&2
-    exit 1
-}
+# Provision missing OS packages, Rust and cargo-about as necessary.
+/bin/sh packaging/install-deps.sh
+PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+export PATH
 
 # Collect notices before replacing any installed executable. No network is
 # allowed during collection; Cargo fetch is the explicit acquisition step.
@@ -168,6 +143,22 @@ else
     mkdir -p "$bin_dir"
     ln -sfn "$install_root/melba" "$bin_dir/melba"
     ln -sfn "$install_root/melbad" "$bin_dir/melbad"
+    # A child cannot edit its parent's PATH. Fish universal paths propagate
+    # to existing and future fish sessions without rewriting config files.
+    case "${SHELL:-}" in
+        fish|*/fish)
+            if command -v fish >/dev/null 2>&1; then
+                MELBA_BIN_DIR="$bin_dir" fish -c 'fish_add_path -U -- "$MELBA_BIN_DIR"' ||
+                    echo "fish PATH update failed; run: fish_add_path '$bin_dir'" >&2
+            fi
+            ;;
+    esac
+    case ":$PATH:" in
+        *":$bin_dir:"*) ;;
+        *) echo "Note: $bin_dir is not on PATH; add it before running 'melba'." >&2
+           echo "  fish: fish_add_path '$bin_dir'" >&2
+           echo "  bash/zsh: export PATH=\"$bin_dir:\$PATH\"" >&2;;
+    esac
 fi
 
 # Exec has two escaping layers: desktop-entry strings, then quoted arguments.
@@ -206,10 +197,40 @@ if [ "$need_unit" = 0 ]; then
     echo "No standalone user unit installed; the desktop starts its co-installed daemon."
 fi
 echo
-echo "== wrapper (ALAC, optional) =="
-echo "This installer does not install, fetch or bundle a decrypt service."
-echo "An already-installed user-supplied service is controlled by Melba:"
-echo "  '$final_bin/melbad' wrapper status"
-echo "  '$final_bin/melbad' wrapper stop"
-echo "  '$final_bin/melbad' setup        # audio output only"
-echo "See docs/wrapper.md; the service's terms and Apple Music access are separate."
+echo "== ALAC (optional external decrypt service) =="
+if [ "$alac" = ask ]; then
+    # /dev/tty also works when install.sh itself was delivered through a pipe.
+    if [ -t 2 ] && [ -r /dev/tty ]; then
+        echo "ALAC requires a separately downloaded third-party runtime, including"
+        echo "Apple/Android libraries governed by their own terms."
+        echo "Details: https://github.com/nekomario28/melba-wrapper-bootstrap"
+        printf "Install ALAC lossless support? [Y/n] " >/dev/tty
+        IFS= read -r reply </dev/tty || reply=
+        case "$reply" in n|N|no|No|NO) alac=no;; *) alac=yes;; esac
+    else
+        echo "Non-interactive: optional ALAC skipped (pass --with-alac to opt in)."
+        alac=no
+    fi
+fi
+if [ "$alac" = yes ]; then
+    wrapper_dir=${XDG_DATA_HOME:-$HOME/.local/share}/melba/wrapper
+    staged=no
+    for entry in run wrapper-lite-qemu wrapper-lite wrapper; do
+        [ ! -f "$wrapper_dir/$entry" ] || staged=yes
+    done
+    if [ "$staged" = yes ]; then
+        echo "An ALAC service is already staged at $wrapper_dir; leaving it untouched."
+    else
+        echo "== Staging user-requested ALAC service =="
+        /bin/sh packaging/install-deps.sh --alac
+        if ! "$final_bin/melbad" wrapper setup; then
+            echo "Melba is installed, but ALAC staging failed." >&2
+            echo "Retry ALAC without rebuilding Melba: '$final_bin/melbad' wrapper setup" >&2
+            exit 1
+        fi
+    fi
+    "$final_bin/melbad" wrapper status || true
+else
+    echo "ALAC skipped. To add it later, run: '$final_bin/melbad' wrapper setup"
+fi
+echo "This installer does not bundle or automatically accept third-party terms."

@@ -15,7 +15,15 @@ Melba is an unofficial, Rust-based Apple Music desktop player (`melba`) paired w
 
 ## Install
 
-Linux `x86_64` and `aarch64`. Signed portable archives (`melba` + `melbad`) are published on [Releases](https://github.com/nekomario28/melba/releases); to build and install a paired portable copy from source (requires Rust 1.98+ and the [distro build dependencies](docs/installation.md)):
+Linux `x86_64` and `aarch64` are supported. **Recommended on modern Linux (glibc 2.43+)**: install the prebuilt, publisher-signed release without Git or Rust. Older glibc systems must build from source:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/install-release.sh | sh
+```
+
+The installer verifies the release signature and binary checksum, installs both `melba` and `melbad`, and offers optional ALAC setup with `[Y/n]` when interactive. ALAC can also be added later without reinstalling; see the [single-command instructions](docs/installation.md#enable-alac-lossless). You can opt out with `--no-alac` or opt in during non-interactive use with `--with-alac` (for example `curl -fsSL URL | sh -s -- --with-alac`).
+
+**For developers building from source** (the installer can provision missing Rust/build dependencies):
 
 ```sh
 git clone https://github.com/nekomario28/melba.git
@@ -24,14 +32,27 @@ sh packaging/install.sh
 melba
 ```
 
-`packaging/install.sh` installs `melba` and `melbad` under `~/.local/opt/melba`, links them in `~/.local/bin`, and adds a desktop entry. The desktop starts `melbad` on demand. See [Installation](docs/installation.md) for packaging options, alternate roots, and the [optional source-only ALAC wrapper bootstrap](docs/installation.md#optional-source-only-wrapper-bootstrap) (Melba never bundles the wrapper, rootfs, or account credentials).
+`packaging/install.sh` installs `melba` and `melbad` under `~/.local/opt/melba`, links them in `~/.local/bin`, and adds a desktop entry. The desktop starts `melbad` on demand. See [Installation](docs/installation.md) for packaging options, alternate roots (Melba never bundles the wrapper, rootfs, or account credentials).
+
+## Enable ALAC (lossless)
+
+ALAC requires a separate, user-supplied decrypt service. During interactive installation you can opt in with `[Y/n]`; if Melba is already installed, the [single-command setup](docs/installation.md#enable-alac-lossless) is preferred. Alternatively, explicitly stage the independent [wrapper bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap):
+
+```sh
+git clone https://github.com/nekomario28/melba-wrapper-bootstrap.git
+cd melba-wrapper-bootstrap
+./install.sh --wrapper-only
+melbad wrapper status
+```
+
+For wrapper-only setup, you need `git`, `curl`, `unzip`, `file`, and a C compiler (`cc`); the full [source-build dependencies](docs/installation.md#requirements) are only needed to build Melba itself. Then use Melba's GUI to sign in and play an ALAC track. The managed service starts when needed; no separate CLI password or manual token copying is required. Review the bootstrap script, its security notes, and the external runtime's terms before executing it. If the service is unavailable, playback falls back to AAC. Source losslessness and bit-perfect output are different. See the [full setup guide](docs/installation.md#enable-alac-lossless).
 
 ## Play music
 
 Launch `melba`, choose **Sign in with Apple Music**, and pick an output device in Settings or with `melbad setup`. Full catalog tracks require a paid subscription and a valid session; previews do not.
 
 - **AAC-256 (default):** uses a Widevine CDM already installed on the machine.
-- **ALAC / lossless (optional):** uses a compatible decrypt service you obtain and run separately, falling back to AAC when unavailable.
+- **ALAC / lossless (optional):** requires a separately installed service; see [Enable ALAC](#enable-alac-lossless).
 - **Output:** direct ALSA (`hw:X,Y`) or shared system audio (`default` / PipeWire / PulseAudio).
 - **Diagnostics:** `melbad doctor` checks token validity, CDM, wrapper reachability, and audio output.
 

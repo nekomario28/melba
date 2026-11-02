@@ -2,10 +2,14 @@
 
 [English](wrapper.md) | **日本語**
 
-Melba は wrapper を**ダウンロード・インストール・同梱・再配布しません**。
+通常の Melba インストーラは wrapper を**ダウンロード・インストール・同梱・再配布しません**。
 この文書は、利用者が用意して既にインストールしたサービスの制御だけを扱います。
 payload とその利用条件はこのリポジトリの外です（[NOTICE.md](../NOTICE.md)、
 [PUBLICATION.md](../PUBLICATION.md)）。
+
+## インストール
+
+推奨手順は [ALAC 導入ガイド](installation.md#enable-alac-lossless) に記載しています。Melba 導入済みなら[外部bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap)を clone し、`./install.sh --wrapper-only` と `melbad wrapper status` を実行してください。その後 GUI でサインインします。対応する managed service では別途 CLI ログインは不要です。外部ランタイムの利用条件を確認してください。
 
 ## モード
 

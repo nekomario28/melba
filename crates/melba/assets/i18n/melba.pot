@@ -1889,3 +1889,23 @@ msgstr ""
 #: src/window.rs:45
 msgid "melba needs a graphics driver with OpenGL 2.0 or newer, and this PC or virtual machine does not provide one. Install the graphics driver, or turn on GPU acceleration for the virtual machine. Open {url} to read more?"
 msgstr ""
+
+#: src/ui/settings.rs
+msgid "Lossless audio (ALAC)"
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "ALAC service configured. Lossless playback still requires a valid sign-in."
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "ALAC requires an external service; installing Melba alone does not enable lossless playback."
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "ALAC setup guide"
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "Set up ALAC"
+msgstr ""

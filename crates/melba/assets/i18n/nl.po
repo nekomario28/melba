@@ -2044,3 +2044,23 @@ msgstr "Melba heeft een grafisch stuurprogramma met OpenGL 2.0 of nieuwer nodig,
 #~ msgctxt "selection"
 #~ msgid "All"
 #~ msgstr "Alles"
+
+#: src/ui/settings.rs
+msgid "Lossless audio (ALAC)"
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "ALAC service configured. Lossless playback still requires a valid sign-in."
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "ALAC requires an external service; installing Melba alone does not enable lossless playback."
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "ALAC setup guide"
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "Set up ALAC"
+msgstr ""

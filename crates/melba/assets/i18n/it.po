@@ -2043,3 +2043,23 @@ msgstr "Melba ha bisogno di un driver grafico con OpenGL 2.0 o successivo, e que
 #~ msgctxt "selection"
 #~ msgid "All"
 #~ msgstr "Tutti"
+
+#: src/ui/settings.rs
+msgid "Lossless audio (ALAC)"
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "ALAC service configured. Lossless playback still requires a valid sign-in."
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "ALAC requires an external service; installing Melba alone does not enable lossless playback."
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "ALAC setup guide"
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "Set up ALAC"
+msgstr ""

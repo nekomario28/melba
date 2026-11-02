@@ -12,7 +12,7 @@ Melba comprises a desktop app (`melba`) and a playback daemon (`melbad`). Source
 - `xdg-utils` for browser sign-in. The egui app loads Wayland, X11, xkbcommon and GL at runtime; those are not additional build-time development packages.
 - `cargo-about` 0.8.4 for the source-backed third-party notice collector.
 
-Install distro dependencies (with your normal package manager privileges):
+The recommended source installer **automatically installs missing dependencies** on CachyOS/Arch, Debian/Ubuntu and Fedora (via the native package manager and `sudo` when necessary). An existing working toolchain is reused. For manual setup, the equivalent system packages are:
 
 ```sh
 # Debian / Ubuntu
@@ -25,15 +25,34 @@ sudo dnf install gcc-c++ cmake pkgconf-pkg-config dbus-devel alsa-lib-devel webk
 sudo pacman -S --needed base-devel cmake pkgconf dbus alsa-lib webkit2gtk-4.1 xdg-utils python
 ```
 
-Install Rust separately, then the build-time license collector:
+For manual setup only, initialize Rust and install the license collector:
 
 ```sh
+rustup default stable
 cargo install cargo-about --version 0.8.4 --locked
 ```
 
 Firefox session import also needs the `sqlite3` CLI (`sqlite3` on Debian/Ubuntu; `sqlite` on Fedora/Arch). For AAC subscription playback, a usable Widevine CDM must already be installed; Melba does not download it.
 
-## Recommended source install
+## Recommended: signed prebuilt release
+
+On Linux `x86_64` or `aarch64` with **glibc 2.43 or newer** (for example current CachyOS/Arch or Ubuntu 26.04), skip the Rust toolchain and Git checkout. Current published binaries require glibc 2.43; on Ubuntu 24.04 (glibc 2.39) and older distributions use the [source installer](#source-install-developers) instead. Adding system runtime packages does not upgrade the glibc ABI:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/install-release.sh | sh
+```
+
+The standalone installer selects the latest matching published release, verifies the Ed25519 signature on its checksum manifest against the embedded Melba publisher key, verifies the archive's SHA-256, then installs the paired `melba`/`melbad` portable layout to `~/.local/opt/melba`. It creates `~/.local/bin` links and a desktop entry (using the publisher-signed Melba icon in new archives, with a generic system-theme fallback for older ones). It works without Cargo or `cargo-about`. It uses `curl`, `openssl`, `tar`, `sha256sum` and standard Unix tools; if ALAC is selected, missing `bash`, `unzip`, `file`, `cc` and related helpers are provisioned as needed. On interactive installs, ALAC is optional with a default-yes `[Y/n]` question; non-interactive installs skip it unless `--with-alac` is explicitly passed. You can also use `--no-alac`. No external wrapper is bundled in the release.
+
+To add ALAC at any time after installation:
+
+```sh
+melbad wrapper setup
+```
+
+This separately acquires the user-requested third-party runtime. Sign in via the GUI; staging alone is not proof of working ALAC playback. Review the [external runtime terms](wrapper.md).
+
+## Source install (developers)
 
 ```sh
 git clone https://github.com/nekomario28/melba.git
@@ -42,7 +61,7 @@ sh packaging/install.sh
 melba
 ```
 
-By default, the installer builds `melba` and `melbad`, installs a portable copy under `~/.local/opt/melba`, creates stable links in `~/.local/bin`, and adds a desktop entry. Make sure `~/.local/bin` is on your `PATH`. A companion user unit may be installed, but is not enabled automatically; the desktop starts its own daemon when needed. The installation contains `melba-portable.txt`, required by the GUI updater, plus the project and third-party notices under `share/licenses/melba/`.
+By default, the installer builds `melba` and `melbad`, installs a portable copy under `~/.local/opt/melba`, creates stable links in `~/.local/bin`, and adds a desktop entry. Make sure `~/.local/bin` is on your `PATH`. When invoked from fish, the installer sets a persistent fish universal path automatically; otherwise use `fish_add_path ~/.local/bin` if needed. On supported distributions the installer provisions only missing OS build packages, initializes an existing `rustup` with `rustup default stable` when no working toolchain exists, bootstraps Rust via the official rustup-init HTTPS installer if absent, and installs `cargo-about` when missing. Set `MELBA_INSTALL_AUTO_DEPS=0` to disable this provisioning and fail with an actionable error instead. The source installer offers the optional ALAC service only after an explicit default-yes `[Y/n]` confirmation on a terminal; `--no-alac` skips it and `--with-alac` opts in non-interactively. A companion user unit may be installed, but is not enabled automatically; the desktop starts its own daemon when needed. The installation contains `melba-portable.txt`, required by the GUI updater, plus the project and third-party notices under `share/licenses/melba/`.
 
 Release archives carry `NOTICE.md`, `LICENSE-MIT`, `LICENSE-APACHE`, `SPOTIFAST-LICENSE`, the generated `melba-THIRD-PARTY.txt` / `melbad-THIRD-PARTY.txt` and `receipt.json`. `packaging/package-portable.sh` refuses to package without the generated notices.
 
@@ -53,21 +72,42 @@ sh packaging/install.sh               # portable (recommended)
 sh packaging/install.sh --no-unit     # skip the optional user unit
 sh packaging/install.sh --portable-dir DIR
 sh packaging/install.sh --cargo       # developer Cargo-root layout; no GUI updater
+sh packaging/install.sh --no-alac    # install Melba only
+sh packaging/install.sh --with-alac  # explicitly add ALAC after installing
 ```
 
 Re-run the installer after `git pull` to update a source installation. The portable installer stages both binaries and restores the previous pair if their versions do not agree. It does not start playback or enable the standalone service.
 
-## Optional source-only wrapper bootstrap
+## Enable ALAC (lossless)
 
-The separate [melba-wrapper-bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap) project installs Melba from source if needed and stages an upstream wrapper for local use:
+ALAC is optional. The standard Melba installer does **not** install, fetch or bundle a decrypt service. The independently maintained [melba-wrapper-bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap) downloads the upstream WorldObservationLog/wrapper runtime **only when you explicitly run it**. Its rootfs includes Apple and Android libraries with separate terms; review the bootstrap README, source and security notes first.
+
+**Melba already installed?** Stage the external service without rebuilding Melba. This path needs `git`, `curl`, `unzip`, `file` and a C compiler (`cc`), but does not require Cargo or `cargo-about` when both `melba` and `melbad` are already installed:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/nekomario28/melba-wrapper-bootstrap/v1.2.3/install.sh | bash
+git clone https://github.com/nekomario28/melba-wrapper-bootstrap.git
+cd melba-wrapper-bootstrap
+./install.sh --wrapper-only
+melbad wrapper status
 ```
 
-Read the script before executing it. System build dependencies above still need to be installed. The bootstrap does not use `sudo`, accept Apple's terms, handle your account credentials or redistribute the wrapper/rootfs as part of Melba. To avoid launching the GUI, add `-s -- --no-launch` to the command. To refresh an existing source install from the current `main`, add `-s -- --update`; without it, the bootstrap reports the existing installation and only stages the wrapper. For service handling and supported modes, see [Wrapper](wrapper.md).
+**New install?** Install the full [source-build requirements](#requirements) above **and** the wrapper bootstrap tools (`git`, `curl`, `unzip`, `file`, `cc`), then use the combined source installer:
 
-The standard Melba installer does **not** install this external service or its runtime.
+```sh
+git clone https://github.com/nekomario28/melba-wrapper-bootstrap.git
+cd melba-wrapper-bootstrap
+./install.sh
+```
+
+For reference, the **v1.2.3 bootstrap entry script** is available at https://raw.githubusercontent.com/nekomario28/melba-wrapper-bootstrap/v1.2.3/install.sh. Clone the repository for the documented workflow above: the pinned standalone entry script may resolve its supporting files from the bootstrap repository's current default branch, so the URL alone does not pin the entire operation. Inspect the scripts and external runtime sources before proceeding.
+
+The bootstrap does not use `sudo`, install system packages, accept Apple's terms, handle account credentials or redistribute the external payload as part of Melba. Staging alone does **not** establish a working ALAC stream.
+
+1. Launch Melba, select **Sign in with Apple Music** and complete the GUI sign-in (and MFA if requested). No separate CLI password step is required for the supported managed service.
+2. Play a track offered in ALAC. The staged managed service starts on demand; no `wrapper_mode` configuration edit is necessary.
+3. If the track falls back to AAC, inspect `melbad wrapper status` and `melbad doctor`. A stopped service before first playback may be normal.
+
+Other decrypt services may use `wrapper_url`, but the GUI native login bridge is only established for the supported managed service. See [Wrapper control](wrapper.md), [Authentication](authentication.md) and [Audio and playback](audio.md). A lossless source does not imply bit-perfect output.
 
 ## Other packaging paths
 

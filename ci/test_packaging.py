@@ -238,17 +238,29 @@ class InstallerTests(unittest.TestCase):
             "XDG_BIN_HOME": str(self.work / "bin"),
             "CARGO_TRACE": str(self.work / "cargo.log"),
             "SYSTEMCTL_TRACE": str(self.work / "systemctl.log"),
+            "MELBA_INSTALL_AUTO_DEPS": "0",
         }
         notice_tool_stub(self.work, self.fakebin, self.env)
         self.stub("pkg-config", '#!/bin/sh\nexit 0\n')
+        self.stub("rustc", '#!/bin/sh\necho "rustc 1.99.0 (fixture)"\n')
+        self.stub("cmake", '#!/bin/sh\nexit 0\n')
         self.stub("xdg-open", '#!/bin/sh\nexit 0\n')
         self.stub("systemctl", '#!/bin/sh\nprintf "%s\\n" "$*" >> "$SYSTEMCTL_TRACE"\n')
         self.stub("cargo", '''#!/usr/bin/env python3
-import os, pathlib, sys
+import os, pathlib, shutil, sys
 args = sys.argv[1:]
 with open(os.environ["CARGO_TRACE"], "a") as log:
     log.write(" ".join(args) + "\\n")
 if args[0] != "install":
+    sys.exit(0)
+if "cargo-about" in args:
+    source = os.environ.get("CARGO_ABOUT_SEED")
+    if not source:
+        sys.exit("fixture: cargo-about seed not provided")
+    binary = pathlib.Path(os.environ["CARGO_HOME"]) / "bin" / "cargo-about"
+    binary.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, binary)
+    binary.chmod(0o755)
     sys.exit(0)
 if os.environ.get("CARGO_FAIL_GUI") and "crates/melba" in args:
     print("fixture: GUI compilation failed", file=sys.stderr); sys.exit(1)
@@ -279,6 +291,48 @@ binary.chmod(0o755)
             ["/bin/sh", str(ROOT / "packaging/install.sh"), "--portable", *args],
             cwd=self.work, env=self.env, text=True, capture_output=True,
         )
+
+    def test_missing_cargo_about_is_bootstrapped_without_changing_host(self):
+        seed = self.work / "cargo-about-seed"
+        installed = self.fakebin / "cargo-about"
+        seed.write_bytes(installed.read_bytes())
+        installed.unlink()
+        self.env["CARGO_ABOUT_SEED"] = str(seed)
+        self.env["MELBA_INSTALL_AUTO_DEPS"] = "1"
+        result = self.install("--no-unit")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Install cargo-about 0.8.4", result.stdout)
+        self.assertTrue((self.root / "bin/cargo-about").is_file())
+        self.assertIn("install cargo-about --version 0.8.4 --locked",
+                      (self.work / "cargo.log").read_text())
+
+    def test_rustup_without_default_toolchain_initializes_stable(self):
+        marker = self.work / "rust-ready"
+        self.env["RUST_READY"] = str(marker)
+        self.env["MELBA_INSTALL_AUTO_DEPS"] = "1"
+        self.stub("rustc", '#!/bin/sh\n[ -f "$RUST_READY" ] || exit 1\necho "rustc 1.99.0 (fixture)"\n')
+        self.stub("rustup", '#!/bin/sh\n[ "$1" = default ] && [ "$2" = stable ] && touch "$RUST_READY"\n')
+        result = self.install("--no-unit")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(marker.is_file())
+        self.assertIn("Configure Rust stable toolchain", result.stdout)
+
+    def test_cachyos_missing_webkit_is_installed_with_pacman(self):
+        os_release = self.work / "os-release"
+        os_release.write_text("ID=cachyos\nID_LIKE=arch\n")
+        marker = self.work / "webkit-ready"
+        self.env.update(MELBA_INSTALL_AUTO_DEPS="1",
+                        MELBA_INSTALL_OS_RELEASE=str(os_release),
+                        WEBKIT_READY=str(marker),
+                        PACMAN_TRACE=str(self.work / "pacman.log"))
+        self.stub("pkg-config", '#!/bin/sh\n[ "$2" != webkit2gtk-4.1 ] || [ -f "$WEBKIT_READY" ]\n')
+        self.stub("sudo", '#!/bin/sh\n"$@"\n')
+        self.stub("pacman", '#!/bin/sh\nprintf "%s\n" "$*" >> "$PACMAN_TRACE"\ntouch "$WEBKIT_READY"\n')
+        result = self.install("--no-unit")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Installing pacman packages: webkit2gtk-4.1", result.stdout)
+        self.assertIn("-S --needed --noconfirm webkit2gtk-4.1",
+                      (self.work / "pacman.log").read_text())
 
     def test_missing_webkit_fails_before_installing_anything(self):
         # An incomplete host must fail before Cargo spends minutes compiling.
@@ -313,8 +367,8 @@ binary.chmod(0o755)
         self.assertIn("original notice is missing", result.stderr)
         self.assertEqual(binary.read_text(), "old binary")
         self.assertFalse((self.root / "bin/melbad").exists())
-        self.assertTrue(all(line.startswith("fetch ") for line in
-                            (self.work / "cargo.log").read_text().splitlines()))
+        self.assertTrue(all(line.startswith("fetch ") or line == "--version"
+                            for line in (self.work / "cargo.log").read_text().splitlines()))
         self.assertFalse((self.work / "data").exists())
         self.assertFalse((self.work / "systemctl.log").exists())
 
@@ -365,6 +419,15 @@ binary.chmod(0o755)
         self.assertEqual(shlex.split(command), ["/usr/bin/env", str(portable / "melba"), "%u"])
         self.assertEqual((self.work / "bin/melba").resolve(), portable / "melba")
         self.assertEqual((self.work / "bin/melbad").resolve(), portable / "melbad")
+
+    def test_fish_portable_install_registers_universal_path(self):
+        self.env["SHELL"] = "/usr/bin/fish"
+        self.env["FISH_TRACE"] = str(self.work / "fish.log")
+        self.stub("fish", '#!/bin/sh\nprintf "%s\n" "$*" >> "$FISH_TRACE"\n')
+        result = self.install_portable("--no-unit")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("fish_add_path -U --",
+                      (self.work / "fish.log").read_text())
 
     def test_portable_install_rolls_back_both_on_version_mismatch(self):
         portable = self.work / "portable"
@@ -423,6 +486,150 @@ binary.chmod(0o755)
         self.assertFalse((self.work / "config").exists())
 
 
+
+class ReleaseInstallerTests(unittest.TestCase):
+    """The public release path must not require Cargo or git."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix="melba-release-test-")
+        self.addCleanup(self.tmp.cleanup)
+        self.work = Path(self.tmp.name)
+        self.fakebin = self.work / "fakebin"
+        self.fakebin.mkdir()
+        self.env = {
+            **os.environ,
+            "HOME": str(self.work / "home"),
+            "XDG_BIN_HOME": str(self.work / "home/.local/bin"),
+            "XDG_DATA_HOME": str(self.work / "data"),
+            "MELBA_PORTABLE_DIR": str(self.work / "portable"),
+            "MELBA_INSTALL_AUTO_DEPS": "0",
+            "SHELL": "/bin/sh",
+            "OPENSSL_TRACE": str(self.work / "openssl.log"),
+            "PATH": f"{self.fakebin}:/usr/bin:/bin",
+        }
+        import hashlib
+        import tarfile
+        target = "x86_64-unknown-linux-gnu"
+        self.archive = f"melba-v0.3.12-{target}.tar.gz"
+        folder = self.work / self.archive.removesuffix(".tar.gz")
+        folder.mkdir()
+        for name in ("melba", "melbad"):
+            binary = folder / name
+            binary.write_text(
+                f"#!/bin/sh\nprintf '{name} 0.3.12'\n"
+            )
+            binary.chmod(0o755)
+        (folder / "melba-portable.txt").write_text("melba-portable-v1\n")
+        for notice in ("NOTICE.md", "LICENSE-MIT", "LICENSE-APACHE",
+                       "SPOTIFAST-LICENSE", "melba-THIRD-PARTY.txt",
+                       "melbad-THIRD-PARTY.txt", "receipt.json"):
+            (folder / notice).write_text(f"fixture {notice}\n")
+        with tarfile.open(self.work / self.archive, "w:gz") as tar:
+            tar.add(folder, arcname=folder.name)
+        digest = hashlib.sha256((self.work / self.archive).read_bytes()).hexdigest()
+        (self.work / "checksums.txt").write_text(f"{digest}  {self.archive}\n")
+        (self.work / "checksums.txt.sig").write_bytes(bytes(64))
+        self.env["RELEASE_FIXTURE"] = str(self.work)
+        self.stub("curl", '''#!/usr/bin/env python3
+import os, pathlib, shutil, sys
+args = sys.argv[1:]
+out = pathlib.Path(args[args.index("-o") + 1])
+file = args[args.index("-o") - 1].rsplit("/", 1)[-1]
+shutil.copyfile(pathlib.Path(os.environ["RELEASE_FIXTURE"]) / file, out)
+''')
+        self.stub("openssl", '''#!/usr/bin/env python3
+import os, sys
+with open(os.environ["OPENSSL_TRACE"], "a") as out:
+    out.write(" ".join(sys.argv[1:]) + "\\n")
+if os.environ.get("OPENSSL_FAIL"):
+    sys.exit(1)
+''')
+
+    def stub(self, name, body):
+        p = self.fakebin / name
+        p.write_text(body)
+        p.chmod(0o755)
+
+    def install(self, *flags):
+        return subprocess.run(
+            ["/bin/sh", str(ROOT / "packaging/install-release.sh"), *flags],
+            env=self.env, cwd=self.work, text=True, capture_output=True,
+        )
+
+    @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
+    def test_release_installs_verified_pair_without_rust_or_git(self):
+        result = self.install("--no-alac")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        root = self.work / "portable"
+        for name in ("melba", "melbad"):
+            self.assertTrue((root / name).is_file())
+        self.assertEqual((root / "melba-portable.txt").read_text(), "melba-portable-v1\n")
+        self.assertIn("-verify -rawin -pubin", (self.work / "openssl.log").read_text())
+        self.assertIn("ALAC skipped", result.stdout)
+        self.assertTrue((self.work / "data/applications/melba.desktop").is_file())
+        self.assertEqual((self.work / "home/.local/bin/melba").resolve(), root / "melba")
+
+    @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
+    def test_release_installs_missing_cachyos_runtime_packages(self):
+        os_release = self.work / "os-release"
+        os_release.write_text("ID=cachyos\nID_LIKE=arch\n")
+        ready = self.work / "runtime-ready"
+        self.env.update(MELBA_INSTALL_AUTO_DEPS="1",
+                        MELBA_INSTALL_OS_RELEASE=str(os_release),
+                        RUNTIME_READY=str(ready),
+                        PACMAN_TRACE=str(self.work / "pacman.log"))
+        self.stub("ldd", '#!/bin/sh\n[ -f "$RUNTIME_READY" ] || echo "libwebkit2gtk-4.1.so.0 => not found"\n')
+        self.stub("sudo", '#!/bin/sh\n"$@"\n')
+        self.stub("pacman", '#!/bin/sh\nprintf "%s\\n" "$*" >> "$PACMAN_TRACE"\ntouch "$RUNTIME_READY"\n')
+        result = self.install("--no-alac")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("webki"+"t2gtk-4.1", (self.work / "pacman.log").read_text())
+
+    @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
+    def test_release_refuses_missing_runtime_with_auto_deps_disabled(self):
+        self.stub("ldd", '#!/bin/sh\necho "libwebkit2gtk-4.1.so.0 => not found"\n')
+        result = self.install("--no-alac")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("automatic provisioning disabled", result.stderr)
+        self.assertFalse((self.work / "portable/melba").exists())
+
+    @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
+    def test_release_rejects_old_glibc_before_installing_os_packages(self):
+        self.env["MELBA_INSTALL_AUTO_DEPS"] = "1"
+        self.stub("ldd", '#!/bin/sh\necho "libm.so.6: version GLIBC_2.43 not found"\n')
+        self.stub("sudo", '#!/bin/sh\nexit 99\n')
+        result = self.install("--no-alac")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("newer glibc", result.stderr)
+        self.assertIn("Build from source", result.stderr)
+        self.assertFalse((self.work / "portable/melba").exists())
+
+    @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
+    def test_release_refuses_invalid_publisher_signature_before_install(self):
+        self.env["OPENSSL_FAIL"] = "1"
+        result = self.install("--no-alac")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("publisher signature verification failed", result.stderr)
+        self.assertFalse((self.work / "portable/melba").exists())
+
+    @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
+    def test_release_refuses_modified_archive(self):
+        with (self.work / self.archive).open("ab") as out:
+            out.write(b"tampered")
+        result = self.install("--no-alac")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("signed checksum", result.stderr)
+        self.assertFalse((self.work / "portable/melba").exists())
+
+    def test_release_script_is_posix_shell_syntax(self):
+        result = subprocess.run(
+            ["/bin/sh", "-n", str(ROOT / "packaging/install-release.sh")],
+            capture_output=True, text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+
+
 class PortableArchiveTests(unittest.TestCase):
     def test_package_portable_always_includes_the_marker(self):
         with tempfile.TemporaryDirectory(prefix="melba-portable-package-") as folder:
@@ -451,6 +658,7 @@ class PortableArchiveTests(unittest.TestCase):
                                    text=True, capture_output=True).stdout.splitlines()
             stem = "melba-v9.9.9-x86_64-unknown-linux-gnu"
             self.assertIn(f"{stem}/melba-portable.txt", names)
+            self.assertIn(f"{stem}/melba.svg", names)
             self.assertIn(f"{stem}/melbad", names)
             self.assertIn(f"{stem}/SPOTIFAST-LICENSE", names)
             self.assertIn(f"{stem}/melba-THIRD-PARTY.txt", names)
