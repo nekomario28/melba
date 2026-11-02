@@ -222,6 +222,7 @@ if [ "$alac" = yes ]; then
         echo "An ALAC service is already staged at $wrapper_dir; leaving it untouched."
     else
         echo "== Staging user-requested ALAC service =="
+        /bin/sh packaging/install-deps.sh --alac
         if ! "$final_bin/melbad" wrapper setup; then
             echo "Melba is installed, but ALAC staging failed." >&2
             echo "Retry ALAC without rebuilding Melba: '$final_bin/melbad' wrapper setup" >&2

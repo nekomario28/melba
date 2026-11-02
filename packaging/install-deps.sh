@@ -15,6 +15,62 @@ fail() {
     echo "Fix the prerequisites and retry: sh packaging/install.sh" >&2
     exit 1
 }
+# ALAC staging is separate from building Melba: no Rust, pkg-config or WebKit.
+if [ "${1:-}" = "--alac" ]; then
+    missing=""
+    for tool in bash curl unzip file cc; do
+        have "$tool" || missing="$missing $tool"
+    done
+    if [ -z "$missing" ]; then
+        echo "== ALAC staging prerequisites ready =="
+        exit 0
+    fi
+    [ "$auto" -eq 1 ] || fail "missing optional ALAC tools:$missing"
+    os_release=${MELBA_INSTALL_OS_RELEASE:-/etc/os-release}
+    os_id= os_like=
+    if [ -r "$os_release" ]; then
+        os_id=$(sed -n 's/^ID=//p' "$os_release" | sed -n '1p' | tr -d '"')
+        os_like=$(sed -n 's/^ID_LIKE=//p' "$os_release" | sed -n '1p' | tr -d '"')
+    fi
+    case " $os_id $os_like " in
+        *" arch "*|*" cachyos "*|*" manjaro "*) manager=pacman;;
+        *" debian "*|*" ubuntu "*) manager=apt-get;;
+        *" fedora "*|*" rhel "*) manager=dnf;;
+        *) fail "unsupported distro for ALAC tools ($os_id):$missing";;
+    esac
+    have "$manager" || fail "$manager not available for ALAC tools"
+    for tool in $missing; do
+        case "$tool" in
+            cc)
+                case "$manager" in
+                    pacman) add base-devel;;
+                    apt-get) add build-essential;;
+                    dnf) add gcc;;
+                esac;;
+            *) add "$tool";;
+        esac
+    done
+    echo "== Installing missing ALAC staging tools via $manager:$packages =="
+    if [ "$(id -u)" -eq 0 ]; then
+        case "$manager" in
+            pacman) pacman -S --needed --noconfirm $packages;;
+            apt-get) apt-get update && apt-get install -y $packages;;
+            dnf) dnf install -y $packages;;
+        esac
+    else
+        have sudo || fail "sudo required to install missing ALAC tools"
+        case "$manager" in
+            pacman) sudo pacman -S --needed --noconfirm $packages;;
+            apt-get) sudo apt-get update && sudo apt-get install -y $packages;;
+            dnf) sudo dnf install -y $packages;;
+        esac
+    fi
+    for tool in bash curl unzip file cc; do
+        have "$tool" || fail "missing $tool after installing ALAC prerequisites"
+    done
+    exit 0
+fi
+
 cc_missing=0; have cc || cc_missing=1
 cxx_missing=0; have c++ || cxx_missing=1
 cmake_missing=0; have cmake || cmake_missing=1

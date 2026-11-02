@@ -164,6 +164,63 @@ if [ "$alac" = ask ]; then
         alac=no
     fi
 fi
+# ALAC needs additional staging tools, not the Rust toolchain.
+ensure_alac_tools() {
+    missing=""
+    for tool in bash curl unzip file cc; do
+        command -v "$tool" >/dev/null 2>&1 || missing="$missing $tool"
+    done
+    [ -n "$missing" ] || return 0
+    [ "${MELBA_INSTALL_AUTO_DEPS:-1}" != "0" ] ||
+        fail "missing ALAC prerequisites:$missing (auto provisioning disabled)"
+    os_release=${MELBA_INSTALL_OS_RELEASE:-/etc/os-release}
+    os_id= os_like=
+    if [ -r "$os_release" ]; then
+        os_id=$(sed -n 's/^ID=//p' "$os_release" | sed -n '1p' | tr -d '"')
+        os_like=$(sed -n 's/^ID_LIKE=//p' "$os_release" | sed -n '1p' | tr -d '"')
+    fi
+    case " $os_id $os_like " in
+        *" arch "*|*" cachyos "*|*" manjaro "*) manager=pacman;;
+        *" debian "*|*" ubuntu "*) manager=apt-get;;
+        *" fedora "*|*" rhel "*) manager=dnf;;
+        *) fail "unsupported distro for missing ALAC tools:$missing";;
+    esac
+    packages=""
+    for tool in $missing; do
+        if [ "$tool" = "cc" ]; then
+            case "$manager" in
+                pacman) package=base-devel;;
+                apt-get) package=build-essential;;
+                dnf) package=gcc;;
+            esac
+        else
+            package=$tool
+        fi
+        case " $packages " in
+            *" $package "*) ;;
+            *) packages="$packages $package";;
+        esac
+    done
+    echo "== Installing missing ALAC tools via $manager:$packages =="
+    if [ "$(id -u)" -eq 0 ]; then
+        case "$manager" in
+            pacman) pacman -S --needed --noconfirm $packages;;
+            apt-get) apt-get update && apt-get install -y $packages;;
+            dnf) dnf install -y $packages;;
+        esac
+    else
+        command -v sudo >/dev/null 2>&1 || fail "sudo required for ALAC dependencies"
+        case "$manager" in
+            pacman) sudo pacman -S --needed --noconfirm $packages;;
+            apt-get) sudo apt-get update && sudo apt-get install -y $packages;;
+            dnf) sudo dnf install -y $packages;;
+        esac
+    fi
+    for tool in bash curl unzip file cc; do
+        command -v "$tool" >/dev/null 2>&1 || fail "missing ALAC prerequisite: $tool"
+    done
+}
+
 if [ "$alac" = yes ]; then
     wrapper_dir="${XDG_DATA_HOME:-$HOME/.local/share}/melba/wrapper"
     staged=no
@@ -174,6 +231,7 @@ if [ "$alac" = yes ]; then
         echo "ALAC wrapper already present; no changes."
     else
         echo "Staging user-requested ALAC service."
+        ensure_alac_tools
         "$root/melbad" wrapper setup ||
             fail "Melba installed successfully but optional ALAC setup failed; retry: $root/melbad wrapper setup"
     fi
