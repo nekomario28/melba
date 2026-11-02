@@ -44,7 +44,9 @@ jobs:
 
   # End-to-end smoke tests the real signed public Release (not fixture data).
   release-install-smoke:
-    runs-on: ubuntu-24.04
+    # The currently published binary requires GLIBC_2.43, which this runner
+    # provides. Ubuntu 24.04 has 2.39 and must use a source build instead.
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

@@ -85,6 +85,11 @@ missing_runtime() {
         grep 'not found' || true
 }
 missing_libs=$(missing_runtime)
+if printf '%s\n' "$missing_libs" | grep -Eq 'GLIBC_[0-9]+\.[0-9]+.*not found'; then
+    echo "Published Melba binaries require a newer glibc than this system provides." >&2
+    printf '%s\n' "$missing_libs" >&2
+    fail "glibc cannot be upgraded by adding app runtime packages. Build from source instead (sh packaging/install.sh)."
+fi
 if [ -n "$missing_libs" ]; then
     echo "Missing runtime libraries:"
     printf '%s\n' "$missing_libs"

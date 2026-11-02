@@ -36,7 +36,7 @@ Firefox session import also needs the `sqlite3` CLI (`sqlite3` on Debian/Ubuntu;
 
 ## Recommended: signed prebuilt release
 
-On Linux `x86_64` or `aarch64`, skip the Rust toolchain and Git checkout:
+On Linux `x86_64` or `aarch64` with **glibc 2.43 or newer** (for example current CachyOS/Arch or Ubuntu 26.04), skip the Rust toolchain and Git checkout. Current published binaries require glibc 2.43; on Ubuntu 24.04 (glibc 2.39) and older distributions use the [source installer](#source-install-developers) instead. Adding system runtime packages does not upgrade the glibc ABI:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/install-release.sh | sh

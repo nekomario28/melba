@@ -594,6 +594,17 @@ if os.environ.get("OPENSSL_FAIL"):
         self.assertFalse((self.work / "portable/melba").exists())
 
     @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
+    def test_release_rejects_old_glibc_before_installing_os_packages(self):
+        self.env["MELBA_INSTALL_AUTO_DEPS"] = "1"
+        self.stub("ldd", '#!/bin/sh\necho "libm.so.6: version GLIBC_2.43 not found"\n')
+        self.stub("sudo", '#!/bin/sh\nexit 99\n')
+        result = self.install("--no-alac")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("newer glibc", result.stderr)
+        self.assertIn("Build from source", result.stderr)
+        self.assertFalse((self.work / "portable/melba").exists())
+
+    @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
     def test_release_refuses_invalid_publisher_signature_before_install(self):
         self.env["OPENSSL_FAIL"] = "1"
         result = self.install("--no-alac")
