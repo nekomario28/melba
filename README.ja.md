@@ -38,7 +38,7 @@ cd melba-wrapper-bootstrap
 melbad wrapper status
 ```
 
-先に[必要な依存パッケージ](docs/installation.md#requirements)を導入してください。その後 Melba の GUI からサインインし、ALAC の曲を再生します。managed service は必要時に起動し、CLI での別途ログインやトークン転記は不要です。bootstrap は利用者が実行した場合のみ第三者のランタイムを取得します。利用条件とスクリプトを確認してください。利用不可なら AAC にフォールバックします。ロスレス音源と bit-perfect 出力は別の条件です。詳細は[導入ガイド](docs/installation.md#enable-alac-lossless)に記載しています。
+wrapper だけを導入する場合は `git`・`curl`・`unzip`・`file`・C コンパイラ（`cc`）が必要です。[Melba 本体のビルド用依存関係](docs/installation.md#requirements)は、本体をソースからビルドするときだけ必要です。その後 GUI からサインインし、ALAC の曲を再生します。managed service は必要時に起動し、CLI での別途ログインやトークン転記は不要です。bootstrap は利用者が実行した場合のみ第三者のランタイムを取得します。利用条件とスクリプトを確認してください。利用不可なら AAC にフォールバックします。ロスレス音源と bit-perfect 出力は別の条件です。詳細は[導入ガイド](docs/installation.md#enable-alac-lossless)に記載しています。
 
 ## 再生
 

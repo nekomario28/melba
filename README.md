@@ -37,7 +37,7 @@ cd melba-wrapper-bootstrap
 melbad wrapper status
 ```
 
-Install the [prerequisites](docs/installation.md#requirements) first, then use Melba's GUI to sign in and play an ALAC track. The managed service starts when needed; no separate CLI password or manual token copying is required. Review the bootstrap script, its security notes, and the external runtime's terms before executing it. If the service is unavailable, playback falls back to AAC. Source losslessness and bit-perfect output are different. See the [full setup guide](docs/installation.md#enable-alac-lossless).
+For wrapper-only setup, you need `git`, `curl`, `unzip`, `file`, and a C compiler (`cc`); the full [source-build dependencies](docs/installation.md#requirements) are only needed to build Melba itself. Then use Melba's GUI to sign in and play an ALAC track. The managed service starts when needed; no separate CLI password or manual token copying is required. Review the bootstrap script, its security notes, and the external runtime's terms before executing it. If the service is unavailable, playback falls back to AAC. Source losslessness and bit-perfect output are different. See the [full setup guide](docs/installation.md#enable-alac-lossless).
 
 ## Play music
 

@@ -61,7 +61,7 @@ Re-run the installer after `git pull` to update a source installation. The porta
 
 ALAC is optional. The standard Melba installer does **not** install, fetch or bundle a decrypt service. The independently maintained [melba-wrapper-bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap) downloads the upstream WorldObservationLog/wrapper runtime **only when you explicitly run it**. Its rootfs includes Apple and Android libraries with separate terms; review the bootstrap README, source and security notes first.
 
-**Melba already installed?** Stage the external service without rebuilding Melba:
+**Melba already installed?** Stage the external service without rebuilding Melba. This path needs `git`, `curl`, `unzip`, `file` and a C compiler (`cc`), but does not require Cargo or `cargo-about` when both `melba` and `melbad` are already installed:
 
 ```sh
 git clone https://github.com/nekomario28/melba-wrapper-bootstrap.git
@@ -70,7 +70,7 @@ cd melba-wrapper-bootstrap
 melbad wrapper status
 ```
 
-**New install?** Install the [requirements](#requirements) above first, then use the combined source installer:
+**New install?** Install the full [source-build requirements](#requirements) above **and** the wrapper bootstrap tools (`git`, `curl`, `unzip`, `file`, `cc`), then use the combined source installer:
 
 ```sh
 git clone https://github.com/nekomario28/melba-wrapper-bootstrap.git
