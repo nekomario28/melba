@@ -34,18 +34,18 @@ for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu; do
     done
     for file in melbad receipt.json NOTICE.md LICENSE-MIT LICENSE-APACHE melbad-THIRD-PARTY.txt; do
       case "$file" in
-        melbad) tar -tzf "$stem.tar.gz" | grep -Fxq "$stem/$file" ;;
+        melbad) tar -tzf "$stem.tar.gz" | grep -Fx "$stem/$file" >/dev/null ;;
         receipt.json|NOTICE.md|LICENSE-MIT|LICENSE-APACHE|melbad-THIRD-PARTY.txt)
-          tar -xOf "$stem.tar.gz" "$stem/$file" | test -s /dev/stdin ;;
+          [[ -n "$(tar -xOf "$stem.tar.gz" "$stem/$file")" ]] ;;
       esac || { echo "missing or empty $file in $stem" >&2; exit 1; }
     done
   done
   test "$(tar -xOf "$gui.tar.gz" "$gui/melba-portable.txt")" = "melba-portable-v1"
   for file in melba melba-THIRD-PARTY.txt SPOTIFAST-LICENSE; do
     if [[ "$file" = melba ]]; then
-      tar -tzf "$gui.tar.gz" | grep -Fxq "$gui/$file"
+      tar -tzf "$gui.tar.gz" | grep -Fx "$gui/$file" >/dev/null
     else
-      tar -xOf "$gui.tar.gz" "$gui/$file" | test -s /dev/stdin
+      [[ -n "$(tar -xOf "$gui.tar.gz" "$gui/$file")" ]]
     fi || { echo "missing $file in $gui" >&2; exit 1; }
   done
 done
