@@ -2025,3 +2025,23 @@ msgstr "Melba には OpenGL 2.0 以降に対応したグラフィックドライ
 #~ msgctxt "selection"
 #~ msgid "All"
 #~ msgstr "すべて"
+
+#: src/ui/settings.rs
+msgid "Lossless audio (ALAC)"
+msgstr "ロスレス音声（ALAC）"
+
+#: src/ui/settings.rs
+msgid "ALAC service configured. Lossless playback still requires a valid sign-in."
+msgstr "ALAC サービスは設定済みです。ロスレス再生には有効なサインインが必要です。"
+
+#: src/ui/settings.rs
+msgid "ALAC requires an external service; installing Melba alone does not enable lossless playback."
+msgstr "ALAC には外部サービスが必要です。Melba 本体だけではロスレス再生を有効にできません。"
+
+#: src/ui/settings.rs
+msgid "ALAC setup guide"
+msgstr "ALAC の導入ガイド"
+
+#: src/ui/settings.rs
+msgid "Set up ALAC"
+msgstr "ALAC をセットアップ"
