@@ -126,3 +126,61 @@ jobs:
           cmp release-assets/checksums.txt published/checksums.txt
           cmp release-assets/checksums.txt.sig published/checksums.txt.sig
           echo "PUBLISHED_SIGNED_RELEASE_VERIFIED"
+
+  published-release-smoke:
+    name: published signed installer (${{ matrix.distro }})
+    needs: [preflight, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: ubuntu-22.04
+            image: ubuntu:22.04
+            manager: apt
+          - distro: ubuntu-24.04
+            image: ubuntu:24.04
+            manager: apt
+          - distro: debian-12
+            image: debian:bookworm
+            manager: apt
+          - distro: fedora-43
+            image: fedora:43
+            manager: dnf
+          - distro: arch
+            image: archlinux:latest
+            manager: pacman
+    container:
+      image: ${{ matrix.image }}
+    steps:
+      - name: Bootstrap tools for signed Release verification
+        shell: bash
+        env:
+          MANAGER: ${{ matrix.manager }}
+        run: |
+          set -euo pipefail
+          if [[ "$MANAGER" == apt ]]; then
+            apt-get update
+            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl openssl coreutils tar mawk
+          elif [[ "$MANAGER" == dnf ]]; then
+            dnf -y install ca-certificates curl openssl coreutils tar gawk
+          else
+            pacman -Syu --noconfirm --needed ca-certificates curl openssl coreutils tar gawk
+            update-ca-trust || true
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install real public signed release from GitHub
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          export MELBA_PORTABLE_DIR="$RUNNER_TEMP/signed-release-smoke/app"
+          export XDG_BIN_HOME="$RUNNER_TEMP/signed-release-smoke/bin"
+          export XDG_DATA_HOME="$RUNNER_TEMP/signed-release-smoke/data"
+          sh packaging/install-release.sh --no-alac
+          test -L "$XDG_BIN_HOME/melba"
+          test -L "$XDG_BIN_HOME/melbad"
+          test "$("$MELBA_PORTABLE_DIR/melba" --version)" = "melba $RELEASE_VERSION"
+          test "$("$MELBA_PORTABLE_DIR/melbad" --version)" = "melbad $RELEASE_VERSION"
