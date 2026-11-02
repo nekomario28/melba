@@ -129,8 +129,14 @@ case "${SHELL:-}" in
         fi;;
 esac
 
-# The signed archive contains executables and notices, not a desktop icon.
-# Use the installed app's full path; desktop icons fall back to the system theme.
+# New signed archives carry the icon; older releases use the system theme.
+desktop_icon=multimedia-audio-player
+if [ -f "$payload/melba.svg" ]; then
+    icon_file="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/apps/melba.svg"
+    mkdir -p "$(dirname "$icon_file")"
+    install -m644 "$payload/melba.svg" "$icon_file"
+    desktop_icon=melba
+fi
 desktop="${XDG_DATA_HOME:-$HOME/.local/share}/applications/melba.desktop"
 mkdir -p "$(dirname "$desktop")"
 desktop_exec=$(printf '%s' "$root/melba" | sed 's/\\/\\\\/g; s/"/\\"/g; s/%/%%/g')
@@ -141,7 +147,7 @@ Name=Melba
 GenericName=Music Player
 Comment=Apple Music, native and fast
 Exec=/usr/bin/env "$desktop_exec" %u
-Icon=multimedia-audio-player
+Icon=$desktop_icon
 Terminal=false
 Categories=AudioVideo;Audio;Music;Player;
 StartupWMClass=melba
