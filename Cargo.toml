@@ -26,7 +26,7 @@ dbus-crossroads = "0.5"
 libc = "0.2.190"
 ureq = "2"
 wry = "0.53"
-tao = "0.34"
+tao = "0.37"
 # Widevine CDM host + Apple Music HLS/fMP4 streaming (AAC + ALAC)
 melba-cdm = { path = "crates/melba-cdm" }
 melba-auth = { path = "crates/melba-auth" }
