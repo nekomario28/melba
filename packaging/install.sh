@@ -41,7 +41,7 @@ done
 
 # Provision missing OS packages, Rust and cargo-about as necessary.
 sh packaging/install-deps.sh
-PATH="\${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
 export PATH
 
 # Collect notices before replacing any installed executable. No network is

@@ -1,9 +1,9 @@
 #!/bin/sh
 # Source build preflight: install only missing OS, Rust and Cargo prerequisites.
 set -eu
-auto=\${MELBA_INSTALL_AUTO_DEPS:-1}
+auto=${MELBA_INSTALL_AUTO_DEPS:-1}
 case "$auto" in 0|1) ;; *) echo "MELBA_INSTALL_AUTO_DEPS must be 0 or 1" >&2; exit 2;; esac
-cargo_bin=\${CARGO_HOME:-$HOME/.cargo}/bin
+cargo_bin=${CARGO_HOME:-$HOME/.cargo}/bin
 [ ! -d "$cargo_bin" ] || PATH="$cargo_bin:$PATH"
 export PATH
 have() { command -v "$1" >/dev/null 2>&1; }
@@ -42,7 +42,7 @@ if [ "$cc_missing" -eq 1 ] || [ "$cxx_missing" -eq 1 ] || \
     if [ -r /etc/os-release ]; then
         . /etc/os-release
         os_id=$ID
-        os_like=\${ID_LIKE:-}
+        os_like=${ID_LIKE:-}
     fi
     case " $os_id $os_like " in
         *" arch "*|*" cachyos "*|*" manjaro "*) manager=pacman;;
@@ -133,9 +133,9 @@ have cargo && have rustc && cargo --version >/dev/null 2>&1 && \
 rustc --version >/dev/null 2>&1 || fail "Rust/Cargo still unavailable"
 
 version=$(rustc --version | awk '{print $2}')
-major=\${version%%.*}
-minor=\${version#*.}
-minor=\${minor%%.*}
+major=${version%%.*}
+minor=${version#*.}
+minor=${minor%%.*}
 case "$major:$minor" in *[!0-9:]*|:*) fail "invalid rustc version $version";; esac
 if [ "$major" -lt 1 ] || { [ "$major" -eq 1 ] && [ "$minor" -lt 98 ]; }; then
     [ "$auto" -eq 1 ] && have rustup || fail "Rust 1.98+ required (found $version)"
