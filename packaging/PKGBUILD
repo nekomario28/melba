@@ -16,7 +16,9 @@ depends=('xdg-utils' 'dbus' 'alsa-lib' 'webkit2gtk-4.1' 'gtk3' 'libxkbcommon' 'w
 makedepends=('cargo' 'cargo-about' 'python' 'git' 'pkgconf' 'cmake')
 optdepends=('google-chrome: Widevine CDM for AAC subscription streams'
             'sqlite: token capture when signing in with Firefox')
-source=("git+$url")
+# Explicit makepkg VCS checkout name: each hook below uses
+# $srcdir/apple-music-linux (the repository's real name is "melba").
+source=("apple-music-linux::git+$url")
 sha256sums=('SKIP')
 # Cargo profiles own Rust LTO. GCC LTO archives (AWS-LC/CDM) cannot be
 # consumed by Rust's LLVM linker, so do not inject makepkg's native LTO flags.

@@ -1,0 +1,66 @@
+name: Arch makepkg real VCS source smoke
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/arch-makepkg.yml"
+      - "packaging/PKGBUILD"
+      - "ci/test_packaging.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  makepkg-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    container:
+      image: archlinux:latest
+    steps:
+      - name: Install Arch's real makepkg, Git and Python
+        shell: bash
+        run: |
+          set -euo pipefail
+          pacman -Syu --noconfirm --needed base-devel git python
+          makepkg --version
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check source alias and PKGBUILD syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n packaging/PKGBUILD
+          python -m unittest discover -s ci -p test_packaging.py -k test_makepkg_vcs_alias
+      - name: Real non-root makepkg Git checkout and prepare hooks
+        shell: bash
+        run: |
+          set -euo pipefail
+          work=$(mktemp -d)
+          chmod 755 "$work"
+          install -m644 packaging/PKGBUILD "$work/PKGBUILD"
+          mkdir -p "$work/fakebin"
+          # Only skip *Cargo's network dependency download*; makepkg itself
+          # fetches real Git sources and executes the real prepare() hook.
+          # Full Rust compilation and packaging remain tested separately.
+          cat > "$work/fakebin/cargo" <<'STUB'
+          #!/bin/sh
+          if [ "$1" = fetch ]; then
+            echo "TEST ONLY: skipped cargo fetch (real makepkg + real git checkout)"
+            exit 0
+          fi
+          echo "unexpected cargo command in no-build makepkg smoke" >&2
+          exit 99
+          STUB
+          chmod 755 "$work/fakebin/cargo"
+          useradd -m -s /bin/bash melba-ci
+          chown -R melba-ci:melba-ci "$work"
+          su melba-ci -s /bin/bash -c \
+            "cd '$work' && PATH='$work/fakebin':\$PATH makepkg --nobuild --nodeps --noconfirm"
+          test -d "$work/src/apple-music-linux/.git"
+          test -f "$work/src/apple-music-linux/Cargo.toml"
+          test -f "$work/src/apple-music-linux/crates/melba/Cargo.toml"
+          test ! -d "$work/src/melba"
+          # Compare cloned HEAD against remote default branch, not just
+          # a fixture directory manually created by our unit tests.
+          git -C "$work/src/apple-music-linux" rev-parse HEAD
+          echo "REAL_ARCH_MAKEPKG_VCS_LAYOUT_AND_PREPARE_PASS"
