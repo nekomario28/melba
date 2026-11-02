@@ -570,6 +570,30 @@ if os.environ.get("OPENSSL_FAIL"):
         self.assertEqual((self.work / "home/.local/bin/melba").resolve(), root / "melba")
 
     @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
+    def test_release_installs_missing_cachyos_runtime_packages(self):
+        os_release = self.work / "os-release"
+        os_release.write_text("ID=cachyos\nID_LIKE=arch\n")
+        ready = self.work / "runtime-ready"
+        self.env.update(MELBA_INSTALL_AUTO_DEPS="1",
+                        MELBA_INSTALL_OS_RELEASE=str(os_release),
+                        RUNTIME_READY=str(ready),
+                        PACMAN_TRACE=str(self.work / "pacman.log"))
+        self.stub("ldd", '#!/bin/sh\n[ -f "$RUNTIME_READY" ] || echo "libwebkit2gtk-4.1.so.0 => not found"\n')
+        self.stub("sudo", '#!/bin/sh\n"$@"\n')
+        self.stub("pacman", '#!/bin/sh\nprintf "%s\\n" "$*" >> "$PACMAN_TRACE"\ntouch "$RUNTIME_READY"\n')
+        result = self.install("--no-alac")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("webki"+"t2gtk-4.1", (self.work / "pacman.log").read_text())
+
+    @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
+    def test_release_refuses_missing_runtime_with_auto_deps_disabled(self):
+        self.stub("ldd", '#!/bin/sh\necho "libwebkit2gtk-4.1.so.0 => not found"\n')
+        result = self.install("--no-alac")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("automatic provisioning disabled", result.stderr)
+        self.assertFalse((self.work / "portable/melba").exists())
+
+    @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
     def test_release_refuses_invalid_publisher_signature_before_install(self):
         self.env["OPENSSL_FAIL"] = "1"
         result = self.install("--no-alac")
