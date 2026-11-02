@@ -9,13 +9,23 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 90
+    timeout-minutes: 110
+    # The host runner's glibc (2.39) must not leak into release builds.
+    # arm64-build and portable-baseline use the same Ubuntu 22.04 (2.35)
+    # container. Keep both workflows aligned when changing the ABI floor.
+    container:
+      image: ubuntu:22.04
     steps:
+      - name: Prepare source checkout in the minimal 22.04 container
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git ca-certificates curl
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: system deps (arm64)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            binutils python3 \
             build-essential cmake pkg-config \
             libasound2-dev libdbus-1-dev libgtk-3-dev \
             libwebkit2gtk-4.1-dev libayatana-appindicator3-dev libxdo-dev \
@@ -26,6 +36,8 @@ jobs:
         run: |
           cargo build --release --locked --bin melbad
           cargo build --release --locked --manifest-path crates/melba/Cargo.toml --bin melba
+      - name: prove both ARM64 binaries have no GLIBC requirement past 2.35
+        run: python3 ci/check_glibc_abi.py 2.35 crates/melba/target/release/melba target/release/melbad
       - name: collect third-party notices
         run: |
           cargo install cargo-about --version 0.8.4 --locked
@@ -34,7 +46,8 @@ jobs:
           ./ci/licenses.sh target/third-party
       - name: package portable arm64 archives
         run: |
-          version=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["package"]["version"])')
+          # Ubuntu 22.04 ships Python 3.10, before tomllib became stdlib.
+          version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -1)
           ./packaging/package-portable.sh release-aarch64 "$version" \
             crates/melba/target/release/melba target/release/melbad \
             aarch64-unknown-linux-gnu target/third-party

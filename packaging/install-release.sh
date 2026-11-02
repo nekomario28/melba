@@ -126,7 +126,16 @@ if [ -n "$missing_libs" ]; then
         *libasound*)
             case "$manager" in
                 pacman) add_runtime alsa-lib;;
-                apt-get) add_runtime libasound2t64;;
+                apt-get)
+                    # Debian 12 / Ubuntu 22.04 predate the t64 package split.
+                    # Query available package metadata instead of pinning
+                    # all apt-family distributions to one ALSA package name.
+                    if command -v apt-cache >/dev/null 2>&1 &&
+                       apt-cache show libasound2t64 >/dev/null 2>&1; then
+                        add_runtime libasound2t64
+                    else
+                        add_runtime libasound2
+                    fi;;
                 dnf) add_runtime alsa-lib;;
             esac;;
     esac
