@@ -42,9 +42,9 @@ if [ "$cc_missing" -eq 1 ] || [ "$cxx_missing" -eq 1 ] || \
     os_id= os_like=
     os_release=${MELBA_INSTALL_OS_RELEASE:-/etc/os-release}
     if [ -r "$os_release" ]; then
-        . "$os_release"
-        os_id=$ID
-        os_like=${ID_LIKE:-}
+        # Parse os-release as data: never execute a user-supplied file.
+        os_id=$(sed -n 's/^ID=//p' "$os_release" | sed -n '1p' | tr -d '"')
+        os_like=$(sed -n 's/^ID_LIKE=//p' "$os_release" | sed -n '1p' | tr -d '"')
     fi
     case " $os_id $os_like " in
         *" arch "*|*" cachyos "*|*" manjaro "*) manager=pacman;;
@@ -140,10 +140,21 @@ minor=${version#*.}
 minor=${minor%%.*}
 case "$major:$minor" in *[!0-9:]*|:*) fail "invalid rustc version $version";; esac
 if [ "$major" -lt 1 ] || { [ "$major" -eq 1 ] && [ "$minor" -lt 98 ]; }; then
-    [ "$auto" -eq 1 ] && have rustup || fail "Rust 1.98+ required (found $version)"
+    [ "$auto" -eq 1 ] || fail "Rust 1.98+ required (found $version)"
+    if ! have rustup; then
+        echo "== Install Rust toolchain manager =="
+        tmp=$(mktemp)
+        trap 'rm -f "$tmp"' 0
+        curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs -o "$tmp"
+        sh "$tmp" -y --no-modify-path
+        rm -f "$tmp"
+        trap - 0
+    fi
     echo "== Upgrade Rust stable toolchain =="
     rustup update stable
     rustup default stable
+    PATH="$cargo_bin:$PATH"
+    export PATH
 fi
 if ! have cargo-about; then
     [ "$auto" -eq 1 ] || fail "cargo-about 0.8.4 missing"
