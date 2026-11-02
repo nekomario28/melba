@@ -46,7 +46,8 @@ jobs:
           ./ci/licenses.sh target/third-party
       - name: package portable arm64 archives
         run: |
-          version=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["package"]["version"])')
+          # Ubuntu 22.04 ships Python 3.10, before tomllib became stdlib.
+          version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -1)
           ./packaging/package-portable.sh release-aarch64 "$version" \
             crates/melba/target/release/melba target/release/melbad \
             aarch64-unknown-linux-gnu target/third-party
