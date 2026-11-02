@@ -516,7 +516,7 @@ class ReleaseInstallerTests(unittest.TestCase):
         for name in ("melba", "melbad"):
             binary = folder / name
             binary.write_text(
-                f"#!/bin/sh\\nprintf '{name} 0.3.12\\n'\\n"
+                f"#!/bin/sh\nprintf '{name} 0.3.12'\n"
             )
             binary.chmod(0o755)
         (folder / "melba-portable.txt").write_text("melba-portable-v1\n")
