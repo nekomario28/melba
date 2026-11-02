@@ -25,14 +25,27 @@ sh packaging/install.sh
 melba
 ```
 
-`packaging/install.sh` は `~/.local/opt/melba` に `melba` と `melbad` を配置し、`~/.local/bin` にコマンドリンクとデスクトップエントリを作成します（`melbad` はデスクトップ起動時に自動起動）。別レイアウトやパッケージ手順、および ALAC 用の外部サービス導入（[source-only bootstrap](docs/installation.md#optional-source-only-wrapper-bootstrap)）は [インストール詳細](docs/installation.md) を参照してください。wrapper・rootfs・アカウント情報は Melba に同梱されません。
+`packaging/install.sh` は `~/.local/opt/melba` に `melba` と `melbad` を配置し、`~/.local/bin` にコマンドリンクとデスクトップエントリを作成します（`melbad` はデスクトップ起動時に自動起動）。別レイアウトやパッケージ手順、および ALAC 用の外部サービス導入は [インストール詳細](docs/installation.md) を参照してください。wrapper・rootfs・アカウント情報は Melba に同梱されません。
+
+## ALAC（ロスレス）を有効にする
+
+Melba 本体だけではロスレス再生は有効になりません。別途復号サービスが必要です。既に Melba を導入している場合、独立した [wrapper bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap) を明示的に実行して導入できます。
+
+```sh
+git clone https://github.com/nekomario28/melba-wrapper-bootstrap.git
+cd melba-wrapper-bootstrap
+./install.sh --wrapper-only
+melbad wrapper status
+```
+
+先に[必要な依存パッケージ](docs/installation.md#requirements)を導入してください。その後 Melba の GUI からサインインし、ALAC の曲を再生します。managed service は必要時に起動し、CLI での別途ログインやトークン転記は不要です。bootstrap は利用者が実行した場合のみ第三者のランタイムを取得します。利用条件とスクリプトを確認してください。利用不可なら AAC にフォールバックします。ロスレス音源と bit-perfect 出力は別の条件です。詳細は[導入ガイド](docs/installation.md#enable-alac-lossless)に記載しています。
 
 ## 再生
 
 `melba` を起動して **Sign in with Apple Music** を選び、Settings または `melbad setup` で出力先を選択します。フルトラック再生には Apple Music の有料契約と有効なセッションが必要です（プレビューは契約不要）。
 
 - **AAC-256（既定）:** 端末に既存の Widevine CDM を使用
-- **ALAC / ロスレス（任意）:** 利用者が別途用意・起動する互換復号サービスを使用（未接続時は AAC にフォールバック可能）
+- **ALAC / ロスレス（任意）:** 別途導入が必要です（[手順](#alacロスレスを有効にする)）。利用不可なら AAC にフォールバックします。
 - **出力:** ALSA 直接出力（`hw:X,Y`）、または共有システム出力（`default` / PipeWire / PulseAudio）
 - **診断:** `melbad doctor` でトークン、CDM、wrapper 疎通、音声出力を一括確認
 

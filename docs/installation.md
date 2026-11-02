@@ -57,17 +57,34 @@ sh packaging/install.sh --cargo       # developer Cargo-root layout; no GUI upda
 
 Re-run the installer after `git pull` to update a source installation. The portable installer stages both binaries and restores the previous pair if their versions do not agree. It does not start playback or enable the standalone service.
 
-## Optional source-only wrapper bootstrap
+## Enable ALAC (lossless)
 
-The separate [melba-wrapper-bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap) project installs Melba from source if needed and stages an upstream wrapper for local use:
+ALAC is optional. The standard Melba installer does **not** install, fetch or bundle a decrypt service. The independently maintained [melba-wrapper-bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap) downloads the upstream WorldObservationLog/wrapper runtime **only when you explicitly run it**. Its rootfs includes Apple and Android libraries with separate terms; review the bootstrap README, source and security notes first.
+
+**Melba already installed?** Stage the external service without rebuilding Melba:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/nekomario28/melba-wrapper-bootstrap/v1.2.3/install.sh | bash
+git clone https://github.com/nekomario28/melba-wrapper-bootstrap.git
+cd melba-wrapper-bootstrap
+./install.sh --wrapper-only
+melbad wrapper status
 ```
 
-Read the script before executing it. System build dependencies above still need to be installed. The bootstrap does not use `sudo`, accept Apple's terms, handle your account credentials or redistribute the wrapper/rootfs as part of Melba. To avoid launching the GUI, add `-s -- --no-launch` to the command. To refresh an existing source install from the current `main`, add `-s -- --update`; without it, the bootstrap reports the existing installation and only stages the wrapper. For service handling and supported modes, see [Wrapper](wrapper.md).
+**New install?** Install the [requirements](#requirements) above first, then use the combined source installer:
 
-The standard Melba installer does **not** install this external service or its runtime.
+```sh
+git clone https://github.com/nekomario28/melba-wrapper-bootstrap.git
+cd melba-wrapper-bootstrap
+./install.sh
+```
+
+The bootstrap does not use `sudo`, install system packages, accept Apple's terms, handle account credentials or redistribute the external payload as part of Melba. Staging alone does **not** establish a working ALAC stream.
+
+1. Launch Melba, select **Sign in with Apple Music** and complete the GUI sign-in (and MFA if requested). No separate CLI password step is required for the supported managed service.
+2. Play a track offered in ALAC. The staged managed service starts on demand; no `wrapper_mode` configuration edit is necessary.
+3. If the track falls back to AAC, inspect `melbad wrapper status` and `melbad doctor`. A stopped service before first playback may be normal.
+
+Other decrypt services may use `wrapper_url`, but the GUI native login bridge is only established for the supported managed service. See [Wrapper control](wrapper.md), [Authentication](authentication.md) and [Audio and playback](audio.md). A lossless source does not imply bit-perfect output.
 
 ## Other packaging paths
 

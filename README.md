@@ -24,14 +24,27 @@ sh packaging/install.sh
 melba
 ```
 
-`packaging/install.sh` installs `melba` and `melbad` under `~/.local/opt/melba`, links them in `~/.local/bin`, and adds a desktop entry. The desktop starts `melbad` on demand. See [Installation](docs/installation.md) for packaging options, alternate roots, and the [optional source-only ALAC wrapper bootstrap](docs/installation.md#optional-source-only-wrapper-bootstrap) (Melba never bundles the wrapper, rootfs, or account credentials).
+`packaging/install.sh` installs `melba` and `melbad` under `~/.local/opt/melba`, links them in `~/.local/bin`, and adds a desktop entry. The desktop starts `melbad` on demand. See [Installation](docs/installation.md) for packaging options, alternate roots, (Melba never bundles the wrapper, rootfs, or account credentials).
+
+## Enable ALAC (lossless)
+
+ALAC requires a separate, user-supplied decrypt service; the normal Melba installer does **not** enable lossless playback. If Melba is already installed, explicitly stage the independent [wrapper bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap):
+
+```sh
+git clone https://github.com/nekomario28/melba-wrapper-bootstrap.git
+cd melba-wrapper-bootstrap
+./install.sh --wrapper-only
+melbad wrapper status
+```
+
+Install the [prerequisites](docs/installation.md#requirements) first, then use Melba's GUI to sign in and play an ALAC track. The managed service starts when needed; no separate CLI password or manual token copying is required. Review the bootstrap script, its security notes, and the external runtime's terms before executing it. If the service is unavailable, playback falls back to AAC. Source losslessness and bit-perfect output are different. See the [full setup guide](docs/installation.md#enable-alac-lossless).
 
 ## Play music
 
 Launch `melba`, choose **Sign in with Apple Music**, and pick an output device in Settings or with `melbad setup`. Full catalog tracks require a paid subscription and a valid session; previews do not.
 
 - **AAC-256 (default):** uses a Widevine CDM already installed on the machine.
-- **ALAC / lossless (optional):** uses a compatible decrypt service you obtain and run separately, falling back to AAC when unavailable.
+- **ALAC / lossless (optional):** requires a separately installed service; see [Enable ALAC](#enable-alac-lossless).
 - **Output:** direct ALSA (`hw:X,Y`) or shared system audio (`default` / PipeWire / PulseAudio).
 - **Diagnostics:** `melbad doctor` checks token validity, CDM, wrapper reachability, and audio output.
 
