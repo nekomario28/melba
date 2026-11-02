@@ -243,6 +243,7 @@ class InstallerTests(unittest.TestCase):
         notice_tool_stub(self.work, self.fakebin, self.env)
         self.stub("pkg-config", '#!/bin/sh\nexit 0\n')
         self.stub("rustc", '#!/bin/sh\necho "rustc 1.99.0 (fixture)"\n')
+        self.stub("cmake", '#!/bin/sh\nexit 0\n')
         self.stub("xdg-open", '#!/bin/sh\nexit 0\n')
         self.stub("systemctl", '#!/bin/sh\nprintf "%s\\n" "$*" >> "$SYSTEMCTL_TRACE"\n')
         self.stub("cargo", '''#!/usr/bin/env python3
