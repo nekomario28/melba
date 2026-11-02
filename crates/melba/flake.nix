@@ -202,6 +202,9 @@
           default = melba;
           inherit melba;
         }
+        // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+          melba-paired = pkgs.callPackage ./nix/paired-release.nix {};
+        }
         // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
           melba-app = melba;
         }

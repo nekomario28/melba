@@ -36,6 +36,21 @@ cargo install cargo-about --version 0.8.4 --locked
 
 Firefox session import also needs the `sqlite3` CLI (`sqlite3` on Debian/Ubuntu; `sqlite` on Fedora/Arch). For AAC subscription playback, a usable Widevine CDM must already be installed; Melba does not download it.
 
+## Distro compatibility of the published v0.3.12 release
+
+The signed portable archive currently needs glibc 2.43 or newer. Our CI runs the **actual** apt/dnf package managers and signed Release installer in real containers (without real desktop/audio or Apple sign-in):
+
+| Distro | glibc | Signed portable v0.3.12 | Verified installer behavior |
+| --- | --- | --- | --- |
+| Debian 13 (trixie) | 2.41 | No | ALAC helper packages install; incompatible release is refused |
+| Ubuntu 24.04 LTS | 2.39 | No | ALAC helper packages install; incompatible release is refused |
+| Ubuntu 26.04 LTS | 2.43 | Yes | Runtime libraries are installed; both binaries execute |
+| Fedora 43 | 2.42 | No | ALAC helper packages install; incompatible release is refused |
+| Fedora 44 | 2.43 | Yes | Runtime libraries are installed; both binaries execute |
+| Current Arch/CachyOS | 2.43+ | Yes | Real pacman test using CachyOS OS metadata passed |
+
+For older distros use the [source installer](#source-install-developers); do **not** attempt to upgrade glibc manually to run an application. Lowering the release glibc baseline is tracked in [Issue #18](https://github.com/nekomario28/melba/issues/18). NixOS uses the [Nix package](#nix-and-nixos), not the generic portable installer.
+
 ## Recommended: signed prebuilt release
 
 On Linux `x86_64` or `aarch64` with **glibc 2.43 or newer** (for example current CachyOS/Arch or Ubuntu 26.04), skip the Rust toolchain and Git checkout. Current published binaries require glibc 2.43; on Ubuntu 24.04 (glibc 2.39) and older distributions use the [source installer](#source-install-developers) instead. Adding system runtime packages does not upgrade the glibc ABI:
@@ -135,16 +150,24 @@ makepkg -si
 
 This VCS recipe builds the repository's **remote default branch**, not necessarily your local checkout. It installs the binaries under `/usr/bin` and a user unit under `/usr/lib/systemd/user`. Only enable the unit if you want a standalone daemon independent of the desktop's lifetime.
 
-### Nix (app-only)
+### Nix and NixOS
 
-`crates/melba/flake.nix` offers:
+The normal Linux installer relies on conventional ELF loaders and `apt-get`, `dnf` or `pacman`; **do not use `install-release.sh` directly on NixOS**. It does not manage Nix profiles and does not configure `nix-ld`.
+
+For a native Nix-managed installation of **both** `melba` and `melbad`, use the `melba-paired` derivation:
 
 ```sh
-nix build ./crates/melba#melba
-nix develop ./crates/melba
+nix build ./crates/melba#melba-paired
+./result/bin/melba --version
+./result/bin/melbad --version
+nix profile install ./crates/melba#melba-paired
 ```
 
-The Nix path builds the desktop app only; it does not install `melbad` or its user unit. It has not been verified through the installation/license-notice checks above and does not run the dependency notice collector. Do not treat it as equivalent to the supported paired portable installation.
+This derivation fetches a specific published Release by a pinned SHA-256 from its publisher-signed checksum manifest, uses Nix's `autoPatchelfHook` to rewrite the dynamic loader and library paths, and includes both executables, the desktop entry, the icon and the available third-party notices. Unlike the portable installer, it is upgraded through **Nix**, not the GUI updater. Release versions and fixed hashes are intentionally changed together.
+
+The existing `nix build ./crates/melba#melba` is **GUI-only**; `nix develop ./crates/melba` remains a developer shell.
+
+**ALAC caveat:** the separately acquired third-party service may require an Android compatibility runtime and additional dynamic-loader configuration. Nix packaging of Melba itself does not imply the external ALAC service has been tested on NixOS; do not rely on `melbad wrapper setup` auto-installing packages through a Nix system manager.
 
 ### Manual developer install
 
