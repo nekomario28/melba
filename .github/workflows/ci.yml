@@ -192,19 +192,27 @@ jobs:
   # or a paired melba/melbad installation. Keep that distinction in docs.
   nix-flake-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    container:
-      image: nixos/nix:latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Validate existing app-only flake
-        shell: sh
+      - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31
+      - name: Parse and evaluate native Nix flake
+        shell: bash
         run: |
-          set -eu
+          set -euo pipefail
           nix --version
           nix-instantiate --parse crates/melba/flake.nix >/dev/null
-          export NIX_CONFIG="experimental-features = nix-command flakes"
-          nix flake show --no-write-lock-file --all-systems "./crates/melba"
+          nix flake show --no-write-lock-file ./crates/melba
+      - name: Build a paired signed-release Nix package
+        shell: bash
+        run: |
+          set -euo pipefail
+          nix build --no-link ./crates/melba#melba-paired
+          out=$(nix eval --raw ./crates/melba#packages.x86_64-linux.melba-paired.outPath)
+          test -x "$out/bin/melba"
+          test -x "$out/bin/melbad"
+          "$out/bin/melba" --version
+          "$out/bin/melbad" --version
 
   # The melba crate must keep compiling on the other desktop targets; a
   # cfg gate once swallowed eframe::run_native entirely. A check build
