@@ -2,14 +2,16 @@
 
 **English** | [日本語](wrapper.ja.md)
 
-The normal Melba installer does **not** download, install, bundle or redistribute
-a wrapper. This document covers control of a separately supplied service. The payload
+Melba does **not bundle or redistribute** the optional wrapper. The source and
+Release installers offer explicit `[Y/n]` opt-in; the external runtime is
+downloaded only after the user chooses yes (or passes `--with-alac`).
+This document covers control of a separately supplied service. The payload
 and its terms are outside this repository (see [NOTICE.md](../NOTICE.md) and
 [PUBLICATION.md](../PUBLICATION.md)).
 
 ## Installation
 
-Use the explicit [ALAC setup guide](installation.md#enable-alac-lossless). If Melba is installed, clone the [external bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap) and run `./install.sh --wrapper-only`, then `melbad wrapper status`. Sign in through Melba's GUI; separate CLI login is not needed for the supported managed service. Review the external runtime's terms before using it.
+Use the [ALAC setup guide](installation.md#enable-alac-lossless). If Melba is already installed, run `melbad wrapper setup` and then `melbad wrapper status`; missing staging tools are installed on supported Linux distributions, without rebuilding Melba. Cloning the [external bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap) is an optional manual alternative. Sign in through Melba's GUI; separate CLI login is not needed for the supported managed service. Review the external runtime's terms before using it.
 
 ## Modes
 

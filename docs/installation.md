@@ -6,6 +6,8 @@ Melba comprises a desktop app (`melba`) and a playback daemon (`melbad`). Source
 
 ## Requirements
 
+The toolchain and development headers below are required **only for source builds**, not for the signed prebuilt installer. The prebuilt installer needs `curl`, `openssl`, `tar`, `sha256sum` and standard Unix tools; it provisions known missing runtime libraries on supported distributions. ALAC staging tools are checked separately and installed only if ALAC is selected. `sudo` is requested only for missing system packages.
+
 - Linux x86_64 or aarch64.
 - Rust 1.98+ and Cargo; Python 3.9+.
 - C/C++ toolchain, CMake, `pkg-config`, and development headers for D-Bus, ALSA and WebKitGTK 4.1 (used by the `auth open` webview).
@@ -50,7 +52,7 @@ To add ALAC at any time after installation:
 melbad wrapper setup
 ```
 
-This separately acquires the user-requested third-party runtime. Sign in via the GUI; staging alone is not proof of working ALAC playback. Review the [external runtime terms](wrapper.md).
+The `melbad` command checks `bash`, `curl`, `unzip`, `file` and a C compiler (`cc`), and provisions missing tools through pacman, apt-get or dnf before downloading the optional external runtime. Set `MELBA_INSTALL_AUTO_DEPS=0` to disable automatic package changes. This remains an explicit opt-in; sign in via the GUI. Staging alone is not proof of working ALAC playback. Review the [external runtime terms](wrapper.md).
 
 ## Source install (developers)
 
@@ -80,9 +82,16 @@ Re-run the installer after `git pull` to update a source installation. The porta
 
 ## Enable ALAC (lossless)
 
-ALAC is optional. The standard Melba installer does **not** install, fetch or bundle a decrypt service. The independently maintained [melba-wrapper-bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap) downloads the upstream WorldObservationLog/wrapper runtime **only when you explicitly run it**. Its rootfs includes Apple and Android libraries with separate terms; review the bootstrap README, source and security notes first.
+ALAC is optional and is **never bundled** with Melba. If explicitly selected during an interactive install (`[Y/n]`) or using `--with-alac`, the installer stages a separately supplied decrypt service. You can also add it later **without rebuilding or cloning**:
 
-**Melba already installed?** Stage the external service without rebuilding Melba. This path needs `git`, `curl`, `unzip`, `file` and a C compiler (`cc`), but does not require Cargo or `cargo-about` when both `melba` and `melbad` are already installed:
+```sh
+melbad wrapper setup
+melbad wrapper status
+```
+
+The `melbad wrapper setup` command provisions missing staging tools on supported distributions and invokes the included setup script. The third-party runtime has separate Apple/Android library terms; inspect the [independent bootstrap source](https://github.com/nekomario28/melba-wrapper-bootstrap) and security notes before opting in.
+
+**Alternative: run the independent bootstrap yourself.** Use this if you want a checkout to inspect or customize. This method needs `git`, `curl`, `unzip`, `file`, and `cc`, but not Cargo or `cargo-about` when Melba is already installed:
 
 ```sh
 git clone https://github.com/nekomario28/melba-wrapper-bootstrap.git
@@ -91,7 +100,7 @@ cd melba-wrapper-bootstrap
 melbad wrapper status
 ```
 
-**New install?** Install the full [source-build requirements](#requirements) above **and** the wrapper bootstrap tools (`git`, `curl`, `unzip`, `file`, `cc`), then use the combined source installer:
+**Alternative: combined source installer from the external bootstrap.** This is for developers who explicitly want a source build and wrapper staging rather than the signed Release path:
 
 ```sh
 git clone https://github.com/nekomario28/melba-wrapper-bootstrap.git

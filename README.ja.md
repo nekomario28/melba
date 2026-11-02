@@ -22,7 +22,7 @@ Linux `x86_64` / `aarch64` 対応。**glibc 2.43 以降の環境ではビルド�
 curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/install-release.sh | sh
 ```
 
-Releaseの署名・チェックサムを検証し、`melba`と`melbad`を導入します。対話環境では任意のALAC導入を`[Y/n]`で確認します。後から追加する場合も[1コマンドで導入できます](docs/installation.md#enable-alac-lossless)。非対話環境では`--with-alac`で明示的に指定できます。
+Releaseの発行者署名とSHA-256チェックサムを検証し、`melba`と`melbad`を導入します。Linuxの共有ライブラリが不足している場合は対応ディストリビューションのパッケージマネージャで導入します（必要時は`sudo`認証）。対話環境ではALAC導入を`[Y/n]`で確認します。後からでも[1コマンドで追加](docs/installation.md#enable-alac-lossless)でき、必要な準備ツールも不足時に導入します。非対話環境では`--with-alac`で明示的に指定できます。
 
 **開発者向けソースビルド**では不足する開発パッケージ・Rust・`cargo-about`を自動導入します（必要に応じて`sudo`を使用）。
 
@@ -37,16 +37,9 @@ melba
 
 ## ALAC（ロスレス）を有効にする
 
-Melba 本体だけではロスレス再生は有効になりません。別途復号サービスが必要です。既に Melba を導入している場合、独立した [wrapper bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap) を明示的に実行して導入できます。
+ALACには別途復号サービスが必要です。最初のインストール時に **Y** を選ぶか、導入後に[1コマンドで追加](docs/installation.md#enable-alac-lossless)できます。後から追加する場合もGit clone・Rust・Cargoは不要で、必要なツールが不足していれば対応ディストリビューションで自動導入します。スクリプトを個別に確認したい場合は、独立した[wrapper bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap)からの手動導入も可能です。
 
-```sh
-git clone https://github.com/nekomario28/melba-wrapper-bootstrap.git
-cd melba-wrapper-bootstrap
-./install.sh --wrapper-only
-melbad wrapper status
-```
-
-wrapper だけを導入する場合は `git`・`curl`・`unzip`・`file`・C コンパイラ（`cc`）が必要です。[Melba 本体のビルド用依存関係](docs/installation.md#requirements)は、本体をソースからビルドするときだけ必要です。その後 GUI からサインインし、ALAC の曲を再生します。managed service は必要時に起動し、CLI での別途ログインやトークン転記は不要です。bootstrap は利用者が実行した場合のみ第三者のランタイムを取得します。利用条件とスクリプトを確認してください。利用不可なら AAC にフォールバックします。ロスレス音源と bit-perfect 出力は別の条件です。詳細は[導入ガイド](docs/installation.md#enable-alac-lossless)に記載しています。
+GUIからサインインし、ALACの曲を再生してください。managed serviceは必要時に起動し、CLIでの別途ログインやトークン転記は不要です。第三者ランタイムの利用条件・セキュリティ上の注意事項を確認してください。stagingだけではALAC再生を保証せず、利用不可の場合はAACへフォールバックします。音源のロスレスとbit-perfect出力は別の条件です。詳細は[導入ガイド](docs/installation.md#enable-alac-lossless)を参照してください。
 
 ## 再生
 
