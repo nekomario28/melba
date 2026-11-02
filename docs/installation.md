@@ -52,7 +52,13 @@ To add ALAC at any time after installation:
 melbad wrapper setup
 ```
 
-The `melbad` command checks `bash`, `curl`, `unzip`, `file` and a C compiler (`cc`), and provisions missing tools through pacman, apt-get or dnf before downloading the optional external runtime. Set `MELBA_INSTALL_AUTO_DEPS=0` to disable automatic package changes. This remains an explicit opt-in; sign in via the GUI. Staging alone is not proof of working ALAC playback. Review the [external runtime terms](wrapper.md).
+**Version note:** in newly built Melba, the `melbad` command checks `bash`, `curl`, `unzip`, `file` and a C compiler (`cc`) and provisions missing tools through pacman, apt-get or dnf. The **published v0.3.12 binary does not yet include this late-setup preflight**. On that release, if these tools are missing, re-run the signed installer with explicit ALAC opt-in (this reuses the published binary and installs missing ALAC tools):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/install-release.sh | sh -s -- --with-alac
+```
+
+Set `MELBA_INSTALL_AUTO_DEPS=0` to disable automatic package changes. This remains an explicit opt-in; sign in via the GUI. Staging alone is not proof of working ALAC playback. Review the [external runtime terms](wrapper.md).
 
 ## Source install (developers)
 
@@ -89,7 +95,7 @@ melbad wrapper setup
 melbad wrapper status
 ```
 
-The `melbad wrapper setup` command provisions missing staging tools on supported distributions and invokes the included setup script. The third-party runtime has separate Apple/Android library terms; inspect the [independent bootstrap source](https://github.com/nekomario28/melba-wrapper-bootstrap) and security notes before opting in.
+For builds that include the new preflight, `melbad wrapper setup` provisions missing staging tools on supported distributions and invokes its included setup script. For the already-published v0.3.12 binary, use the signed installer with `--with-alac` as shown above if tools are missing. The third-party runtime has separate Apple/Android library terms; inspect the [independent bootstrap source](https://github.com/nekomario28/melba-wrapper-bootstrap) and security notes before opting in.
 
 **Alternative: run the independent bootstrap yourself.** Use this if you want a checkout to inspect or customize. This method needs `git`, `curl`, `unzip`, `file`, and `cc`, but not Cargo or `cargo-about` when Melba is already installed:
 

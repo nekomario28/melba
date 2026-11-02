@@ -36,7 +36,7 @@ melba
 
 ## Enable ALAC (lossless)
 
-ALAC requires a separately supplied decrypt service with its own terms. Select **Y** during interactive installation or use the [one-command setup](docs/installation.md#enable-alac-lossless) at any later time. The one-command path checks and provisions missing staging tools where supported; it does not require a Git clone, Rust or Cargo. The independently maintained [wrapper bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap) remains an alternative for people who want to inspect and run its scripts separately.
+ALAC requires a separately supplied decrypt service with its own terms. Select **Y** during interactive installation or use the [one-command setup](docs/installation.md#enable-alac-lossless) at any later time. New Melba builds check and provision missing staging tools on supported distributions; the published `v0.3.12` binary predates that improvement. Until a new Release is published, re-run the [signed installer with ALAC enabled](docs/installation.md#enable-alac-lossless) if those tools are missing. No Git clone, Rust or Cargo is needed for the prebuilt path. The independently maintained [wrapper bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap) remains an alternative for people who want to inspect and run its scripts separately.
 
 Sign in through Melba's GUI and play an ALAC track. The managed service starts on demand; no separate CLI password or manual token copying is needed. Staging does **not** guarantee ALAC playback, and source losslessness differs from bit-perfect output. Review the [full guide](docs/installation.md#enable-alac-lossless) and external runtime security notes.
 

@@ -10,7 +10,7 @@ payload とその利用条件はこのリポジトリの外です（[NOTICE.md](
 
 ## インストール
 
-推奨手順は[ALAC導入ガイド](installation.md#enable-alac-lossless)に記載しています。Melba導入済みなら`melbad wrapper setup`、続けて`melbad wrapper status`を実行します。必要な準備ツールが不足している場合は、対応Linuxディストリビューションで自動導入します。個別にスクリプトを調べたい場合、[外部bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap)のcloneによる手動導入も可能です。GUIでサインインしてください。対応managed serviceでは別途CLIログインは不要です。外部ランタイムの利用条件を確認してください。
+推奨手順は[ALAC導入ガイド](installation.md#enable-alac-lossless)に記載しています。Melba導入済みなら`melbad wrapper setup`、続けて`melbad wrapper status`を実行します。この変更を含む新しいビルドでは、必要な準備ツールが不足している場合、対応Linuxディストリビューションで自動導入します。**公開済みのv0.3.12は未対応**なので、ツールが不足する場合は[署名付きReleaseインストーラを`--with-alac`で再実行](installation.md#enable-alac-lossless)してください。個別にスクリプトを調べたい場合、[外部bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap)のcloneによる手動導入も可能です。GUIでサインインしてください。対応managed serviceでは別途CLIログインは不要です。外部ランタイムの利用条件を確認してください。
 
 ## モード
 

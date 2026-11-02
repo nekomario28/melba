@@ -11,7 +11,7 @@ and its terms are outside this repository (see [NOTICE.md](../NOTICE.md) and
 
 ## Installation
 
-Use the [ALAC setup guide](installation.md#enable-alac-lossless). If Melba is already installed, run `melbad wrapper setup` and then `melbad wrapper status`; missing staging tools are installed on supported Linux distributions, without rebuilding Melba. Cloning the [external bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap) is an optional manual alternative. Sign in through Melba's GUI; separate CLI login is not needed for the supported managed service. Review the external runtime's terms before using it.
+Use the [ALAC setup guide](installation.md#enable-alac-lossless). If Melba is already installed, run `melbad wrapper setup` and then `melbad wrapper status`. Builds made after the dependency-preflight change auto-install missing staging tools on supported Linux distributions. **Published v0.3.12 does not**; use the signed Release installer with `--with-alac` ([instructions](installation.md#enable-alac-lossless)) if its prerequisites are missing, without building from source. Cloning the [external bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap) is an optional manual alternative. Sign in through Melba's GUI; separate CLI login is not needed for the supported managed service. Review the external runtime's terms before using it.
 
 ## Modes
 

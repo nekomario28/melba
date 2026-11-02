@@ -37,7 +37,7 @@ melba
 
 ## ALAC（ロスレス）を有効にする
 
-ALACには別途復号サービスが必要です。最初のインストール時に **Y** を選ぶか、導入後に[1コマンドで追加](docs/installation.md#enable-alac-lossless)できます。後から追加する場合もGit clone・Rust・Cargoは不要で、必要なツールが不足していれば対応ディストリビューションで自動導入します。スクリプトを個別に確認したい場合は、独立した[wrapper bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap)からの手動導入も可能です。
+ALACには別途復号サービスが必要です。最初のインストール時に **Y** を選ぶか、導入後に[1コマンドで追加](docs/installation.md#enable-alac-lossless)できます。新しくビルドしたMelbaでは、後から追加する際も対応ディストリビューションで不足ツールを自動導入します。ただし、公開済みの`v0.3.12`の`melbad`にはまだ反映されていません。必要ツールが不足する場合は[署名付きインストーラをALAC指定で再実行](docs/installation.md#enable-alac-lossless)してください。スクリプトを個別に確認したい場合は、独立した[wrapper bootstrap](https://github.com/nekomario28/melba-wrapper-bootstrap)からの手動導入も可能です。
 
 GUIからサインインし、ALACの曲を再生してください。managed serviceは必要時に起動し、CLIでの別途ログインやトークン転記は不要です。第三者ランタイムの利用条件・セキュリティ上の注意事項を確認してください。stagingだけではALAC再生を保証せず、利用不可の場合はAACへフォールバックします。音源のロスレスとbit-perfect出力は別の条件です。詳細は[導入ガイド](docs/installation.md#enable-alac-lossless)を参照してください。
 
