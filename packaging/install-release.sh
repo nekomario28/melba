@@ -76,6 +76,86 @@ tar -xzf "$work/$archive" -C "$work"
 payload="$work/$folder"
 [ -x "$payload/melba" ] && [ -x "$payload/melbad" ] ||
     fail "signed release is missing the paired executables"
+
+# Portable binaries still depend on host libraries. Only install native
+# runtime packages if the verified release is missing shared libraries.
+missing_runtime() {
+    command -v ldd >/dev/null 2>&1 || return 0
+    (ldd "$payload/melba" 2>&1 || true; ldd "$payload/melbad" 2>&1 || true) |
+        grep 'not found' || true
+}
+missing_libs=$(missing_runtime)
+if [ -n "$missing_libs" ]; then
+    echo "Missing runtime libraries:"
+    printf '%s\n' "$missing_libs"
+    [ "${MELBA_INSTALL_AUTO_DEPS:-1}" = 1 ] ||
+        fail "runtime dependencies missing; automatic provisioning disabled"
+    os_release=${MELBA_INSTALL_OS_RELEASE:-/etc/os-release}
+    os_id= os_like=
+    if [ -r "$os_release" ]; then
+        os_id=$(sed -n 's/^ID=//p' "$os_release" | sed -n '1p' | tr -d '"')
+        os_like=$(sed -n 's/^ID_LIKE=//p' "$os_release" | sed -n '1p' | tr -d '"')
+    fi
+    case " $os_id $os_like " in
+        *" arch "*|*" cachyos "*|*" manjaro "*) manager=pacman;;
+        *" debian "*|*" ubuntu "*) manager=apt-get;;
+        *" fedora "*|*" rhel "*) manager=dnf;;
+        *) fail "unsupported distro ($os_id): install missing shared libraries manually";;
+    esac
+    packages=""
+    add_runtime() {
+        case " $packages " in
+            *" $1 "*) ;;
+            *) packages="$packages $1";;
+        esac
+    }
+    case "$missing_libs" in
+        *webkit2gtk*|*javascriptcoregtk*|*libsoup*|*libgtk-3*)
+            case "$manager" in
+                pacman) add_runtime webkit2gtk-4.1;;
+                apt-get) add_runtime libwebkit2gtk-4.1-0;;
+                dnf) add_runtime webkit2gtk4.1;;
+            esac;;
+    esac
+    case "$missing_libs" in
+        *libasound*)
+            case "$manager" in
+                pacman) add_runtime alsa-lib;;
+                apt-get) add_runtime libasound2t64;;
+                dnf) add_runtime alsa-lib;;
+            esac;;
+    esac
+    case "$missing_libs" in
+        *libdbus*)
+            case "$manager" in
+                pacman) add_runtime dbus;;
+                apt-get) add_runtime libdbus-1-3;;
+                dnf) add_runtime dbus-libs;;
+            esac;;
+    esac
+    [ -n "$packages" ] ||
+        fail "unknown shared library dependency: install the packages listed above"
+    echo "Installing missing $manager runtime packages:$packages"
+    if [ "$(id -u)" -eq 0 ]; then
+        case "$manager" in
+            pacman) pacman -S --needed --noconfirm $packages;;
+            apt-get) apt-get update && apt-get install -y $packages;;
+            dnf) dnf install -y $packages;;
+        esac
+    else
+        command -v sudo >/dev/null 2>&1 ||
+            fail "sudo required to install missing runtime packages"
+        case "$manager" in
+            pacman) sudo pacman -S --needed --noconfirm $packages;;
+            apt-get) sudo apt-get update && sudo apt-get install -y $packages;;
+            dnf) sudo dnf install -y $packages;;
+        esac
+    fi
+    missing_libs=$(missing_runtime)
+    [ -z "$missing_libs" ] ||
+        fail "missing runtime libraries after installing packages: $missing_libs"
+fi
+
 [ "$(cat "$payload/melba-portable.txt")" = melba-portable-v1 ] ||
     fail "not a supported portable Melba release"
 [ "$("$payload/melba" --version)" = "melba $version" ] ||
