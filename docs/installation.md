@@ -34,7 +34,25 @@ cargo install cargo-about --version 0.8.4 --locked
 
 Firefox session import also needs the `sqlite3` CLI (`sqlite3` on Debian/Ubuntu; `sqlite` on Fedora/Arch). For AAC subscription playback, a usable Widevine CDM must already be installed; Melba does not download it.
 
-## Recommended source install
+## Recommended: signed prebuilt release
+
+On Linux `x86_64` or `aarch64`, skip the Rust toolchain and Git checkout:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/install-release.sh | sh
+```
+
+The standalone installer selects the latest matching published release, verifies the Ed25519 signature on its checksum manifest against the embedded Melba publisher key, verifies the archive's SHA-256, then installs the paired `melba`/`melbad` portable layout to `~/.local/opt/melba`. It creates `~/.local/bin` links and a desktop entry (using a generic system-theme icon for old release archives). It works without Cargo or `cargo-about`. It uses `curl`, `openssl`, `tar`, `sha256sum` and standard Unix tools. On interactive installs, ALAC is optional with a default-yes `[Y/n]` question; non-interactive installs skip it unless `--with-alac` is explicitly passed. You can also use `--no-alac`. No external wrapper is bundled in the release.
+
+To add ALAC at any time after installation:
+
+```sh
+melbad wrapper setup
+```
+
+This separately acquires the user-requested third-party runtime. Sign in via the GUI; staging alone is not proof of working ALAC playback. Review the [external runtime terms](wrapper.md).
+
+## Source install (developers)
 
 ```sh
 git clone https://github.com/nekomario28/melba.git
@@ -43,7 +61,7 @@ sh packaging/install.sh
 melba
 ```
 
-By default, the installer builds `melba` and `melbad`, installs a portable copy under `~/.local/opt/melba`, creates stable links in `~/.local/bin`, and adds a desktop entry. Make sure `~/.local/bin` is on your `PATH`. When invoked from fish, the installer sets a persistent fish universal path automatically; otherwise use `fish_add_path ~/.local/bin` if needed. On supported distributions the installer provisions only missing OS build packages, initializes an existing `rustup` with `rustup default stable` when no working toolchain exists, bootstraps Rust via the official rustup-init HTTPS installer if absent, and installs `cargo-about` when missing. Set `MELBA_INSTALL_AUTO_DEPS=0` to disable this provisioning and fail with an actionable error instead. The source installer never installs the optional ALAC wrapper. A companion user unit may be installed, but is not enabled automatically; the desktop starts its own daemon when needed. The installation contains `melba-portable.txt`, required by the GUI updater, plus the project and third-party notices under `share/licenses/melba/`.
+By default, the installer builds `melba` and `melbad`, installs a portable copy under `~/.local/opt/melba`, creates stable links in `~/.local/bin`, and adds a desktop entry. Make sure `~/.local/bin` is on your `PATH`. When invoked from fish, the installer sets a persistent fish universal path automatically; otherwise use `fish_add_path ~/.local/bin` if needed. On supported distributions the installer provisions only missing OS build packages, initializes an existing `rustup` with `rustup default stable` when no working toolchain exists, bootstraps Rust via the official rustup-init HTTPS installer if absent, and installs `cargo-about` when missing. Set `MELBA_INSTALL_AUTO_DEPS=0` to disable this provisioning and fail with an actionable error instead. The source installer offers the optional ALAC service only after an explicit default-yes `[Y/n]` confirmation on a terminal; `--no-alac` skips it and `--with-alac` opts in non-interactively. A companion user unit may be installed, but is not enabled automatically; the desktop starts its own daemon when needed. The installation contains `melba-portable.txt`, required by the GUI updater, plus the project and third-party notices under `share/licenses/melba/`.
 
 Release archives carry `NOTICE.md`, `LICENSE-MIT`, `LICENSE-APACHE`, `SPOTIFAST-LICENSE`, the generated `melba-THIRD-PARTY.txt` / `melbad-THIRD-PARTY.txt` and `receipt.json`. `packaging/package-portable.sh` refuses to package without the generated notices.
 
@@ -54,6 +72,8 @@ sh packaging/install.sh               # portable (recommended)
 sh packaging/install.sh --no-unit     # skip the optional user unit
 sh packaging/install.sh --portable-dir DIR
 sh packaging/install.sh --cargo       # developer Cargo-root layout; no GUI updater
+sh packaging/install.sh --no-alac    # install Melba only
+sh packaging/install.sh --with-alac  # explicitly add ALAC after installing
 ```
 
 Re-run the installer after `git pull` to update a source installation. The portable installer stages both binaries and restores the previous pair if their versions do not agree. It does not start playback or enable the standalone service.

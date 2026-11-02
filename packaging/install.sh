@@ -20,16 +20,19 @@ set -eu
 cd "$(dirname "$0")/.."
 
 need_unit=1
+alac=ask
 mode=portable
 portable_dir=${MELBA_PORTABLE_DIR:-$HOME/.local/opt/melba}
 
 usage() {
-    echo "usage: sh packaging/install.sh [--portable|--cargo] [--portable-dir DIR] [--no-unit]" >&2
+    echo "usage: sh packaging/install.sh [--portable|--cargo] [--portable-dir DIR] [--no-unit] [--with-alac|--no-alac]" >&2
 }
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --no-unit) need_unit=0; shift;;
+        --with-alac) alac=yes; shift;;
+        --no-alac) alac=no; shift;;
         --portable) mode=portable; shift;;
         --cargo) mode=cargo; shift;;
         --portable-dir)
@@ -194,10 +197,39 @@ if [ "$need_unit" = 0 ]; then
     echo "No standalone user unit installed; the desktop starts its co-installed daemon."
 fi
 echo
-echo "== wrapper (ALAC, optional) =="
-echo "This installer does not install, fetch or bundle a decrypt service."
-echo "An already-installed user-supplied service is controlled by Melba:"
-echo "  '$final_bin/melbad' wrapper status"
-echo "  '$final_bin/melbad' wrapper stop"
-echo "  '$final_bin/melbad' setup        # audio output only"
-echo "See docs/wrapper.md; the service's terms and Apple Music access are separate."
+echo "== ALAC (optional external decrypt service) =="
+if [ "$alac" = ask ]; then
+    # /dev/tty also works when install.sh itself was delivered through a pipe.
+    if [ -t 2 ] && [ -r /dev/tty ]; then
+        echo "ALAC requires a separately downloaded third-party runtime, including"
+        echo "Apple/Android libraries governed by their own terms."
+        echo "Details: https://github.com/nekomario28/melba-wrapper-bootstrap"
+        printf "Install ALAC lossless support? [Y/n] " >/dev/tty
+        IFS= read -r reply </dev/tty || reply=
+        case "$reply" in n|N|no|No|NO) alac=no;; *) alac=yes;; esac
+    else
+        echo "Non-interactive: optional ALAC skipped (pass --with-alac to opt in)."
+        alac=no
+    fi
+fi
+if [ "$alac" = yes ]; then
+    wrapper_dir=${XDG_DATA_HOME:-$HOME/.local/share}/melba/wrapper
+    staged=no
+    for entry in run wrapper-lite-qemu wrapper-lite wrapper; do
+        [ ! -f "$wrapper_dir/$entry" ] || staged=yes
+    done
+    if [ "$staged" = yes ]; then
+        echo "An ALAC service is already staged at $wrapper_dir; leaving it untouched."
+    else
+        echo "== Staging user-requested ALAC service =="
+        if ! "$final_bin/melbad" wrapper setup; then
+            echo "Melba is installed, but ALAC staging failed." >&2
+            echo "Retry ALAC without rebuilding Melba: '$final_bin/melbad' wrapper setup" >&2
+            exit 1
+        fi
+    fi
+    "$final_bin/melbad" wrapper status || true
+else
+    echo "ALAC skipped. To add it later, run: '$final_bin/melbad' wrapper setup"
+fi
+echo "This installer does not bundle or automatically accept third-party terms."

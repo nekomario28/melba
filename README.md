@@ -15,7 +15,15 @@ Melba is an unofficial, Rust-based Apple Music desktop player (`melba`) paired w
 
 ## Install
 
-Linux `x86_64` and `aarch64`. Signed portable archives (`melba` + `melbad`) are published on [Releases](https://github.com/nekomario28/melba/releases); to build and install from source (the installer automatically provisions missing build packages, Rust and `cargo-about` on supported Linux distributions, using `sudo` when needed):
+Linux `x86_64` and `aarch64` are supported. **Recommended: install the prebuilt, publisher-signed release** without Git or Rust:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/install-release.sh | sh
+```
+
+The installer verifies the release signature and binary checksum, installs both `melba` and `melbad`, and offers optional ALAC setup with `[Y/n]` when interactive. Later ALAC setup is one command: `melbad wrapper setup`. You can opt out with `--no-alac` or opt in during non-interactive use with `--with-alac` (for example `curl -fsSL URL | sh -s -- --with-alac`).
+
+**For developers building from source** (the installer can provision missing Rust/build dependencies):
 
 ```sh
 git clone https://github.com/nekomario28/melba.git
