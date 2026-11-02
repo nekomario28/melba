@@ -148,7 +148,7 @@ cd packaging
 makepkg -si
 ```
 
-This VCS recipe builds the repository's **remote default branch**, not necessarily your local checkout. It installs the binaries under `/usr/bin` and a user unit under `/usr/lib/systemd/user`. Only enable the unit if you want a standalone daemon independent of the desktop's lifetime.
+This VCS recipe builds the repository's **remote default branch**, not necessarily your local checkout. It uses an explicit makepkg source alias (`apple-music-linux::git+…`) so the downloaded checkout matches its prepare/build/check/package hooks. It installs the binaries under `/usr/bin` and a user unit under `/usr/lib/systemd/user`. Only enable the unit if you want a standalone daemon independent of the desktop's lifetime. `makepkg -si` by itself is not a system package repository; to receive VCS package upgrades automatically, publish/subscribe to an AUR package and use an AUR helper such as `paru` or `yay`. Plain `pacman -Syu` does not update AUR packages.
 
 ### Nix and NixOS
 

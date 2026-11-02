@@ -110,6 +110,21 @@ class PackagingTests(unittest.TestCase):
                                 text=True, capture_output=True)
         self.assertEqual(result.stdout, "42\n")
 
+    def test_makepkg_vcs_alias_matches_hook_checkout_directory(self):
+        # makepkg picks the repository basename ("melba") unless the source
+        # uses an explicit VCS alias; our hooks all use apple-music-linux.
+        result = subprocess.run(
+            ["bash", "-c", 'source "$1"; printf "%s\\n" "${source[@]}"',
+             "bash", str(PKGBUILD)],
+            env=self.env, capture_output=True, text=True, check=True,
+        )
+        sources = result.stdout.splitlines()
+        self.assertEqual(len(sources), 1)
+        self.assertEqual(
+            sources[0], "apple-music-linux::git+https://github.com/nekomario28/melba",
+        )
+        self.assertEqual(sources[0].split("::", 1)[0], self.checkout.name)
+
     def test_pkgver_without_tags(self):
         # A git-describe pipeline once hid failure and returned an empty version.
         count = self.git("rev-list", "--count", "HEAD")
