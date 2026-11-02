@@ -16,7 +16,7 @@ Melba は Rust 製の非公式 Apple Music デスクトッププレイヤー（`
 
 ## インストール
 
-Linux `x86_64` / `aarch64` 対応。署名付きポータブル版アーカイブ（`melba` + `melbad`）は [Releases](https://github.com/nekomario28/melba/releases) で配布しています。ソースからビルド・導入する場合は、Rust 1.98 以上、`cargo-about` 0.8.4（`cargo install cargo-about --version 0.8.4 --locked`）と[ディストリビューション別の開発用ライブラリ](docs/installation.md)を導入した上で以下を実行します。
+Linux `x86_64` / `aarch64` 対応。署名付きポータブル版アーカイブ（`melba` + `melbad`）は [Releases](https://github.com/nekomario28/melba/releases) で配布しています。ソースからビルド・導入する場合、以下のインストーラが不足する開発パッケージ・Rust ツールチェーン・`cargo-about` を自動導入します（システムパッケージには必要に応じて `sudo` を使用）。
 
 ```sh
 git clone https://github.com/nekomario28/melba.git

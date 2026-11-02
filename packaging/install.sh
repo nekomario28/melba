@@ -39,40 +39,10 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
-command -v cargo >/dev/null || {
-    echo "cargo not found — install a Rust toolchain first" >&2
-    exit 1
-}
-command -v pkg-config >/dev/null || {
-    echo "pkg-config not found — see README Install for system deps" >&2
-    exit 1
-}
-missing=""
-for pc in dbus-1 alsa webkit2gtk-4.1; do
-    pkg-config --exists "$pc" || missing="$missing $pc"
-done
-if [ -n "$missing" ]; then
-    echo "missing system dev packages for:$missing" >&2
-    echo "  Debian/Ubuntu: apt install libdbus-1-dev libasound2-dev libwebkit2gtk-4.1-dev" >&2
-    echo "  Fedora:        dnf install dbus-devel alsa-lib-devel webkit2gtk4.1-devel" >&2
-    echo "  Arch:          pacman -S dbus alsa-lib webkit2gtk-4.1" >&2
-    exit 1
-fi
-
-command -v xdg-open >/dev/null || {
-    echo "xdg-open not found — install xdg-utils for browser sign-in" >&2
-    exit 1
-}
-command -v python3 >/dev/null || {
-    echo "python3 not found — needed to collect license notices" >&2
-    exit 1
-}
-command -v cargo-about >/dev/null || {
-    echo "cargo-about not found — needed to collect third-party license notices." >&2
-    echo "  Install it with: cargo install cargo-about --version 0.8.4 --locked" >&2
-    echo "  Then retry: sh packaging/install.sh (Melba was not installed)." >&2
-    exit 1
-}
+# Provision missing OS packages, Rust and cargo-about as necessary.
+sh packaging/install-deps.sh
+PATH="\${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+export PATH
 
 # Collect notices before replacing any installed executable. No network is
 # allowed during collection; Cargo fetch is the explicit acquisition step.

@@ -12,7 +12,7 @@ Melba comprises a desktop app (`melba`) and a playback daemon (`melbad`). Source
 - `xdg-utils` for browser sign-in. The egui app loads Wayland, X11, xkbcommon and GL at runtime; those are not additional build-time development packages.
 - `cargo-about` 0.8.4 for the source-backed third-party notice collector.
 
-Install distro dependencies (with your normal package manager privileges):
+The recommended source installer **automatically installs missing dependencies** on CachyOS/Arch, Debian/Ubuntu and Fedora (via the native package manager and `sudo` when necessary). An existing working toolchain is reused. For manual setup, the equivalent system packages are:
 
 ```sh
 # Debian / Ubuntu
@@ -25,9 +25,10 @@ sudo dnf install gcc-c++ cmake pkgconf-pkg-config dbus-devel alsa-lib-devel webk
 sudo pacman -S --needed base-devel cmake pkgconf dbus alsa-lib webkit2gtk-4.1 xdg-utils python
 ```
 
-Install Rust separately, then the build-time license collector:
+For manual setup only, initialize Rust and install the license collector:
 
 ```sh
+rustup default stable
 cargo install cargo-about --version 0.8.4 --locked
 ```
 
@@ -42,7 +43,7 @@ sh packaging/install.sh
 melba
 ```
 
-By default, the installer builds `melba` and `melbad`, installs a portable copy under `~/.local/opt/melba`, creates stable links in `~/.local/bin`, and adds a desktop entry. Make sure `~/.local/bin` is on your `PATH` (fish users can run `fish_add_path ~/.local/bin`). If a build prerequisite is missing, `packaging/install.sh` exits without installing `melba`; run the printed fix and retry the installer before launching. A companion user unit may be installed, but is not enabled automatically; the desktop starts its own daemon when needed. The installation contains `melba-portable.txt`, required by the GUI updater, plus the project and third-party notices under `share/licenses/melba/`.
+By default, the installer builds `melba` and `melbad`, installs a portable copy under `~/.local/opt/melba`, creates stable links in `~/.local/bin`, and adds a desktop entry. Make sure `~/.local/bin` is on your `PATH` (fish: `fish_add_path ~/.local/bin`). On supported distributions the installer provisions only missing OS build packages, initializes an existing `rustup` with `rustup default stable` when no working toolchain exists, bootstraps Rust via the official rustup-init HTTPS installer if absent, and installs `cargo-about` when missing. Set `MELBA_INSTALL_AUTO_DEPS=0` to disable this provisioning and fail with an actionable error instead. The source installer never installs the optional ALAC wrapper. A companion user unit may be installed, but is not enabled automatically; the desktop starts its own daemon when needed. The installation contains `melba-portable.txt`, required by the GUI updater, plus the project and third-party notices under `share/licenses/melba/`.
 
 Release archives carry `NOTICE.md`, `LICENSE-MIT`, `LICENSE-APACHE`, `SPOTIFAST-LICENSE`, the generated `melba-THIRD-PARTY.txt` / `melbad-THIRD-PARTY.txt` and `receipt.json`. `packaging/package-portable.sh` refuses to package without the generated notices.
 
