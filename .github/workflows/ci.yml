@@ -110,6 +110,102 @@ jobs:
           "$MELBA_PORTABLE_DIR/melba" --version
           "$MELBA_PORTABLE_DIR/melbad" --version
 
+
+  # Exercise real apt/dnf transactions and verify the glibc compatibility
+  # boundary against the actual signed published release (not mocked tools).
+  distro-install-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: debian-13
+            image: debian:trixie
+            manager: apt-get
+            release_compatible: false
+          - distro: ubuntu-24.04
+            image: ubuntu:24.04
+            manager: apt-get
+            release_compatible: false
+          - distro: ubuntu-26.04
+            image: ubuntu:26.04
+            manager: apt-get
+            release_compatible: true
+          - distro: fedora-43
+            image: fedora:43
+            manager: dnf
+            release_compatible: false
+          - distro: fedora-44
+            image: fedora:44
+            manager: dnf
+            release_compatible: true
+    container:
+      image: ${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Bootstrap release installer prerequisites
+        shell: bash
+        env:
+          PKG_MANAGER: ${{ matrix.manager }}
+        run: |
+          set -euo pipefail
+          if [[ "$PKG_MANAGER" = apt-get ]]; then
+            apt-get update
+            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl openssl
+          else
+            dnf -y install ca-certificates curl openssl
+          fi
+      - name: Install ALAC helper prerequisites through actual apt or dnf
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh packaging/install-deps.sh --alac
+          for tool in bash curl unzip file cc; do command -v "$tool"; done
+      - name: Signed Release works or refuses old glibc without mutating installation
+        shell: bash
+        env:
+          RELEASE_COMPATIBLE: ${{ matrix.release_compatible }}
+        run: |
+          set -euo pipefail
+          export MELBA_PORTABLE_DIR="$RUNNER_TEMP/melba-distro-test/app"
+          export XDG_BIN_HOME="$RUNNER_TEMP/melba-distro-test/bin"
+          export XDG_DATA_HOME="$RUNNER_TEMP/melba-distro-test/data"
+          if [[ "$RELEASE_COMPATIBLE" = true ]]; then
+            sh packaging/install-release.sh --no-alac
+            test -L "$XDG_BIN_HOME/melba"
+            test -L "$XDG_BIN_HOME/melbad"
+            "$MELBA_PORTABLE_DIR/melba" --version
+            "$MELBA_PORTABLE_DIR/melbad" --version
+          else
+            if sh packaging/install-release.sh --no-alac >"$RUNNER_TEMP/release.log" 2>&1; then
+              echo "Release unexpectedly installed on an unsupported glibc" >&2
+              exit 1
+            fi
+            cat "$RUNNER_TEMP/release.log"
+            grep -q 'newer glibc' "$RUNNER_TEMP/release.log"
+            test ! -e "$MELBA_PORTABLE_DIR/melba"
+            test ! -e "$MELBA_PORTABLE_DIR/melbad"
+          fi
+
+  # Nix syntax and flake evaluation are separate from an actual NixOS image
+  # or a paired melba/melbad installation. Keep that distinction in docs.
+  nix-flake-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: nixos/nix:latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Validate existing app-only flake
+        shell: sh
+        run: |
+          set -eu
+          nix --version
+          nix-instantiate --parse crates/melba/flake.nix >/dev/null
+          export NIX_CONFIG="experimental-features = nix-command flakes"
+          nix flake show --no-write-lock-file --all-systems "./crates/melba"
+
   # The melba crate must keep compiling on the other desktop targets; a
   # cfg gate once swallowed eframe::run_native entirely. A check build
   # never links, so no MinGW toolchain is needed on the runner.
