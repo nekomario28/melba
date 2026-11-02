@@ -4,7 +4,8 @@ set -eu
 auto=${MELBA_INSTALL_AUTO_DEPS:-1}
 case "$auto" in 0|1) ;; *) echo "MELBA_INSTALL_AUTO_DEPS must be 0 or 1" >&2; exit 2;; esac
 cargo_bin=${CARGO_HOME:-$HOME/.cargo}/bin
-[ ! -d "$cargo_bin" ] || PATH="$cargo_bin:$PATH"
+# The directory may not exist until cargo-about or rustup is installed.
+PATH="$cargo_bin:$PATH"
 export PATH
 have() { command -v "$1" >/dev/null 2>&1; }
 packages=""
@@ -39,8 +40,9 @@ if [ "$cc_missing" -eq 1 ] || [ "$cxx_missing" -eq 1 ] || \
     [ "$xdg_missing" -eq 0 ] || echo "xdg-open not found" >&2
     [ "$auto" -eq 1 ] || fail "automatic installation disabled (MELBA_INSTALL_AUTO_DEPS=0)"
     os_id= os_like=
-    if [ -r /etc/os-release ]; then
-        . /etc/os-release
+    os_release=${MELBA_INSTALL_OS_RELEASE:-/etc/os-release}
+    if [ -r "$os_release" ]; then
+        . "$os_release"
         os_id=$ID
         os_like=${ID_LIKE:-}
     fi

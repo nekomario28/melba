@@ -238,17 +238,28 @@ class InstallerTests(unittest.TestCase):
             "XDG_BIN_HOME": str(self.work / "bin"),
             "CARGO_TRACE": str(self.work / "cargo.log"),
             "SYSTEMCTL_TRACE": str(self.work / "systemctl.log"),
+            "MELBA_INSTALL_AUTO_DEPS": "0",
         }
         notice_tool_stub(self.work, self.fakebin, self.env)
         self.stub("pkg-config", '#!/bin/sh\nexit 0\n')
+        self.stub("rustc", '#!/bin/sh\necho "rustc 1.99.0 (fixture)"\n')
         self.stub("xdg-open", '#!/bin/sh\nexit 0\n')
         self.stub("systemctl", '#!/bin/sh\nprintf "%s\\n" "$*" >> "$SYSTEMCTL_TRACE"\n')
         self.stub("cargo", '''#!/usr/bin/env python3
-import os, pathlib, sys
+import os, pathlib, shutil, sys
 args = sys.argv[1:]
 with open(os.environ["CARGO_TRACE"], "a") as log:
     log.write(" ".join(args) + "\\n")
 if args[0] != "install":
+    sys.exit(0)
+if "cargo-about" in args:
+    source = os.environ.get("CARGO_ABOUT_SEED")
+    if not source:
+        sys.exit("fixture: cargo-about seed not provided")
+    binary = pathlib.Path(os.environ["CARGO_HOME"]) / "bin" / "cargo-about"
+    binary.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, binary)
+    binary.chmod(0o755)
     sys.exit(0)
 if os.environ.get("CARGO_FAIL_GUI") and "crates/melba" in args:
     print("fixture: GUI compilation failed", file=sys.stderr); sys.exit(1)
@@ -279,6 +290,48 @@ binary.chmod(0o755)
             ["/bin/sh", str(ROOT / "packaging/install.sh"), "--portable", *args],
             cwd=self.work, env=self.env, text=True, capture_output=True,
         )
+
+    def test_missing_cargo_about_is_bootstrapped_without_changing_host(self):
+        seed = self.work / "cargo-about-seed"
+        installed = self.fakebin / "cargo-about"
+        seed.write_bytes(installed.read_bytes())
+        installed.unlink()
+        self.env["CARGO_ABOUT_SEED"] = str(seed)
+        self.env["MELBA_INSTALL_AUTO_DEPS"] = "1"
+        result = self.install("--no-unit")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Install cargo-about 0.8.4", result.stdout)
+        self.assertTrue((self.root / "bin/cargo-about").is_file())
+        self.assertIn("install cargo-about --version 0.8.4 --locked",
+                      (self.work / "cargo.log").read_text())
+
+    def test_rustup_without_default_toolchain_initializes_stable(self):
+        marker = self.work / "rust-ready"
+        self.env["RUST_READY"] = str(marker)
+        self.env["MELBA_INSTALL_AUTO_DEPS"] = "1"
+        self.stub("rustc", '#!/bin/sh\\n[ -f "$RUST_READY" ] || exit 1\\necho "rustc 1.99.0 (fixture)"\\n')
+        self.stub("rustup", '#!/bin/sh\\n[ "$1" = default ] && [ "$2" = stable ] && touch "$RUST_READY"\\n')
+        result = self.install("--no-unit")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(marker.is_file())
+        self.assertIn("Configure Rust stable toolchain", result.stdout)
+
+    def test_cachyos_missing_webkit_is_installed_with_pacman(self):
+        os_release = self.work / "os-release"
+        os_release.write_text("ID=cachyos\\nID_LIKE=arch\\n")
+        marker = self.work / "webkit-ready"
+        self.env.update(MELBA_INSTALL_AUTO_DEPS="1",
+                        MELBA_INSTALL_OS_RELEASE=str(os_release),
+                        WEBKIT_READY=str(marker),
+                        PACMAN_TRACE=str(self.work / "pacman.log"))
+        self.stub("pkg-config", '#!/bin/sh\\n[ "$2" != webkit2gtk-4.1 ] || [ -f "$WEBKIT_READY" ]\\n')
+        self.stub("sudo", '#!/bin/sh\\n"$@"\\n')
+        self.stub("pacman", '#!/bin/sh\\nprintf "%s\\n" "$*" >> "$PACMAN_TRACE"\\ntouch "$WEBKIT_READY"\\n')
+        result = self.install("--no-unit")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Installing pacman packages: webkit2gtk-4.1", result.stdout)
+        self.assertIn("-S --needed --noconfirm webkit2gtk-4.1",
+                      (self.work / "pacman.log").read_text())
 
     def test_missing_webkit_fails_before_installing_anything(self):
         # An incomplete host must fail before Cargo spends minutes compiling.
