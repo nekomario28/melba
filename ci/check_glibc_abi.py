@@ -18,7 +18,7 @@ def required_glibc(readelf_output):
 
 
 def main(args):
-    if len(args) < 3:
+    if len(args) < 2:
         print("usage: check_glibc_abi.py MAX_GLIBC (ELF_BIN...)", file=sys.stderr)
         return 2
     try:
