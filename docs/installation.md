@@ -135,16 +135,24 @@ makepkg -si
 
 This VCS recipe builds the repository's **remote default branch**, not necessarily your local checkout. It installs the binaries under `/usr/bin` and a user unit under `/usr/lib/systemd/user`. Only enable the unit if you want a standalone daemon independent of the desktop's lifetime.
 
-### Nix (app-only)
+### Nix and NixOS
 
-`crates/melba/flake.nix` offers:
+The normal Linux installer relies on conventional ELF loaders and `apt-get`, `dnf` or `pacman`; **do not use `install-release.sh` directly on NixOS**. It does not manage Nix profiles and does not configure `nix-ld`.
+
+For a native Nix-managed installation of **both** `melba` and `melbad`, use the `melba-paired` derivation:
 
 ```sh
-nix build ./crates/melba#melba
-nix develop ./crates/melba
+nix build ./crates/melba#melba-paired
+./result/bin/melba --version
+./result/bin/melbad --version
+nix profile install ./crates/melba#melba-paired
 ```
 
-The Nix path builds the desktop app only; it does not install `melbad` or its user unit. It has not been verified through the installation/license-notice checks above and does not run the dependency notice collector. Do not treat it as equivalent to the supported paired portable installation.
+This derivation fetches a specific published Release by a pinned SHA-256 from its publisher-signed checksum manifest, uses Nix's `autoPatchelfHook` to rewrite the dynamic loader and library paths, and includes both executables, the desktop entry, the icon and the available third-party notices. Unlike the portable installer, it is upgraded through **Nix**, not the GUI updater. Release versions and fixed hashes are intentionally changed together.
+
+The existing `nix build ./crates/melba#melba` is **GUI-only**; `nix develop ./crates/melba` remains a developer shell.
+
+**ALAC caveat:** the separately acquired third-party service may require an Android compatibility runtime and additional dynamic-loader configuration. Nix packaging of Melba itself does not imply the external ALAC service has been tested on NixOS; do not rely on `melbad wrapper setup` auto-installing packages through a Nix system manager.
 
 ### Manual developer install
 
