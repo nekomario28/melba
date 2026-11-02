@@ -419,6 +419,15 @@ binary.chmod(0o755)
         self.assertEqual((self.work / "bin/melba").resolve(), portable / "melba")
         self.assertEqual((self.work / "bin/melbad").resolve(), portable / "melbad")
 
+    def test_fish_portable_install_registers_universal_path(self):
+        self.env["SHELL"] = "/usr/bin/fish"
+        self.env["FISH_TRACE"] = str(self.work / "fish.log")
+        self.stub("fish", '#!/bin/sh\nprintf "%s\n" "$*" >> "$FISH_TRACE"\n')
+        result = self.install_portable("--no-unit")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("fish_add_path -U --",
+                      (self.work / "fish.log").read_text())
+
     def test_portable_install_rolls_back_both_on_version_mismatch(self):
         portable = self.work / "portable"
         portable.mkdir()

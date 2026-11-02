@@ -142,8 +142,8 @@ else
     ln -sfn "$install_root/melbad" "$bin_dir/melbad"
     # A child cannot edit its parent's PATH. Fish universal paths propagate
     # to existing and future fish sessions without rewriting config files.
-    case "${SHELL##*/}" in
-        fish)
+    case "${SHELL:-}" in
+        fish|*/fish)
             if command -v fish >/dev/null 2>&1; then
                 MELBA_BIN_DIR="$bin_dir" fish -c 'fish_add_path -U -- "$MELBA_BIN_DIR"' ||
                     echo "fish PATH update failed; run: fish_add_path '$bin_dir'" >&2
