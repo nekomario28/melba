@@ -68,7 +68,9 @@ command -v python3 >/dev/null || {
     exit 1
 }
 command -v cargo-about >/dev/null || {
-    echo "cargo-about not found — run: cargo install cargo-about --version 0.8.4 --locked" >&2
+    echo "cargo-about not found — needed to collect third-party license notices." >&2
+    echo "  Install it with: cargo install cargo-about --version 0.8.4 --locked" >&2
+    echo "  Then retry: sh packaging/install.sh (Melba was not installed)." >&2
     exit 1
 }
 
@@ -168,6 +170,12 @@ else
     mkdir -p "$bin_dir"
     ln -sfn "$install_root/melba" "$bin_dir/melba"
     ln -sfn "$install_root/melbad" "$bin_dir/melbad"
+    case ":$PATH:" in
+        *":$bin_dir:"*) ;;
+        *) echo "Note: $bin_dir is not on PATH; add it before running 'melba'." >&2
+           echo "  fish: fish_add_path '$bin_dir'" >&2
+           echo "  bash/zsh: export PATH=\"$bin_dir:\$PATH\"" >&2;;
+    esac
 fi
 
 # Exec has two escaping layers: desktop-entry strings, then quoted arguments.

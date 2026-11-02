@@ -42,7 +42,7 @@ sh packaging/install.sh
 melba
 ```
 
-By default, the installer builds `melba` and `melbad`, installs a portable copy under `~/.local/opt/melba`, creates stable links in `~/.local/bin`, and adds a desktop entry. Make sure `~/.local/bin` is on your `PATH`. A companion user unit may be installed, but is not enabled automatically; the desktop starts its own daemon when needed. The installation contains `melba-portable.txt`, required by the GUI updater, plus the project and third-party notices under `share/licenses/melba/`.
+By default, the installer builds `melba` and `melbad`, installs a portable copy under `~/.local/opt/melba`, creates stable links in `~/.local/bin`, and adds a desktop entry. Make sure `~/.local/bin` is on your `PATH` (fish users can run `fish_add_path ~/.local/bin`). If a build prerequisite is missing, `packaging/install.sh` exits without installing `melba`; run the printed fix and retry the installer before launching. A companion user unit may be installed, but is not enabled automatically; the desktop starts its own daemon when needed. The installation contains `melba-portable.txt`, required by the GUI updater, plus the project and third-party notices under `share/licenses/melba/`.
 
 Release archives carry `NOTICE.md`, `LICENSE-MIT`, `LICENSE-APACHE`, `SPOTIFAST-LICENSE`, the generated `melba-THIRD-PARTY.txt` / `melbad-THIRD-PARTY.txt` and `receipt.json`. `packaging/package-portable.sh` refuses to package without the generated notices.
 
