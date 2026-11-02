@@ -41,6 +41,8 @@ for name in melba melbad; do
         # pair cannot be separated by a GUI-only replacement.
         install -m755 "$melbad_bin" "$stage/$stem/melbad"
         printf 'melba-portable-v1\n' > "$stage/$stem/melba-portable.txt"
+        # The desktop icon must travel in the same signed archive as Melba.
+        install -m644 "$root/crates/melba/packaging/icons/melba.svg" "$stage/$stem/melba.svg"
     else
         install -m755 "$melbad_bin" "$stage/$stem/melbad"
     fi
