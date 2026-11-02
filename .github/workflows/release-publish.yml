@@ -1,0 +1,186 @@
+name: Publish signed portable Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semver from both Cargo manifests (for example 0.3.13)"
+        type: string
+        required: true
+      confirm_publish:
+        description: "I authorize publishing an immutable publisher-signed public Release"
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: version
+        name: Validate manual approval, source version, existing tag
+        shell: bash
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          CONFIRM: ${{ inputs.confirm_publish }}
+        run: |
+          set -euo pipefail
+          [[ "$CONFIRM" = true ]] || { echo "Confirm publication explicitly" >&2; exit 1; }
+          [[ "$REQUESTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 2
+          # Check only package versions, not the version of every dependency.
+          daemon=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -1)
+          gui=$(sed -n 's/^version = "\([^"]*\)"/\1/p' crates/melba/Cargo.toml | head -1)
+          [[ "$daemon" = "$REQUESTED_VERSION" && "$gui" = "$REQUESTED_VERSION" ]] ||
+            { echo "Cargo versions and release version disagree" >&2; exit 1; }
+          tag="v$REQUESTED_VERSION"
+          if git ls-remote --tags origin "refs/tags/$tag" | grep -q .; then
+            echo "tag $tag already exists; refusing to overwrite a release" >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  # Reuse the exact tested ABI-build jobs and the 8 real Linux consumer smokes.
+  verified-candidates:
+    needs: preflight
+    uses: ./.github/workflows/portable-baseline.yml
+    permissions:
+      contents: read
+
+  publish:
+    needs: [preflight, verified-candidates]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-26.04
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Retrieve x86_64 signed-release candidate (unsigned)
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: unsigned-baseline-x86_64
+          path: candidate-x86_64
+      - name: Retrieve ARM64 signed-release candidate (unsigned)
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: unsigned-baseline-aarch64
+          path: candidate-aarch64
+      - name: Gather only the four expected archives
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          for pair in "x86_64:x86_64-unknown-linux-gnu" "aarch64:aarch64-unknown-linux-gnu"; do
+            arch=${pair%%:*}
+            target=${pair#*:}
+            for name in melba melbad; do
+              cp "candidate-$arch/$name-v$VERSION-$target.tar.gz" release-assets/
+            done
+          done
+          bash -n ci/prepare_signed_release.sh
+      - name: Sign only with the established Melba publisher key
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+          MELBA_SIGNING_KEY_PEM: ${{ secrets.MELBA_SIGNING_KEY_PEM }}
+        run: |
+          set -euo pipefail
+          bash ci/prepare_signed_release.sh "$GITHUB_WORKSPACE/release-assets" "$VERSION"
+      - name: Create public GitHub Release only after all validations pass
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.preflight.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release already exists; not replacing assets" >&2
+            exit 1
+          fi
+          gh release create "$TAG" release-assets/* \
+            --target "$GITHUB_SHA" \
+            --title "Melba $TAG" \
+            --notes-file "docs/releases/$TAG.md" \
+            --latest
+      - name: Verify published signature and all four published archives
+        shell: bash
+        env:
+          TAG: ${{ needs.preflight.outputs.tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p published
+          gh release download "$TAG" --dir published
+          (cd published && sha256sum -c checksums.txt)
+          openssl pkeyutl -verify -rawin -pubin -inkey published/update-public-key.pem \
+            -in published/checksums.txt -sigfile published/checksums.txt.sig
+          cmp release-assets/checksums.txt published/checksums.txt
+          cmp release-assets/checksums.txt.sig published/checksums.txt.sig
+          echo "PUBLISHED_SIGNED_RELEASE_VERIFIED"
+
+  published-release-smoke:
+    name: published signed installer (${{ matrix.distro }})
+    needs: [preflight, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: ubuntu-22.04
+            image: ubuntu:22.04
+            manager: apt
+          - distro: ubuntu-24.04
+            image: ubuntu:24.04
+            manager: apt
+          - distro: debian-12
+            image: debian:bookworm
+            manager: apt
+          - distro: fedora-43
+            image: fedora:43
+            manager: dnf
+          - distro: arch
+            image: archlinux:latest
+            manager: pacman
+    container:
+      image: ${{ matrix.image }}
+    steps:
+      - name: Bootstrap tools for signed Release verification
+        shell: bash
+        env:
+          MANAGER: ${{ matrix.manager }}
+        run: |
+          set -euo pipefail
+          if [[ "$MANAGER" == apt ]]; then
+            apt-get update
+            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl openssl coreutils tar mawk
+          elif [[ "$MANAGER" == dnf ]]; then
+            dnf -y install ca-certificates curl openssl coreutils tar gawk
+          else
+            pacman -Syu --noconfirm --needed ca-certificates curl openssl coreutils tar gawk
+            update-ca-trust || true
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install real public signed release from GitHub
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          export MELBA_PORTABLE_DIR="$RUNNER_TEMP/signed-release-smoke/app"
+          export XDG_BIN_HOME="$RUNNER_TEMP/signed-release-smoke/bin"
+          export XDG_DATA_HOME="$RUNNER_TEMP/signed-release-smoke/data"
+          sh packaging/install-release.sh --no-alac
+          test -L "$XDG_BIN_HOME/melba"
+          test -L "$XDG_BIN_HOME/melbad"
+          test "$("$MELBA_PORTABLE_DIR/melba" --version)" = "melba $RELEASE_VERSION"
+          test "$("$MELBA_PORTABLE_DIR/melbad" --version)" = "melbad $RELEASE_VERSION"

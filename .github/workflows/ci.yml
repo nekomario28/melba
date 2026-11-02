@@ -13,6 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Release signing script syntax and missing-key fail-closed gate
+        run: |
+          set -euo pipefail
+          bash -n ci/prepare_signed_release.sh
+          if env -u MELBA_SIGNING_KEY_PEM bash ci/prepare_signed_release.sh /tmp/does-not-exist 0.3.13; then
+            echo "Release signing must fail without the publisher key" >&2
+            exit 1
+          fi
       - name: system deps (alsa, dbus, gtk/webkit for tao+wry)
         run: |
           sudo apt-get update
