@@ -347,6 +347,13 @@ printf "%s\\n" "$*" >> "$PACMAN_TRACE"
         self.assertIn("install cargo-about --version 0.8.4 --locked",
                       (self.work / "cargo.log").read_text())
 
+    def test_wrong_cargo_about_version_is_rejected_when_auto_disabled(self):
+        self.stub("cargo-about", '#!/bin/sh\necho "cargo-about 0.8.3"\n')
+        self.env["MELBA_INSTALL_AUTO_DEPS"] = "0"
+        result = self.install("--no-unit")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("cargo-about 0.8.4 required", result.stderr)
+
     def test_rustup_without_default_toolchain_initializes_stable(self):
         marker = self.work / "rust-ready"
         self.env["RUST_READY"] = str(marker)

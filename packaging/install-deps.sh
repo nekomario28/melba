@@ -165,6 +165,8 @@ if [ "$cc_missing" -eq 1 ] || [ "$cxx_missing" -eq 1 ] || \
 fi
 have cc && have c++ && have cmake && have pkg-config && \
 have python3 && have xdg-open && have curl || fail "a required build command is still missing"
+python3 -c 'import sys; sys.exit(sys.version_info < (3, 9))' ||
+    fail "Python 3.9 or newer is required for source installation"
 for pc in dbus-1 alsa webkit2gtk-4.1; do
     pkg-config --exists "$pc" || fail "missing pkg-config module: $pc"
 done
@@ -212,10 +214,16 @@ if [ "$major" -lt 1 ] || { [ "$major" -eq 1 ] && [ "$minor" -lt 98 ]; }; then
     PATH="$cargo_bin:$PATH"
     export PATH
 fi
-if ! have cargo-about; then
-    [ "$auto" -eq 1 ] || fail "cargo-about 0.8.4 missing"
+about_version=
+if have cargo-about; then
+    about_version=$(cargo-about --version 2>/dev/null | awk '{print $2}' || true)
+fi
+if [ "$about_version" != 0.8.4 ]; then
+    [ "$auto" -eq 1 ] || fail "cargo-about 0.8.4 required (found: ${about_version:-missing})"
     echo "== Install cargo-about 0.8.4 =="
-    cargo install cargo-about --version 0.8.4 --locked
+    cargo install cargo-about --version 0.8.4 --locked --force
 fi
 have cargo-about || fail "cargo-about still missing"
+[ "$(cargo-about --version | awk '{print $2}')" = 0.8.4 ] ||
+    fail "cargo-about 0.8.4 is not available after installation"
 echo "== Build prerequisites ready =="
