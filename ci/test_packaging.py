@@ -309,8 +309,8 @@ binary.chmod(0o755)
         marker = self.work / "rust-ready"
         self.env["RUST_READY"] = str(marker)
         self.env["MELBA_INSTALL_AUTO_DEPS"] = "1"
-        self.stub("rustc", '#!/bin/sh\\n[ -f "$RUST_READY" ] || exit 1\\necho "rustc 1.99.0 (fixture)"\\n')
-        self.stub("rustup", '#!/bin/sh\\n[ "$1" = default ] && [ "$2" = stable ] && touch "$RUST_READY"\\n')
+        self.stub("rustc", '#!/bin/sh\n[ -f "$RUST_READY" ] || exit 1\necho "rustc 1.99.0 (fixture)"\n')
+        self.stub("rustup", '#!/bin/sh\n[ "$1" = default ] && [ "$2" = stable ] && touch "$RUST_READY"\n')
         result = self.install("--no-unit")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertTrue(marker.is_file())
@@ -318,15 +318,15 @@ binary.chmod(0o755)
 
     def test_cachyos_missing_webkit_is_installed_with_pacman(self):
         os_release = self.work / "os-release"
-        os_release.write_text("ID=cachyos\\nID_LIKE=arch\\n")
+        os_release.write_text("ID=cachyos\nID_LIKE=arch\n")
         marker = self.work / "webkit-ready"
         self.env.update(MELBA_INSTALL_AUTO_DEPS="1",
                         MELBA_INSTALL_OS_RELEASE=str(os_release),
                         WEBKIT_READY=str(marker),
                         PACMAN_TRACE=str(self.work / "pacman.log"))
-        self.stub("pkg-config", '#!/bin/sh\\n[ "$2" != webkit2gtk-4.1 ] || [ -f "$WEBKIT_READY" ]\\n')
-        self.stub("sudo", '#!/bin/sh\\n"$@"\\n')
-        self.stub("pacman", '#!/bin/sh\\nprintf "%s\\n" "$*" >> "$PACMAN_TRACE"\\ntouch "$WEBKIT_READY"\\n')
+        self.stub("pkg-config", '#!/bin/sh\n[ "$2" != webkit2gtk-4.1 ] || [ -f "$WEBKIT_READY" ]\n')
+        self.stub("sudo", '#!/bin/sh\n"$@"\n')
+        self.stub("pacman", '#!/bin/sh\nprintf "%s\n" "$*" >> "$PACMAN_TRACE"\ntouch "$WEBKIT_READY"\n')
         result = self.install("--no-unit")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("Installing pacman packages: webkit2gtk-4.1", result.stdout)
