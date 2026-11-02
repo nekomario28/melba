@@ -112,6 +112,15 @@ jobs:
           - distro: fedora-43
             image: fedora:43
             manager: dnf
+          - distro: fedora-44
+            image: fedora:44
+            manager: dnf
+          - distro: ubuntu-26.04
+            image: ubuntu:26.04
+            manager: apt
+          - distro: arch
+            image: archlinux:latest
+            manager: pacman
     runs-on: ubuntu-latest
     timeout-minutes: 25
     container:
@@ -126,8 +135,11 @@ jobs:
           if [[ "$PKG_MANAGER" == apt ]]; then
             apt-get update
             DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl tar
-          else
+          elif [[ "$PKG_MANAGER" == dnf ]]; then
             dnf -y install ca-certificates curl tar
+          else
+            pacman -Syu --noconfirm --needed ca-certificates curl tar
+            update-ca-trust || true
           fi
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -140,10 +152,18 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$PKG_MANAGER" == apt ]]; then
+            # Ubuntu 24.04's libasound2 is virtual and needs the t64 provider.
+            # Debian 12 / Ubuntu 22.04 have no libasound2t64 package.
+            alsa_pkg=libasound2
+            if apt-cache show libasound2t64 >/dev/null 2>&1; then
+              alsa_pkg=libasound2t64
+            fi
             DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-              libwebkit2gtk-4.1-0 libasound2 libdbus-1-3 libxkbcommon0
-          else
+              libwebkit2gtk-4.1-0 "$alsa_pkg" libdbus-1-3 libxkbcommon0
+          elif [[ "$PKG_MANAGER" == dnf ]]; then
             dnf -y install webkit2gtk4.1 alsa-lib dbus-libs libxkbcommon
+          else
+            pacman -S --noconfirm --needed webkit2gtk-4.1 alsa-lib dbus libxkbcommon
           fi
           archive=$(find candidate -name 'melba-v*-x86_64-unknown-linux-gnu.tar.gz' -print -quit)
           test -n "$archive"
@@ -156,5 +176,6 @@ jobs:
           test -x "$daemon"
           "$binary" --version
           "$daemon" --version
-          ldd "$binary" | tee /tmp/melba-ldd.log
+          { ldd "$binary"; ldd "$daemon"; } | tee /tmp/melba-ldd.log
           ! grep -q 'not found' /tmp/melba-ldd.log
+          ! grep -Eq 'GLIBC_[0-9]+\\.[0-9]+.*not found' /tmp/melba-ldd.log
