@@ -623,6 +623,7 @@ class PortableArchiveTests(unittest.TestCase):
                                    text=True, capture_output=True).stdout.splitlines()
             stem = "melba-v9.9.9-x86_64-unknown-linux-gnu"
             self.assertIn(f"{stem}/melba-portable.txt", names)
+            self.assertIn(f"{stem}/melba.svg", names)
             self.assertIn(f"{stem}/melbad", names)
             self.assertIn(f"{stem}/SPOTIFAST-LICENSE", names)
             self.assertIn(f"{stem}/melba-THIRD-PARTY.txt", names)
