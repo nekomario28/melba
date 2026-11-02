@@ -62,5 +62,8 @@ jobs:
           test ! -d "$work/src/melba"
           # Compare cloned HEAD against remote default branch, not just
           # a fixture directory manually created by our unit tests.
-          git -C "$work/src/apple-music-linux" rev-parse HEAD
+          # The checkout belongs to the non-root build user. Query Git as
+          # that same user to preserve Git's safe-directory security checks.
+          su melba-ci -s /bin/bash -c \
+            "git -C '$work/src/apple-music-linux' rev-parse HEAD"
           echo "REAL_ARCH_MAKEPKG_VCS_LAYOUT_AND_PREPARE_PASS"
