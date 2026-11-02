@@ -68,6 +68,48 @@ jobs:
           daemon=$("$MELBA_PORTABLE_DIR/melbad" --version)
           test "${gui#melba }" = "${daemon#melbad }"
 
+  # Exercise the real Arch package manager rather than just stubbing pacman.
+  # CachyOS inherits the same package ecosystem; its os-release values are
+  # supplied using the installer's existing test override.
+  arch-install-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    container:
+      image: archlinux:latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Bootstrap tools required by the standalone release installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          pacman -Syu --noconfirm --needed ca-certificates curl openssl
+          update-ca-trust || true
+      - name: Real pacman ALAC preflight using CachyOS distro metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'ID=cachyos\nID_LIKE=arch\n' > "$RUNNER_TEMP/melba-os-release"
+          export MELBA_INSTALL_OS_RELEASE="$RUNNER_TEMP/melba-os-release"
+          sh packaging/install-deps.sh --alac
+          command -v bash
+          command -v curl
+          command -v unzip
+          command -v file
+          command -v cc
+      - name: Real signed Release installation with dynamic library provisioning
+        shell: bash
+        run: |
+          set -euo pipefail
+          export MELBA_INSTALL_OS_RELEASE="$RUNNER_TEMP/melba-os-release"
+          export MELBA_PORTABLE_DIR="$RUNNER_TEMP/melba-portable"
+          export XDG_BIN_HOME="$RUNNER_TEMP/melba-bin"
+          export XDG_DATA_HOME="$RUNNER_TEMP/melba-data"
+          sh packaging/install-release.sh --no-alac
+          test -L "$XDG_BIN_HOME/melba"
+          test -L "$XDG_BIN_HOME/melbad"
+          "$MELBA_PORTABLE_DIR/melba" --version
+          "$MELBA_PORTABLE_DIR/melbad" --version
+
   # The melba crate must keep compiling on the other desktop targets; a
   # cfg gate once swallowed eframe::run_native entirely. A check build
   # never links, so no MinGW toolchain is needed on the runner.
