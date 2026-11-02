@@ -53,10 +53,7 @@ done
 # Reject any unexpectedly carried files instead of signing an unreviewed set.
 for file in *; do
   case "$file" in
-    "melba-v${version}-x86_64-unknown-linux-gnu.tar.gz"|
-    "melba-v${version}-aarch64-unknown-linux-gnu.tar.gz"|
-    "melbad-v${version}-x86_64-unknown-linux-gnu.tar.gz"|
-    "melbad-v${version}-aarch64-unknown-linux-gnu.tar.gz") ;;
+    "melba-v${version}-x86_64-unknown-linux-gnu.tar.gz"|"melba-v${version}-aarch64-unknown-linux-gnu.tar.gz"|"melbad-v${version}-x86_64-unknown-linux-gnu.tar.gz"|"melbad-v${version}-aarch64-unknown-linux-gnu.tar.gz") ;;
     *) echo "unexpected release asset: $file" >&2; exit 1 ;;
   esac
 done
