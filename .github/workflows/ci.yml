@@ -202,7 +202,9 @@ jobs:
           set -euo pipefail
           nix --version
           nix-instantiate --parse crates/melba/flake.nix >/dev/null
-          nix flake show --no-write-lock-file ./crates/melba
+          # Pinned nixpkgs 26.11 intentionally drops x86_64-darwin; evaluate
+          # the supported Linux package rather than every legacy output.
+          nix eval --raw ./crates/melba#packages.x86_64-linux.melba-paired.name
       - name: Build a paired signed-release Nix package
         shell: bash
         run: |
