@@ -135,7 +135,7 @@ fi
 # must be rebuilt; login refuses to start without the marker. Setup
 # fails closed when the shim cannot be built (needs cc; host==target arch).
 SCRUB_SRC="$SCRIPT_DIR/argv-scrub.c"
-if ! grep -q -a -F 'melba-login-fd-v2' "$LIBDIR/argv-scrub.so" 2>/dev/null; then
+if ! grep -q -a -F 'melba-login-fd-v3' "$LIBDIR/argv-scrub.so" 2>/dev/null; then
     [ -f "$SCRUB_SRC" ] || {
         echo "argv-scrub.c missing next to install-wrapper.sh" >&2
         exit 1

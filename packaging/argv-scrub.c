@@ -35,7 +35,7 @@
 
 enum { MAXSEC = 4096, MELBA_LOGIN_FD = 250 };
 
-static const char melba_login_fd_marker[] __attribute__((used)) = "melba-login-fd-v2";
+static const char melba_login_fd_marker[] __attribute__((used)) = "melba-login-fd-v3";
 
 static char flag_buf[4];
 static char value_buf[MAXSEC];
@@ -63,6 +63,9 @@ static int login_flag(const char *s) {
 #if defined(__x86_64__)
 #define SYS_pread64 17
 #define SYS_execve 59
+#define SYS_openat 257
+#define SYS_read 0
+#define SYS_close 3
 static long sc3(long nr, long a, long b, long c) {
     long ret;
     __asm__ volatile("syscall"
@@ -83,6 +86,9 @@ static long sc4(long nr, long a, long b, long c, long d) {
 #elif defined(__aarch64__)
 #define SYS_pread64 67
 #define SYS_execve 221
+#define SYS_openat 56
+#define SYS_read 63
+#define SYS_close 57
 static long sc3(long nr, long a, long b, long c) {
     register long x8 __asm__("x8") = nr;
     register long x0 __asm__("x0") = a;
@@ -175,11 +181,62 @@ static void mark_applied(char **envp) {
     }
 }
 
+/* Some bionic loaders run a preloaded library's .init_array before their own
+ * argc/argv/envp are set, so the three arguments can be garbage (argc in the
+ * hundreds of millions, argv/envp unrelated). The kernel's initial stack is
+ * still authoritative: /proc/self/stat field 28 (startstack) is the address of
+ * argc, followed by argv[], a NULL, then envp[]. */
+static int args_consistent(int argc, char **argv, char **envp) {
+    return argc >= 1 && argc < 256 && argv && envp && argv + argc + 1 == envp;
+}
+
+static int recover_args(int *argc, char ***argv, char ***envp) {
+    char buf[1024];
+    unsigned long v = 0;
+    long fd, n, i, f;
+    long *sp;
+    char **av;
+    fd = sc4(SYS_openat, -100, (long)"/proc/self/stat", 0, 0);
+    if (fd < 0) return 0;
+    n = sc3(SYS_read, fd, (long)buf, (long)sizeof(buf) - 1);
+    sc3(SYS_close, fd, 0, 0);
+    if (n <= 0) return 0;
+    buf[n] = 0;
+    /* comm (field 2) may contain spaces and parens: parse after the last ')' */
+    i = n - 1;
+    while (i > 0 && buf[i] != ')') i--;
+    if (buf[i] != ')') return 0;
+    i++;
+    f = -1;
+    while (buf[i] && f < 25) {
+        if (buf[i] == ' ') f++;
+        i++;
+    }
+    if (f < 25) return 0;
+    while (buf[i] >= '0' && buf[i] <= '9') {
+        v = v * 10 + (unsigned long)(buf[i] - '0');
+        i++;
+    }
+    if (!v || (v & 7)) return 0;
+    sp = (long *)v;
+    if (sp[0] < 1 || sp[0] >= 256) return 0;
+    av = (char **)(sp + 1);
+    if (av[sp[0]] != 0) return 0;
+    *argc = (int)sp[0];
+    *argv = av;
+    *envp = av + sp[0] + 1;
+    return 1;
+}
+
 __attribute__((used))
 void argv_scrub_init(int argc, char **argv, char **envp) {
     int have;
     int i;
     have = load_from_fd();
+    /* Fail closed: if the real arguments cannot be found nothing is repointed,
+     * APPLIED stays 0 and the caller aborts the login. */
+    if (!args_consistent(argc, argv, envp) && !recover_args(&argc, &argv, &envp))
+        return;
     for (i = 1; i < argc; i++) {
         int kind = login_flag(argv[i]);
         if (!kind) continue;

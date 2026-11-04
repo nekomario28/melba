@@ -428,7 +428,7 @@ fn login_aborts_when_the_shim_does_not_apply() {
     let _wrap = layout(
         &root,
         Some(
-            "static const char melba_login_fd_marker[] __attribute__((used)) = \"melba-login-fd-v2\";\n\
+            "static const char melba_login_fd_marker[] __attribute__((used)) = \"melba-login-fd-v3\";\n\
              __attribute__((visibility(\"default\"))) int melba_scrub_inert(void) { return 1; }\n",
         ),
         "4",
@@ -472,4 +472,89 @@ fn login_aborts_when_the_shim_does_not_apply() {
         elapsed < Duration::from_secs(5),
         "login was not aborted promptly: {elapsed:?}"
     );
+}
+
+/// bionic can run a preloaded library's `.init_array` before its own
+/// argc/argv/envp are set, handing the shim garbage (observed: argc of
+/// 262984144). The shim must recover the real argument block from the
+/// kernel's initial stack, otherwise the `-L @` placeholder is never replaced
+/// and the wrapper silently exits without attempting a login.
+const BAD_INIT_ARGS_HARNESS: &str = r#"
+#define _GNU_SOURCE
+#include <dlfcn.h>
+#include <stdio.h>
+#include <string.h>
+static char placeholder[] = "@";
+int main(int argc, char **argv, char **envp) {
+    void (*init)(int, char **, char **);
+    char buf[4096];
+    size_t n;
+    FILE *f;
+    int applied = 0, leaked = 0;
+    char **e;
+    if (argc != 4) return 2;
+    void *h = dlopen(argv[1], RTLD_NOW);
+    if (!h) return 3;
+    init = (void (*)(int, char **, char **))dlsym(h, "argv_scrub_init");
+    if (!init) return 4;
+    /* dlopen already ran the shim with valid arguments: undo that so the
+     * call below is the only one under test. */
+    argv[3] = placeholder;
+    for (e = envp; *e; e++)
+        if (!strncmp(*e, "MELBA_LOGIN_APPLIED=", 20)) (*e)[20] = '0';
+    /* what a loader that has not set up argc/argv/envp yet would pass */
+    init(262984144, (char **)0x1000, (char **)0x2000);
+    for (e = envp; *e; e++)
+        if (!strcmp(*e, "MELBA_LOGIN_APPLIED=1")) applied = 1;
+    f = fopen("/proc/self/cmdline", "r");
+    if (!f) return 5;
+    n = fread(buf, 1, sizeof buf, f);
+    fclose(f);
+    leaked = memmem(buf, n, argv[3], strlen(argv[3])) != NULL;
+    printf("argv3=%s\napplied=%d\ncmdline_has_secret=%d\n", argv[3], applied, leaked);
+    return 0;
+}
+"#;
+
+#[test]
+fn shim_recovers_real_arguments_when_the_loader_passes_garbage() {
+    use std::os::unix::io::AsRawFd;
+    use std::os::unix::process::CommandExt;
+    extern "C" {
+        fn dup2(old: i32, new: i32) -> i32;
+    }
+    let root = Sandbox::new();
+    let shim = root.path("argv-scrub.so");
+    compile_scrub(&shim);
+    let harness = root.path("harness");
+    compile_c(&harness, BAD_INIT_ARGS_HARNESS);
+    let cred = "user@example.com:fixture-SECRET-bad-init-args";
+    let cred_file = root.path("cred");
+    fs::write(&cred_file, cred).unwrap();
+    let file = fs::File::open(&cred_file).unwrap();
+    let fd = file.as_raw_fd();
+    let mut cmd = Command::new(&harness);
+    cmd.arg(&shim)
+        .args(["-L", "@"])
+        .env("MELBA_LOGIN_APPLIED", "0")
+        .env_remove("LD_PRELOAD");
+    // SAFETY: dup2 is async-signal-safe; the descriptor outlives the spawn.
+    unsafe {
+        cmd.pre_exec(move || {
+            if dup2(fd, 250) < 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+            Ok(())
+        });
+    }
+    let output = cmd.output().unwrap();
+    let out = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        output.status.success(),
+        "harness failed: {:?} {out}",
+        output.status
+    );
+    assert!(out.contains(&format!("argv3={cred}\n")), "{out}");
+    assert!(out.contains("applied=1\n"), "{out}");
+    assert!(out.contains("cmdline_has_secret=0\n"), "{out}");
 }
