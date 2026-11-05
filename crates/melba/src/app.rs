@@ -576,6 +576,14 @@ pub struct App {
     /// A session connected and its account's cache is still to be read,
     /// once `Me` says which account it is.
     account_caches_due: bool,
+    /// The library playlist that turns out to be the account's Favorites
+    /// list, found by the daemon from what the playlist contains. Liked Songs
+    /// then opens the playlist Apple actually keeps, so the page shows the
+    /// songs the account liked rather than the songs it added to the library
+    /// (measured on one account: 53 of 84 liked songs were never added).
+    favorites_playlist: Option<String>,
+    /// A lookup is in flight; one at a time per account.
+    favorites_pending: bool,
     /// When the tree was last asked for.
     /// Whether the window had focus last frame.
     /// Coming back to the window asked for the tree, and it has not been
@@ -989,6 +997,8 @@ impl App {
             last_album_queue: None,
             account_caches_generation: 0,
             account_caches_due: false,
+            favorites_playlist: None,
+            favorites_pending: false,
             pending_link: None,
             copied_songs: Vec::new(),
             pending_pastes: Vec::new(),
@@ -2654,6 +2664,30 @@ impl App {
                     self.liked_recheck_at = Some(Instant::now() + Duration::from_secs(5));
                 }
             }
+            ApiResponse::FavoritesPlaylist {
+                generation,
+                account_id,
+                result,
+            } => {
+                if generation != self.load_generation || self.user_id() != account_id.as_deref() {
+                    return;
+                }
+                self.favorites_pending = false;
+                match result {
+                    Ok(Some(id)) => {
+                        self.favorites_playlist = Some(id.clone());
+                        // The page already on screen is the library-backed
+                        // stand-in; move it to the list the account meant.
+                        if *self.page() == Page::LikedSongs {
+                            self.open(Page::Playlist(id));
+                        }
+                    }
+                    Ok(None) => {
+                        log::info!("no favorites playlist on this account; Liked Songs stays library-backed");
+                    }
+                    Err(error) => log::warn!("could not identify the favorites playlist: {error}"),
+                }
+            }
             ApiResponse::Contains { uris, result } => {
                 for uri in &uris {
                     self.saved_pending.remove(uri);
@@ -3584,6 +3618,9 @@ impl App {
         self.playlist_pages.clear();
         self.album_pages.clear();
         self.artist_pages.clear();
+        // Another account's Favorites playlist is a different playlist.
+        self.favorites_playlist = None;
+        self.favorites_pending = false;
         self.saved.clear();
         self.saved_pending.clear();
         self.track_recordings.clear();
@@ -6254,6 +6291,40 @@ impl App {
 
     // ---- navigation ------------------------------------------------------------
 
+    /// Liked Songs means the songs the account liked, so it opens the
+    /// playlist Apple keeps for them once the daemon has found it. Until then
+    /// (and if the account has no such playlist) the library-backed page
+    /// stands, and the lookup is asked for so a later open lands on it.
+    fn open_page(&mut self, page: Page) {
+        if page == Page::LikedSongs
+            && let Some(id) = self.favorites_playlist.clone()
+        {
+            self.open(Page::Playlist(id));
+            return;
+        }
+        if page == Page::LikedSongs {
+            self.request_favorites_playlist();
+        }
+        self.open(page);
+    }
+
+    /// Ask the daemon which library playlist is the Favorites one, once per
+    /// account and only when a page needs it.
+    fn request_favorites_playlist(&mut self) {
+        if self.favorites_playlist.is_some()
+            || self.favorites_pending
+            || self.user_id().is_none()
+        {
+            return;
+        }
+        self.load_generation = self.load_generation.wrapping_add(1);
+        self.favorites_pending = true;
+        self.backend.api(ApiRequest::FavoritesPlaylist {
+            generation: self.load_generation,
+            account_id: self.user_id().map(str::to_owned),
+        });
+    }
+
     pub fn open(&mut self, page: Page) {
         self.pending_link = None;
         self.touch_page(&page);
@@ -8039,7 +8110,7 @@ impl App {
             self.supersede_play_search();
         }
         match action {
-            Action::Open(page) => self.open(page),
+            Action::Open(page) => self.open_page(page),
             Action::OpenSongRadio { uri, track } => self.open_song_radio(&uri, &track),
             Action::PrepareTint(url) => {
                 if self.settings.accent_from_art {
@@ -23378,6 +23449,84 @@ mod tests {
         app.local.playback = Playback::Paused;
         app.sync_power(&ctx);
         assert!(app.playback_activity.is_none());
+    }
+
+    /// Liked Songs opens the playlist Apple actually keeps for the account's
+    /// liked songs, instead of the library list that hides most of them.
+    #[test]
+    fn liked_songs_opens_the_discovered_favorites_playlist() {
+        let mut app = headless_app();
+        app.user = Some(crate::api::models::User {
+            id: "alice".into(),
+            ..Default::default()
+        });
+        app.open_page(Page::LikedSongs);
+        assert_eq!(*app.page(), Page::LikedSongs, "the stand-in shows first");
+        assert!(
+            app.favorites_pending,
+            "the lookup is asked for while the stand-in stands"
+        );
+
+        let generation = app.load_generation;
+        app.handle_api(ApiResponse::FavoritesPlaylist {
+            generation,
+            account_id: Some("alice".into()),
+            result: Ok(Some("fav-pl".into())),
+        });
+        assert_eq!(
+            *app.page(),
+            Page::Playlist("fav-pl".into()),
+            "the page on screen moves to the real list"
+        );
+        assert_eq!(app.favorites_playlist.as_deref(), Some("fav-pl"));
+
+        // Opening it again lands there directly, and asks nothing more.
+        app.favorites_pending = false;
+        app.open(Page::Home);
+        app.open_page(Page::LikedSongs);
+        assert_eq!(*app.page(), Page::Playlist("fav-pl".into()));
+        assert!(!app.favorites_pending, "a known answer is not asked again");
+    }
+
+    /// A late or foreign answer cannot move the page, and an account with no
+    /// such playlist keeps the library-backed view.
+    #[test]
+    fn a_favorites_lookup_only_moves_the_page_it_belongs_to() {
+        let mut app = headless_app();
+        app.user = Some(crate::api::models::User {
+            id: "alice".into(),
+            ..Default::default()
+        });
+        app.open_page(Page::LikedSongs);
+        let generation = app.load_generation;
+
+        // Answered for another account.
+        app.handle_api(ApiResponse::FavoritesPlaylist {
+            generation,
+            account_id: Some("someone-else".into()),
+            result: Ok(Some("their-pl".into())),
+        });
+        assert_eq!(*app.page(), Page::LikedSongs);
+        assert!(app.favorites_playlist.is_none());
+
+        // Answered after a newer load started.
+        app.handle_api(ApiResponse::FavoritesPlaylist {
+            generation: generation.wrapping_sub(1),
+            account_id: Some("alice".into()),
+            result: Ok(Some("stale-pl".into())),
+        });
+        assert_eq!(*app.page(), Page::LikedSongs);
+        assert!(app.favorites_playlist.is_none());
+
+        // Answered with nothing while the user has moved on: nothing moves.
+        app.favorites_pending = false;
+        app.open(Page::Home);
+        app.handle_api(ApiResponse::FavoritesPlaylist {
+            generation,
+            account_id: Some("alice".into()),
+            result: Ok(None),
+        });
+        assert_eq!(*app.page(), Page::Home);
     }
 
     #[test]

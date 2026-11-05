@@ -163,6 +163,12 @@ pub enum ApiRequest {
     Contains {
         uris: Vec<String>,
     },
+    /// Which library playlist is the account's Favorites list, if one is.
+    /// Apple names no id for it, so the daemon identifies it by its contents.
+    FavoritesPlaylist {
+        generation: u64,
+        account_id: Option<String>,
+    },
     Search {
         query: String,
         serial: u64,
@@ -321,6 +327,11 @@ pub enum ApiResponse {
     Contains {
         uris: Vec<String>,
         result: ApiResult<Vec<bool>>,
+    },
+    FavoritesPlaylist {
+        generation: u64,
+        account_id: Option<String>,
+        result: ApiResult<Option<String>>,
     },
     Search {
         query: String,

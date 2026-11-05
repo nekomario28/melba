@@ -30,6 +30,32 @@ const ORIGIN: &str = "https://music.apple.com";
 /// well inside what the service answers.
 const RATINGS_BATCH: usize = 50;
 
+/// Read-only library playlists inspected when looking for the Favorites one.
+/// A miss costs two requests each, so the search must not walk the library.
+const FAVORITES_CANDIDATES: usize = 6;
+
+/// Below this a playlist says nothing about whether it is the Favorites one:
+/// a two-song mix is often entirely liked by accident.
+const FAVORITES_MIN_TRACKS: usize = 3;
+
+/// A playlist counts as the account's Favorites list when essentially
+/// everything it lists is liked. One stale entry (a song with no catalog id,
+/// or one Apple re-issued under a new id) must not hide the whole list.
+fn entirely_liked(liked: usize, total: usize) -> bool {
+    total >= FAVORITES_MIN_TRACKS && liked * 10 >= total * 9
+}
+
+/// The catalog id a library playlist entry plays, preferring the id Apple
+/// currently reports so a superseded entry still resolves.
+fn song_catalog_id(item: &Value) -> Option<String> {
+    let pp = &item["attributes"]["playParams"];
+    pp["reportingId"]
+        .as_str()
+        .filter(|id| !id.is_empty())
+        .or_else(|| pp["catalogId"].as_str().filter(|id| !id.is_empty()))
+        .map(str::to_string)
+}
+
 /// A song counts as saved when it is in the library or has been loved.
 /// Apple stores those as two independent signals, and "loved without being
 /// added" is exactly what the Favorites playlist is.
@@ -395,6 +421,66 @@ impl MusicKit {
             }
         }
         out
+    }
+
+    /// The account's "Favorite Songs" playlist, found by behaviour rather
+    /// than by name or id.
+    ///
+    /// Apple lists liked songs nowhere: `/me/ratings/songs` needs ids, so the
+    /// only enumeration of them is that playlist, and it cannot be named: it
+    /// is a `user-shared` resource whose `p.*` and `pl.u-*` ids differ per
+    /// account (name matching was reverted for exactly that reason).
+    ///
+    /// What does identify it is what it contains. Among the library playlists
+    /// the account cannot edit, the Favorites one is the only one made
+    /// entirely of rated songs; editorial and personal mixes are not. Each
+    /// candidate costs two requests and the search is bounded, so a refusal
+    /// or an unfamiliar account simply yields `None` and the caller keeps its
+    /// library-backed view.
+    pub async fn favorites_playlist(&self) -> Result<Option<String>, String> {
+        let listed = self
+            .me_get("/library/playlists", &[("limit", "50")])
+            .await?;
+        let candidates: Vec<String> = listed["data"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|p| {
+                p["attributes"]["canEdit"].as_bool() == Some(false)
+                    && p["attributes"]["hasCatalog"].as_bool() == Some(true)
+            })
+            .filter_map(|p| p["id"].as_str().map(str::to_string))
+            .take(FAVORITES_CANDIDATES)
+            .collect();
+        for id in candidates {
+            if self.playlist_is_entirely_rated(&id).await? {
+                return Ok(Some(id));
+            }
+        }
+        Ok(None)
+    }
+
+    /// Whether every song a playlist lists carries a like. `None` when the
+    /// playlist is too short to tell.
+    async fn playlist_is_entirely_rated(&self, id: &str) -> Result<bool, String> {
+        let listed = self
+            .me_get(
+                &format!("/library/playlists/{id}/tracks"),
+                &[("limit", "100")],
+            )
+            .await?;
+        let ids: Vec<String> = listed["data"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|item| song_catalog_id(item))
+            .collect();
+        if ids.len() < FAVORITES_MIN_TRACKS {
+            return Ok(false);
+        }
+        let ratings = self.ratings(&ids).await;
+        let liked = ids.iter().filter(|id| ratings.get(*id) == Some(&1)).count();
+        Ok(entirely_liked(liked, ids.len()))
     }
 
     /// Record or clear the like/dislike rating for a song, so the account's
@@ -1139,6 +1225,38 @@ mod tests {
             "https://is1-ssl.mzstatic.com/640x640bb.jpg"
         );
         assert_eq!(album.images[0].width, Some(640));
+    }
+
+    /// The Favorites playlist is identified by what it contains, because
+    /// Apple gives it no stable name or id.
+    #[test]
+    fn a_playlist_is_the_favorites_one_only_when_it_is_essentially_all_liked() {
+        assert!(entirely_liked(84, 84), "everything liked");
+        assert!(
+            entirely_liked(84, 85),
+            "one entry Apple can no longer resolve must not hide the list"
+        );
+        assert!(!entirely_liked(60, 85), "a mix is not a favorites list");
+        assert!(!entirely_liked(0, 85), "nothing liked");
+        assert!(
+            !entirely_liked(2, 2),
+            "too short to tell: two liked songs is a coincidence"
+        );
+        assert!(entirely_liked(3, 3), "three is the floor");
+    }
+
+    /// A library playlist row names the song twice; the id Apple currently
+    /// reports wins so a superseded entry still resolves to a rating.
+    #[test]
+    fn a_playlist_entry_prefers_the_id_apple_currently_reports() {
+        let superseded = json!({"attributes": {"playParams": {
+            "catalogId": "1000000001", "reportingId": "2000000002"}}});
+        assert_eq!(song_catalog_id(&superseded).as_deref(), Some("2000000002"));
+        let same = json!({"attributes": {"playParams": {
+            "catalogId": "1000000001", "reportingId": "1000000001"}}});
+        assert_eq!(song_catalog_id(&same).as_deref(), Some("1000000001"));
+        let missing = json!({"attributes": {"playParams": {}}});
+        assert_eq!(song_catalog_id(&missing), None);
     }
 
     /// A song loved from the Apple Music app joins the Favorites playlist

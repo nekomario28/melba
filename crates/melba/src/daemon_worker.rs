@@ -1528,6 +1528,14 @@ async fn catalog_answer(mk: &MusicKit, request: ApiRequest) -> Option<ApiRespons
             result: mk.contains(&uris).await.map_err(err),
             uris,
         }),
+        ApiRequest::FavoritesPlaylist {
+            generation,
+            account_id,
+        } => Some(ApiResponse::FavoritesPlaylist {
+            generation,
+            account_id,
+            result: mk.favorites_playlist().await.map_err(err),
+        }),
         ApiRequest::SetSaved { uris, saved } => {
             let result = if saved {
                 mk.save(&uris).await
