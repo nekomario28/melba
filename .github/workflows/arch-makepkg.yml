@@ -59,7 +59,6 @@ jobs:
           test -d "$work/src/melba/.git"
           test -f "$work/src/melba/Cargo.toml"
           test -f "$work/src/melba/crates/melba/Cargo.toml"
-          test ! -d "$work/src/melba"
           # Compare cloned HEAD against remote default branch, not just
           # a fixture directory manually created by our unit tests.
           # The checkout belongs to the non-root build user. Query Git as
