@@ -128,3 +128,30 @@ When opening an album or playlist context, Melba replaces the queue with the ori
 The daemon owns Linux MPRIS transport. The desktop launches the co-installed daemon if necessary, restoring a previous queue **paused**. Normal window close and explicit Quit stop the desktop session and playback unless background/tray mode was explicitly enabled. Switching between full and mini-player views does not quit. `melba background off` restores close-to-quit; `melba quit` performs the normal shutdown path. A standalone `melbad serve` remains possible by choice.
 
 The implementation and installed-runtime acceptance questions are tracked in [Roadmap](roadmap.md) and [development checks](development.md); source tests alone do not prove the final physical audio or desktop behaviour.
+
+## Shared output and bit-perfect samples (measured 2026-11-06)
+
+`BITPERFECT` is a statement about the path this app can observe: an exclusive
+`hw:` device whose granted rate, channels and bit depth match the source. A
+shared graph is reported as `SHARED` because the app cannot see what happens
+inside it — not because a shared graph necessarily alters the samples.
+
+It does not have to: measured on one machine with `melbad play --device
+default`, the session audio server closed except for this stream, a 48 kHz
+24-bit stereo source and a 48 kHz graph, the sink's monitor carried **88 768
+frames (1.85 s) of both channels bit-identical to the source** — every sample,
+gain exactly 1.0. The graph negotiated an `F32P` link, and the round trip
+through float was still exact, because 24 bits fit a float mantissa.
+
+What that does not establish:
+
+- It is the sink's monitor, not the DAC. The sink node still converts to the
+  device's own ALSA format, and that step is not covered.
+- One configuration: 48 kHz in and out, one client, no `audioconvert` or
+  `audioresample` node, HDMI output. A graph at another rate resamples; another
+  client mixes; a source wider than 24 bits cannot round-trip through a float
+  mantissa exactly.
+- `melbad doctor` now prints the graph for this daemon's stream — the chain of
+  nodes, the negotiated format, converter nodes and how many clients share the
+  sink — so the conditions above can be checked rather than assumed. It reports
+  facts; the playback verdict is unchanged.

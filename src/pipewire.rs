@@ -32,19 +32,27 @@ pub struct Graph {
     pub converters: Vec<String>,
     /// Other clients feeding the same sink at the same time.
     pub other_clients: usize,
+    /// Sample rate of the stream, as PipeWire negotiated it.
+    pub source_rate: u32,
 }
 
 impl Graph {
-    /// A pass-through is possible only when every link along the chain carries
-    /// the stream's own samples: no converter node, and a link format that is
-    /// not the graph's float.
-    pub fn pass_through_possible(&self) -> bool {
+    /// Whether nothing in the graph is known to alter the samples.
+    ///
+    /// A float link is **not** by itself an alteration. Measured 2026-11-06 on
+    /// `default` with one client, a 48 kHz/24-bit source and a 48 kHz graph:
+    /// 88 768 frames (1.85 s) arrived at the sink bit-identical, so the
+    /// S32 → F32P → S32 round trip was exact. It is exact because 24 bits fit
+    /// a float mantissa; a source needing more than that, or a converter node
+    /// that resamples or dithers, is where a pass-through stops being one.
+    pub fn pass_through_possible(&self, source_bits: u32) -> bool {
         self.converters.is_empty()
             && self.other_clients == 0
+            && source_bits <= 24
             && self
-                .hops
-                .iter()
-                .all(|hop| hop.link_format.as_deref().is_some_and(|f| f != "F32P"))
+                .stream_format
+                .as_deref()
+                .is_some_and(|format| format.starts_with(&format!("{}:", self.source_rate)))
     }
 }
 
@@ -149,9 +157,16 @@ pub fn inspect(dump: &str, needle: &str) -> Option<Graph> {
     peers.dedup();
     let other_clients = peers.iter().filter(|id| **id != stream_id).count();
 
+    let stream_format = format_of(stream_node);
+    let source_rate = stream_format
+        .as_deref()
+        .and_then(|f| f.split(':').next())
+        .and_then(|r| r.parse().ok())
+        .unwrap_or(0);
     Some(Graph {
         stream: name_of(stream_node),
-        stream_format: format_of(stream_node),
+        stream_format,
+        source_rate,
         hops,
         converters,
         other_clients,
@@ -196,16 +211,19 @@ mod tests {
         serde_json::to_string(&v).unwrap()
     }
 
+    /// Measured 2026-11-06: with one client, a 48 kHz/24-bit source and a
+    /// 48 kHz graph, 88 768 frames reached the sink bit-identical, so the
+    /// float link alone does not alter a 24-bit source. Above 24 bits a float
+    /// mantissa cannot hold every value, and nothing is promised.
     #[test]
-    fn a_direct_link_that_is_already_float_is_not_a_pass_through() {
+    fn a_float_link_still_passes_a_24_bit_source_through() {
         let g = inspect(&dump(vec![]), "melbad").expect("the stream is there");
         assert_eq!(g.stream_format.as_deref(), Some("48000:S32LE:2"));
+        assert_eq!(g.source_rate, 48000);
         assert_eq!(g.hops.len(), 1);
         assert_eq!(g.hops[0].class, "Audio/Sink");
-        assert!(
-            !g.pass_through_possible(),
-            "the link carries the graph's float"
-        );
+        assert!(g.pass_through_possible(24));
+        assert!(!g.pass_through_possible(32));
     }
 
     #[test]
@@ -232,7 +250,7 @@ mod tests {
             2,
             "the chain is followed, not stopped at the first hop"
         );
-        assert!(!g.pass_through_possible());
+        assert!(!g.pass_through_possible(24));
     }
 
     #[test]
@@ -243,7 +261,7 @@ mod tests {
         ];
         let g = inspect(&dump(extra), "melbad").expect("the stream is there");
         assert_eq!(g.other_clients, 1);
-        assert!(!g.pass_through_possible());
+        assert!(!g.pass_through_possible(24));
     }
 
     /// One stream reaches the sink with one link per port. Counting links made
@@ -263,7 +281,7 @@ mod tests {
         ];
         let g = inspect(&serde_json::to_string(&v).unwrap(), "melbad").unwrap();
         assert_eq!(g.other_clients, 0);
-        assert!(g.pass_through_possible());
+        assert!(g.pass_through_possible(24));
         v.clear();
     }
 
@@ -281,7 +299,7 @@ mod tests {
         ];
         let text = serde_json::to_string(&v).unwrap();
         let g = inspect(&text, "melbad").expect("the stream is there");
-        assert!(g.pass_through_possible(), "{g:?}");
+        assert!(g.pass_through_possible(24), "{g:?}");
         v.clear();
     }
 

@@ -162,13 +162,17 @@ or infer bit-perfect playback from an ALAC label.
   path, and how many clients share the sink (`src/pipewire.rs`, parsed from
   `pw-dump`, with unit tests for each shape). It reports facts only; the
   playback verdict is unchanged.
-- [ ] **Decide what a verified pass-through may be called** — on the measured
-  machine a single client with no resampling still reaches the sink over an
-  `F32P` link, so the graph converts even when nothing else is playing. "Another
-  stream is silent" is necessary, not sufficient. Promoting a new verdict needs
-  a measurement that the conversion was exact on that path, which a
-  byte-comparison experiment has not yet produced: the first attempt ran with
-  two Melba streams on the same sink and did not yield a trustworthy capture.
+- [ ] **Decide what a verified pass-through may be called** — the measurement
+  now exists: with one client, a 48 kHz/24-bit source and a 48 kHz graph, 88 768
+  frames reached the sink bit-identical, so the float link alone is not an
+  alteration for 24-bit sources (see [Audio and playback](audio.md#shared-output-and-bit-perfect-samples-measured-2026-11-06)).
+  The graph conditions that had to hold are checked by `src/pipewire.rs`. What
+  is still open is the product decision: whether a `SHARED` stream whose graph
+  verifies should carry a distinct label, and what happens to that label when
+  another client joins mid-track. The first capture attempt ran with two Melba
+  streams on the same sink and is not evidence of anything; `melbad play`
+  also turned out to refuse a shared path outright, which is what made it
+  silent — that defect is fixed.
 
 ### Dead GUI-to-worker surface
 

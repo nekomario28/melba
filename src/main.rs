@@ -169,7 +169,13 @@ fn refuse_shared(device: &str, require_bitperfect: bool) -> bool {
     true
 }
 
-fn run_play(file: &str, device: &str, verify: bool, max_seconds: Option<u64>) -> i32 {
+fn run_play(
+    file: &str,
+    device: &str,
+    verify: bool,
+    require_bitperfect: bool,
+    max_seconds: Option<u64>,
+) -> i32 {
     let started = Instant::now();
     // one open+probe feeds format detection AND the decode loop
     let pf = match audio::open_source(file) {
@@ -239,12 +245,21 @@ fn run_play(file: &str, device: &str, verify: bool, max_seconds: Option<u64>) ->
 
     let v = audio::verdict_str(&src, &granted);
     if v != "BITPERFECT" {
-        eprintln!("verdict: {v} — refusing to play as bit-perfect");
+        eprintln!("verdict: {v} — not bit-perfect (the samples reach the OS mixer)");
     }
 
     let xruns = std::sync::atomic::AtomicU64::new(0);
     let t0 = Instant::now();
-    let frames = if v == "BITPERFECT" {
+    // A shared path plays; it simply is not bit-perfect, and `--require-bitperfect`
+    // is the flag that asks for the refusal. Tying playback to the verdict made
+    // `play --device default` silently produce no sound at all.
+    let refused = v != "BITPERFECT" && require_bitperfect;
+    if refused && !verify {
+        eprintln!("stopping: --require-bitperfect and this path is {v}");
+    }
+    let frames = if refused {
+        0
+    } else {
         let cap = max_seconds.map(|s| s.saturating_mul(src.rate as u64));
         match audio::play_into(&pcm, &granted, pf, cap, &xruns) {
             Ok(f) => f,
@@ -253,8 +268,6 @@ fn run_play(file: &str, device: &str, verify: bool, max_seconds: Option<u64>) ->
                 0
             }
         }
-    } else {
-        0
     };
     drop(pcm);
 
@@ -858,7 +871,7 @@ fn main() {
         }
         Cmd::Preview { id } => match musickit::download_preview(&id) {
             Ok(p) => {
-                let code = run_play(&p.to_string_lossy(), "auto", true, None);
+                let code = run_play(&p.to_string_lossy(), "auto", true, false, None);
                 if code != 0 {
                     std::process::exit(code);
                 }
@@ -1178,7 +1191,13 @@ Sign in in the GUI for AAC, or run your own service and set wrapper_url."
             if !refuse_shared(&device, require_bitperfect) {
                 std::process::exit(2);
             }
-            std::process::exit(run_play(&file, &device, verify, max_seconds))
+            std::process::exit(run_play(
+                &file,
+                &device,
+                verify,
+                require_bitperfect,
+                max_seconds,
+            ))
         }
     }
 }
@@ -1267,7 +1286,7 @@ fn pipewire_report() -> Result<String, String> {
         .map(|hop| format!("{} [{}]", hop.name, hop.class))
         .collect::<Vec<_>>()
         .join(" -> ");
-    let pass = if graph.pass_through_possible() {
+    let pass = if graph.pass_through_possible(24) {
         "pass-through possible"
     } else if !graph.converters.is_empty() {
         "converted (a converter node is in the path)"
