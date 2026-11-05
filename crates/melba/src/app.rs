@@ -584,6 +584,10 @@ pub struct App {
     favorites_playlist: Option<String>,
     /// A lookup is in flight; one at a time per account.
     favorites_pending: bool,
+    /// Guards that reply. It is deliberately not `load_generation`: opening a
+    /// page while the lookup runs would move that counter and drop the answer,
+    /// leaving Liked Songs on the library-backed stand-in for the session.
+    favorites_generation: u64,
     /// When the tree was last asked for.
     /// Whether the window had focus last frame.
     /// Coming back to the window asked for the tree, and it has not been
@@ -999,6 +1003,7 @@ impl App {
             account_caches_due: false,
             favorites_playlist: None,
             favorites_pending: false,
+            favorites_generation: 0,
             pending_link: None,
             copied_songs: Vec::new(),
             pending_pastes: Vec::new(),
@@ -2669,7 +2674,9 @@ impl App {
                 account_id,
                 result,
             } => {
-                if generation != self.load_generation || self.user_id() != account_id.as_deref() {
+                if generation != self.favorites_generation
+                    || self.user_id() != account_id.as_deref()
+                {
                     return;
                 }
                 self.favorites_pending = false;
@@ -3621,6 +3628,7 @@ impl App {
         // Another account's Favorites playlist is a different playlist.
         self.favorites_playlist = None;
         self.favorites_pending = false;
+        self.favorites_generation = self.favorites_generation.wrapping_add(1);
         self.saved.clear();
         self.saved_pending.clear();
         self.track_recordings.clear();
@@ -6317,10 +6325,10 @@ impl App {
         {
             return;
         }
-        self.load_generation = self.load_generation.wrapping_add(1);
+        self.favorites_generation = self.favorites_generation.wrapping_add(1);
         self.favorites_pending = true;
         self.backend.api(ApiRequest::FavoritesPlaylist {
-            generation: self.load_generation,
+            generation: self.favorites_generation,
             account_id: self.user_id().map(str::to_owned),
         });
     }
@@ -23467,7 +23475,7 @@ mod tests {
             "the lookup is asked for while the stand-in stands"
         );
 
-        let generation = app.load_generation;
+        let generation = app.favorites_generation;
         app.handle_api(ApiResponse::FavoritesPlaylist {
             generation,
             account_id: Some("alice".into()),
@@ -23488,6 +23496,36 @@ mod tests {
         assert!(!app.favorites_pending, "a known answer is not asked again");
     }
 
+    /// The lookup must survive unrelated page loads. Sharing the page-load
+    /// generation meant any load that bumped it dropped the answer, and the
+    /// page stayed on the library-backed stand-in for the whole session.
+    #[test]
+    fn a_page_load_while_the_favorites_lookup_runs_does_not_discard_it() {
+        let mut app = headless_app();
+        app.user = Some(crate::api::models::User {
+            id: "alice".into(),
+            ..Default::default()
+        });
+        app.open_page(Page::LikedSongs);
+        let generation = app.favorites_generation;
+
+        // Something else starts loading: the shared page counter moves.
+        app.request_account_caches();
+        app.load_generation = app.load_generation.wrapping_add(1);
+
+        app.handle_api(ApiResponse::FavoritesPlaylist {
+            generation,
+            account_id: Some("alice".into()),
+            result: Ok(Some("fav-pl".into())),
+        });
+        assert_eq!(
+            *app.page(),
+            Page::Playlist("fav-pl".into()),
+            "the answer still lands after an unrelated load"
+        );
+        assert!(!app.favorites_pending);
+    }
+
     /// A late or foreign answer cannot move the page, and an account with no
     /// such playlist keeps the library-backed view.
     #[test]
@@ -23498,7 +23536,7 @@ mod tests {
             ..Default::default()
         });
         app.open_page(Page::LikedSongs);
-        let generation = app.load_generation;
+        let generation = app.favorites_generation;
 
         // Answered for another account.
         app.handle_api(ApiResponse::FavoritesPlaylist {

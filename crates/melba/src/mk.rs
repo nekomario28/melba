@@ -434,8 +434,9 @@ impl MusicKit {
     /// What does identify it is what it contains. Among the library playlists
     /// the account cannot edit, the Favorites one is the only one made
     /// entirely of rated songs; editorial and personal mixes are not. Each
-    /// candidate costs two requests and the search is bounded, so a refusal
-    /// or an unfamiliar account simply yields `None` and the caller keeps its
+    /// candidate costs two requests and the search is bounded, so a refusal,
+    /// an account with no such playlist, or one that keeps it past the first
+    /// page of the library list simply yields `None`, and the caller keeps its
     /// library-backed view.
     pub async fn favorites_playlist(&self) -> Result<Option<String>, String> {
         let listed = self
