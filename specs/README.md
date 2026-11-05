@@ -1,4 +1,4 @@
-# specs/apple-music-linux — a native, lightweight hi-res music client for Linux
+# specs — a native, lightweight hi-res music client for Linux
 
 ## Active desktop work
 
