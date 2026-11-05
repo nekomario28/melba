@@ -13,6 +13,18 @@ are retained for reference compatibility, not as claims about the rendering
 backend or viewport. Other files in this directory are outside this replacement
 set and must be assessed separately.
 
+## The remaining captures
+
+The screenshots outside the synthetic set were audited once by reading their
+text: none names an account, a user name, an e-mail address or a catalog
+artwork URL. What they do show is the ALSA device list of the machine they were
+taken on — `hw:0,* USB Audio`, `hw:1,* HDA ATI HDMI` — which identifies a device
+class rather than a person, and the application name as it was then (`aml`,
+before the rename). They are kept because they are dated evidence of what was
+measured on that date; re-capturing them under today's name would misstate
+when the observation was made. Nothing here establishes current appearance,
+localization, renderer or output.
+
 Historical notes that mention these filenames are historical observations, not
 new acceptance evidence. The original captures are no longer in the current
 working tree. **Git history was not rewritten**: replacing a current file does

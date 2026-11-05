@@ -4,6 +4,7 @@
   "sources": {
     "local_history": {
       "repository": "https://github.com/nekomario28/apple-music-linux",
+      "repository_note": "That repository was retired and its history is not reachable; the published repository is https://github.com/nekomario28/melba. The URL is kept as the custody record for the commits named here rather than rewritten to the new name, which never held them.",
       "evidence": "Per-file first_addition_commits locate retained Git additions. A commit proves custody, not original creation, synthetic signal or media rights."
     },
     "aac_recipe": {

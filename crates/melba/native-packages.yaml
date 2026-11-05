@@ -12,9 +12,9 @@ libraries:
     rpm: alsa-lib
 nfpm:
   name: melba
-  maintainer: Carmine Paolino <carmine@paolino.me>
+  maintainer: Melba contributors <melba@invalid>
   homepage: https://github.com/nekomario28/melba
-  description: A native Spotify client
+  description: A native Apple Music client
   license: MIT
   contents:
   # A glob source makes nFPM append its basename to the destination directory.

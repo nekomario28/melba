@@ -17,8 +17,8 @@ makedepends=('cargo' 'cargo-about' 'python' 'git' 'pkgconf' 'cmake')
 optdepends=('google-chrome: Widevine CDM for AAC subscription streams'
             'sqlite: token capture when signing in with Firefox')
 # Explicit makepkg VCS checkout name: each hook below uses
-# $srcdir/apple-music-linux (the repository's real name is "melba").
-source=("apple-music-linux::git+$url")
+# $srcdir/melba, the repository's own name.
+source=("melba::git+$url")
 sha256sums=('SKIP')
 # Cargo profiles own Rust LTO. GCC LTO archives (AWS-LC/CDM) cannot be
 # consumed by Rust's LLVM linker, so do not inject makepkg's native LTO flags.
@@ -26,7 +26,7 @@ options=('!lto')
 _rust_target="$CARCH-unknown-linux-gnu"
 
 pkgver() {
-    cd "$srcdir/apple-music-linux" || return
+    cd "$srcdir/melba" || return
     local version
     if version=$(git describe --tags --long 2>/dev/null); then
         printf '%s\n' "$version" | sed 's/^v//;s/-/./g'
@@ -36,13 +36,13 @@ pkgver() {
 }
 
 prepare() {
-    cd "$srcdir/apple-music-linux"
+    cd "$srcdir/melba"
     cargo fetch --locked
     cargo fetch --locked --manifest-path crates/melba/Cargo.toml
 }
 
 build() {
-    cd "$srcdir/apple-music-linux"
+    cd "$srcdir/melba"
     # Keep the output root local, independent of a user's CARGO_TARGET_DIR.
     export CARGO_TARGET_DIR="$srcdir/target"
     cargo build --release --frozen --target "$_rust_target" --bin melbad
@@ -51,14 +51,14 @@ build() {
 }
 
 check() {
-    cd "$srcdir/apple-music-linux"
+    cd "$srcdir/melba"
     export CARGO_TARGET_DIR="$srcdir/target"
     cargo test --release --frozen --target "$_rust_target" -p melbad --lib
     cargo test --release --frozen --target "$_rust_target" --manifest-path crates/melba/Cargo.toml --lib
 }
 
 package() {
-    cd "$srcdir/apple-music-linux"
+    cd "$srcdir/melba"
     # Refuse missing, stale or corrupted notices even with --repackage/--nocheck.
     python3 packaging/licenses.py --check "$srcdir/third-party"
     install -Dm644 "$srcdir/third-party/melbad-THIRD-PARTY.txt" \

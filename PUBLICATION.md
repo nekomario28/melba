@@ -2,7 +2,7 @@
 
 This document describes the boundaries for **source publication, source-only export and separately published signed releases**. It is not legal clearance and does not by itself authorize redistribution or a new release.
 
-As of **2026-10-28**, the public [v0.3.12 release](https://github.com/nekomario28/melba/releases/tag/v0.3.12) contains signed x86_64 and aarch64 binary assets and their checksum/signature files. Therefore “source-only export” below refers to one *export workflow*, **not** a claim that the project publishes no binaries. The release process has separate signing, notice and packaging checks (see [Updates](docs/updates.md) and [NOTICE.md](NOTICE.md)).
+The public [releases](https://github.com/nekomario28/melba/releases) contain signed x86_64 and aarch64 binary assets and their checksum/signature files. Therefore “source-only export” below refers to one *export workflow*, **not** a claim that the project publishes no binaries. The release process has separate signing, notice and packaging checks (see [Updates](docs/updates.md) and [NOTICE.md](NOTICE.md)).
 
 ## Included in a source publication
 
@@ -27,11 +27,3 @@ Documentation of boundaries and service control is not permission to obtain, run
 Capability statements are limited to what was measured on the specified track, codec, sink and installation path. A valid ALAC decode, source label or ALSA verdict does not establish Apple affiliation, authorization or the same output on all hardware. See [Audio and playback](docs/audio.md), [Roadmap](docs/roadmap.md), [materials/README.md](materials/README.md) and [NOTICE.md](NOTICE.md).
 
 A source export or successful signed-binary build does not by itself establish image rights, runtime licensing, signing-key ownership, device-level acceptance or permission to publish a different artifact.
-
-## Generating a source-only export
-
-Run `python3 ci/export-public.py DEST` from a clean worktree. It reads `HEAD` only, withholds nonempty extracted-string outputs, records their identities in `public_exclusions`, rewrites repository metadata to the clean `melba` name, and leaves the result uncommitted for review. It does not push, upload releases or change visibility.
-
-## Separate release decisions
-
-Visibility changes, pushes to another remote, release uploads, binary signing and history rewriting each need explicit decisions. Whether a separately published export uses the full history or a current-tree-only snapshot is an independent choice; old paths, images, binaries and attribution commits may still exist in Git history.

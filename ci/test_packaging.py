@@ -46,7 +46,7 @@ class PackagingTests(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.work = Path(self.tmp.name)
         self.srcdir = self.work / "src"
-        self.checkout = self.srcdir / "apple-music-linux"
+        self.checkout = self.srcdir / "melba"
         self.checkout.mkdir(parents=True)
         self.env = {
             **os.environ,
@@ -112,7 +112,7 @@ class PackagingTests(unittest.TestCase):
 
     def test_makepkg_vcs_alias_matches_hook_checkout_directory(self):
         # makepkg picks the repository basename ("melba") unless the source
-        # uses an explicit VCS alias; our hooks all use apple-music-linux.
+        # uses an explicit VCS alias so the checkout directory is predictable.
         result = subprocess.run(
             ["bash", "-c", 'source "$1"; printf "%s\\n" "${source[@]}"',
              "bash", str(PKGBUILD)],
@@ -121,7 +121,7 @@ class PackagingTests(unittest.TestCase):
         sources = result.stdout.splitlines()
         self.assertEqual(len(sources), 1)
         self.assertEqual(
-            sources[0], "apple-music-linux::git+https://github.com/nekomario28/melba",
+            sources[0], "melba::git+https://github.com/nekomario28/melba",
         )
         self.assertEqual(sources[0].split("::", 1)[0], self.checkout.name)
 

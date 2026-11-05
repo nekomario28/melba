@@ -56,14 +56,14 @@ jobs:
           chown -R melba-ci:melba-ci "$work"
           su melba-ci -s /bin/bash -c \
             "cd '$work' && PATH='$work/fakebin':\$PATH makepkg --nobuild --nodeps --noconfirm"
-          test -d "$work/src/apple-music-linux/.git"
-          test -f "$work/src/apple-music-linux/Cargo.toml"
-          test -f "$work/src/apple-music-linux/crates/melba/Cargo.toml"
+          test -d "$work/src/melba/.git"
+          test -f "$work/src/melba/Cargo.toml"
+          test -f "$work/src/melba/crates/melba/Cargo.toml"
           test ! -d "$work/src/melba"
           # Compare cloned HEAD against remote default branch, not just
           # a fixture directory manually created by our unit tests.
           # The checkout belongs to the non-root build user. Query Git as
           # that same user to preserve Git's safe-directory security checks.
           su melba-ci -s /bin/bash -c \
-            "git -C '$work/src/apple-music-linux' rev-parse HEAD"
+            "git -C '$work/src/melba' rev-parse HEAD"
           echo "REAL_ARCH_MAKEPKG_VCS_LAYOUT_AND_PREPARE_PASS"
