@@ -34,7 +34,8 @@ sources and the catalogs are merged against it:
 ```sh
 cd crates/melba
 xgettext --language=C --from-code=UTF-8 -kgettext:2 -kngettext:2,3 -kpgettext:2c,3 \
-  --no-wrap -o assets/i18n/melba.pot -f assets/i18n/POTFILES
+  --no-wrap --msgid-bugs-address=https://github.com/nekomario28/melba/issues/new \
+  -o assets/i18n/melba.pot -f assets/i18n/POTFILES
 for f in assets/i18n/*.po; do msgmerge --no-wrap --no-fuzzy-matching --update "$f" assets/i18n/melba.pot; done
 cargo test --test localization
 ```

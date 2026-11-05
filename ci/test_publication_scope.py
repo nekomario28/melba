@@ -14,6 +14,12 @@ FORBIDDEN_SUFFIXES = {'.so', '.apk', '.xapk', '.zip', '.exe', '.dll', '.dylib',
 EXECUTABLE_MAGICS = (b'\x7fELF', b'MZ', b'\xfe\xed\xfa\xce', b'\xfe\xed\xfa\xcf',
                      b'\xce\xfa\xed\xfe', b'\xcf\xfa\xed\xfe', b'\xca\xfe\xba\xbe')
 FRONT_DOCS = ('README.md', 'README.ja.md', 'PUBLICATION.md', 'NOTICE.md', 'crates/melba/PACKAGING.md')
+# The retired private repository. Its bug-report URL was compiled into every
+# shipped catalog, so it reached users long after the repository was gone.
+RETIRED_REPOSITORY = 'apple-music-linux'
+# Places a user or a translator reads the name, as opposed to internal build
+# plumbing that legitimately keeps the VCS checkout directory name.
+USER_FACING = ('crates/melba/assets/i18n',)
 OPERATIONAL_PHRASES = ('melbad wrapper setup', '--apk', '40020', '10020',
                        '20020', '30020', 'contentKey', 'skd://')
 
@@ -42,6 +48,25 @@ def verify_docs(texts):
                 raise ValueError('OPERATIONAL_WRAPPER_TEXT')
 
 
+def verify_retired_repository(root, paths):
+    """Refuse the retired repository name where a user would see it.
+
+    It survived in the headers of every gettext catalog, which are embedded in
+    the binary: the shippped bug-report link pointed at a deleted repository.
+    """
+    for name in paths:
+        parts = Path(name).parts
+        if not any(name.startswith(prefix) for prefix in USER_FACING):
+            continue
+        if parts[0] == 'crates' and Path(name).suffix not in ('.po', '.pot', '.md', '.txt'):
+            continue
+        path = root / name
+        if path.is_symlink() or not path.is_file():
+            continue
+        if RETIRED_REPOSITORY in path.read_text(errors='replace'):
+            raise ValueError('RETIRED_REPOSITORY_IN_USER_TEXT')
+
+
 def tracked_paths(root):
     try:
         out = subprocess.run(['git', '-C', str(root), 'ls-files', '-z'],
@@ -57,6 +82,7 @@ def tracked_paths(root):
 class PublicationScope(unittest.TestCase):
     def test_scope_holds_for_the_current_tree(self):
         verify_payloads(ROOT, tracked_paths(ROOT))
+        verify_retired_repository(ROOT, tracked_paths(ROOT))
         verify_docs({name: (ROOT / name).read_text()
                      for name in FRONT_DOCS if (ROOT / name).is_file()})
 
@@ -74,6 +100,17 @@ class PublicationScope(unittest.TestCase):
         texts['README.md'] += '\nmelbad wrapper setup\n'
         with self.assertRaisesRegex(ValueError, '^OPERATIONAL_WRAPPER_TEXT$'):
             verify_docs(texts)
+
+    def test_the_retired_repository_name_is_rejected_in_user_text(self):
+        with tempfile.TemporaryDirectory(prefix='retired-repo-') as folder:
+            root = Path(folder)
+            target = root / 'crates/melba/assets/i18n'
+            target.mkdir(parents=True)
+            (target / 'xx.po').write_text(
+                'Report-Msgid-Bugs-To: https://github.com/owner/apple-music-linux/issues/new\n')
+            with self.assertRaisesRegex(ValueError, '^RETIRED_REPOSITORY_IN_USER_TEXT$'):
+                verify_retired_repository(
+                    root, ['crates/melba/assets/i18n/xx.po'])
 
     def test_missing_scope_document_is_not_clean(self):
         with self.assertRaisesRegex(ValueError, '^PUBLICATION_DOC_MISSING$'):

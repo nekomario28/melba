@@ -1,6 +1,6 @@
 # Extends the built-in gitleaks ruleset. The only local change is the
 # allowlist below.
-title = "apple-music-linux"
+title = "melba"
 
 [extend]
 useDefault = true

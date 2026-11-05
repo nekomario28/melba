@@ -3,7 +3,7 @@
 #
 #, fuzzy
 msgid ""
-msgstr "Project-Id-Version: Melba\nReport-Msgid-Bugs-To: https://github.com/nekomario28/apple-music-linux/issues/new\nPOT-Creation-Date: 2026-10-28 14:20+0900\nPO-Revision-Date: 2026-10-15 12:00+0900\nLast-Translator: Melba contributors\nLanguage-Team: Korean\nLanguage: ko\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nPlural-Forms: nplurals=1; plural=0;\n"
+msgstr "Project-Id-Version: Melba\nReport-Msgid-Bugs-To: https://github.com/nekomario28/melba/issues/new\nPOT-Creation-Date: 2026-10-28 14:20+0900\nPO-Revision-Date: 2026-10-15 12:00+0900\nLast-Translator: Melba contributors\nLanguage-Team: Korean\nLanguage: ko\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nPlural-Forms: nplurals=1; plural=0;\n"
 
 #: src/ui/sidebar.rs:169
 msgid "Pause {name}"
