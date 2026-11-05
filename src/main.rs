@@ -280,7 +280,7 @@ fn run_play(
             if v == "BITPERFECT" {
                 "exclusive hw: open — no graph resampler can sit between us and the device"
             } else {
-                "output does not establish an exclusive bit-perfect path; playback refused"
+                "output does not establish an exclusive bit-perfect path"
             }
             .into(),
         );

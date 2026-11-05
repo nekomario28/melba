@@ -164,10 +164,14 @@ fn shared_cli_receipt_does_not_claim_an_exclusive_hardware_path() {
         .output();
     std::fs::remove_dir_all(dir).expect("remove CLI directory");
     let output = result.expect("CLI verifier");
+    // Exit 7 is the verifier's "not bit-perfect" signal. The receipt is what
+    // must not lie, and playback proceeds: refusing a shared path is what
+    // `--require-bitperfect` asks for. Before that distinction existed, this
+    // command played zero frames and only said so on stderr.
     assert_eq!(
         output.status.code(),
         Some(7),
-        "shared output must be refused"
+        "the verifier still reports it"
     );
     let receipt: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("format receipt");
@@ -175,7 +179,10 @@ fn shared_cli_receipt_does_not_claim_an_exclusive_hardware_path() {
     assert_eq!(receipt["source"]["bits"], 24);
     assert_eq!(receipt["granted"]["device"], "null");
     assert_eq!(receipt["verdict"], "SHARED");
-    assert_eq!(receipt["frames_written"], 0);
+    assert!(
+        receipt["frames_written"].as_u64().unwrap_or(0) > 0,
+        "the shared path wrote its samples: {receipt}"
+    );
     assert!(receipt["notes"]
         .as_array()
         .unwrap()
