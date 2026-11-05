@@ -616,3 +616,51 @@ fn the_liked_songs_cache_round_trips_and_stays_inside_the_account() {
 
     let _ = std::fs::remove_dir_all(&root);
 }
+
+/// Library and Home snapshots round-trip, and another account's file is not
+/// shown to this one.
+#[test]
+fn the_account_caches_round_trip_per_account() {
+    let root = std::env::temp_dir().join(format!("mlb-acct-{:016x}", rand::random::<u64>()));
+    std::fs::create_dir_all(&root).unwrap();
+    let (tx, rx) = std::sync::mpsc::channel();
+    let worker = cache_worker(tx, &root);
+
+    worker.load_account_caches(1, Some("alice"));
+    match rx.recv_timeout(Duration::from_secs(2)).unwrap() {
+        Event::AccountCaches {
+            account_id,
+            playlists,
+            home,
+            ..
+        } => {
+            assert_eq!(account_id, "alice");
+            assert!(playlists.is_none() && home.is_none(), "nothing saved yet");
+        }
+        _ => panic!("the worker answered with something else"),
+    }
+
+    let cache = crate::account_cache::Cache::new(
+        "alice".to_owned(),
+        Vec::<crate::api::models::Playlist>::new(),
+    );
+    worker.store_account_cache("alice", "library.json", serde_json::to_vec(&cache));
+    worker.load_account_caches(2, Some("alice"));
+    match rx.recv_timeout(Duration::from_secs(2)).unwrap() {
+        Event::AccountCaches { playlists, .. } => {
+            assert_eq!(playlists.as_deref(), Some(&[][..]), "own snapshot is shown")
+        }
+        _ => panic!("the worker answered with something else"),
+    }
+
+    // Signed out: nothing is read, and the app is not left waiting.
+    worker.load_account_caches(3, None);
+    match rx.recv_timeout(Duration::from_secs(2)).unwrap() {
+        Event::AccountCaches {
+            playlists, home, ..
+        } => assert!(playlists.is_none() && home.is_none()),
+        _ => panic!("the worker answered with something else"),
+    }
+
+    let _ = std::fs::remove_dir_all(&root);
+}

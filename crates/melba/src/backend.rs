@@ -486,6 +486,7 @@ pub enum Command {
     /// Read the verified account's last playlist list and Home shelves.
     LoadAccountCaches {
         generation: u64,
+        account: Option<String>,
     },
     StoreLibraryCache(crate::account_cache::Cache<Vec<Playlist>>),
     StoreHomeCache(crate::account_cache::Cache<crate::model::HomeSnapshot>),

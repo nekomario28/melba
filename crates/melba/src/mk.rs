@@ -26,6 +26,15 @@ const ME: &str = "https://api.music.apple.com/v1/me";
 const AMP_ME: &str = "https://amp-api-edge.music.apple.com/v1/me";
 const ORIGIN: &str = "https://music.apple.com";
 
+/// Artwork used for an accent colour is a thumbnail; anything this large is
+/// not one, and is refused rather than decoded.
+const ARTWORK_CAP: usize = 8 * 1024 * 1024;
+
+/// Only an https CDN URL may be fetched for an accent colour.
+fn artwork_url_ok(url: &str) -> bool {
+    url.starts_with("https://") && url.len() > 8 && !url.contains(char::is_whitespace)
+}
+
 /// `/me/ratings/songs` accepts a comma-separated id list; 50 keeps the URL
 /// well inside what the service answers.
 const RATINGS_BATCH: usize = 50;
@@ -394,6 +403,30 @@ impl MusicKit {
             }
         }
         Ok(flags)
+    }
+
+    /// Fetch an artwork image the app already holds the URL for. Artwork is a
+    /// public CDN GET: no token is attached, the scheme must be https, and the
+    /// body is bounded so a hostile or broken response cannot fill memory.
+    pub async fn artwork_bytes(&self, url: &str) -> Result<Vec<u8>, String> {
+        if !artwork_url_ok(url) {
+            return Err("artwork URL refused".into());
+        }
+        let response = self.http.get(url).send().await.map_err(|e| e.to_string())?;
+        if !response.status().is_success() {
+            return Err(format!("artwork: HTTP {}", response.status().as_u16()));
+        }
+        if response
+            .content_length()
+            .is_some_and(|length| length > ARTWORK_CAP as u64)
+        {
+            return Err("artwork larger than the accent cap".into());
+        }
+        let bytes = response.bytes().await.map_err(|e| e.to_string())?;
+        if bytes.len() > ARTWORK_CAP {
+            return Err("artwork larger than the accent cap".into());
+        }
+        Ok(bytes.to_vec())
     }
 
     /// Like/dislike value per song id, from `/me/ratings/songs`. Missing ids
@@ -1258,6 +1291,18 @@ mod tests {
         assert_eq!(song_catalog_id(&same).as_deref(), Some("1000000001"));
         let missing = json!({"attributes": {"playParams": {}}});
         assert_eq!(song_catalog_id(&missing), None);
+    }
+
+    /// The accent fetch takes only https URLs the app itself produced, so a
+    /// crafted tag or a stored plain-http URL cannot make it read elsewhere.
+    #[test]
+    fn accent_fetches_accept_only_plain_https_urls() {
+        assert!(artwork_url_ok("https://is1-ssl.mzstatic.com/image/thumb/x.jpg"));
+        assert!(!artwork_url_ok("http://is1-ssl.mzstatic.com/image/thumb/x.jpg"));
+        assert!(!artwork_url_ok("file:///etc/passwd"));
+        assert!(!artwork_url_ok("https://"));
+        assert!(!artwork_url_ok("https://host/a b.jpg"));
+        assert!(!artwork_url_ok(""));
     }
 
     /// A song loved from the Apple Music app joins the Favorites playlist

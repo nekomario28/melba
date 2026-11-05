@@ -126,7 +126,17 @@ impl DaemonDirs {
     }
 }
 
-pub(crate) fn daemon_command(
+/// A cache key becomes a directory or file name, so it must not name a path.
+pub(crate) fn safe_cache_name(name: &str) -> bool {
+    !name.is_empty()
+        && name != "."
+        && name != ".."
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+}
+
+fn daemon_command(
     executable: Option<std::path::PathBuf>,
     dirs: &DaemonDirs,
 ) -> std::process::Command {
@@ -215,13 +225,7 @@ impl DaemonWorker {
             return None;
         }
         // The id names a directory, so it may not walk out of it.
-        if account.is_empty()
-            || !account
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
-            || account == "."
-            || account == ".."
-        {
+        if !safe_cache_name(account) {
             return None;
         }
         Some(self.dirs.cache.join("accounts").join(account))
@@ -263,6 +267,78 @@ impl DaemonWorker {
         if let Err(error) = fastframe_file::write(&dir.join("liked-songs.json"), bytes) {
             log::warn!("could not save the liked-songs cache: {error}");
         }
+    }
+
+    fn load_account_caches(&self, generation: u64, account: Option<&str>) {
+        let Some(account) = account else {
+            return self.emit(Event::AccountCaches {
+                account_id: String::new(),
+                generation,
+                playlists: None,
+                home: None,
+            });
+        };
+        let read = |name: &str| {
+            self.account_cache_dir(account)
+                .map(|dir| dir.join(name))
+                .filter(|path| path.is_file())
+                .and_then(|path| std::fs::read(path).ok())
+        };
+        let playlists = read("library.json").and_then(|bytes| {
+            serde_json::from_slice::<crate::account_cache::Cache<Vec<crate::api::models::Playlist>>>(&bytes)
+                .ok()
+                .filter(|cache| cache.account_id == account)
+                .map(|cache| cache.data)
+        });
+        let home = read("home.json").and_then(|bytes| {
+            serde_json::from_slice::<crate::account_cache::Cache<crate::model::HomeSnapshot>>(&bytes)
+                .ok()
+                .filter(|cache| cache.account_id == account)
+                .map(|cache| cache.data)
+        });
+        self.emit(Event::AccountCaches {
+            account_id: account.to_string(),
+            generation,
+            playlists,
+            home,
+        });
+    }
+
+    fn store_account_cache(&self, account: &str, name: &str, bytes: Result<Vec<u8>, serde_json::Error>) {
+        let (Some(dir), Ok(bytes)) = (self.account_cache_dir(account), bytes) else {
+            return;
+        };
+        self.store_cache_file(&dir.join(name), bytes);
+    }
+
+    /// Atomic replace under the account directory; a half-written file must
+    /// never be read back as an answer.
+    fn store_cache_file(&self, path: &std::path::Path, bytes: Vec<u8>) {
+        if let Some(dir) = path.parent()
+            && std::fs::create_dir_all(dir).is_err()
+        {
+            return;
+        }
+        if let Err(error) = fastframe_file::write(path, bytes) {
+            log::warn!("could not save {}: {error}", path.display());
+        }
+    }
+
+    /// Fetch the artwork once and publish its dominant colour, so the tint the
+    /// player bar and header draw is derived from the picture instead of never
+    /// arriving.
+    fn spawn_accent(&self, url: String) {
+        let events = self.events.clone();
+        let waker = self.waker.clone();
+        let mk = Arc::clone(&self.mk);
+        tokio::spawn(async move {
+            if let Ok(bytes) = mk.artwork_bytes(&url).await
+                && let Some(color) = crate::images::accent_color(&bytes)
+            {
+                let _ = events.send(Event::Accent { url, color });
+                waker.wake();
+            }
+        });
     }
 
     /// The Themes folder button: the app owns the directory, the worker owns
@@ -1183,11 +1259,25 @@ impl DaemonWorker {
                         Command::Lyrics(request) => self.spawn_lyrics(*request),
                         // This port ships with Melba, not through melba's
                         // release channel — there is nothing to download.
+                        Command::LoadAccountCaches { generation, account } => {
+                            self.load_account_caches(generation, account.as_deref())
+                        }
+                        Command::StoreLibraryCache(cache) => self.store_account_cache(
+                            &cache.account_id,
+                            "library.json",
+                            serde_json::to_vec(&cache),
+                        ),
+                        Command::StoreHomeCache(cache) => self.store_account_cache(
+                            &cache.account_id,
+                            "home.json",
+                            serde_json::to_vec(&cache),
+                        ),
                         Command::LoadLikedSongsCache { generation, account } => {
                             self.load_liked_cache(generation, account.as_deref())
                         }
                         Command::StoreLikedSongsCache(cache) => self.store_liked_cache(cache),
                         Command::OpenThemesFolder => self.open_themes_folder(),
+                        Command::Accent { url } => self.spawn_accent(url),
                         Command::UpdateProxy(proxy) => self.update_proxy = proxy,
                         Command::CheckForUpdates { manual, source } => {
                             if !restore_sign_in && source.is_github() {

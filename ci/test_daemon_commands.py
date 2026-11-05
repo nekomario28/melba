@@ -26,13 +26,9 @@ REWRITTEN = {"SignIn": "Backend::send turns it into AuthStart"}
 UNHANDLED = {
     "CheckPlaylistCover": "a chosen cover is never checked against the playlist",
     "ChoosePlaylistCover": "the native cover picker never opens",
-    "Accent": "no artwork accent colour is published",
     "NetworkStatus": "offline transitions are not reported to the app",
     "LoadPlaylistCache": "a playlist cannot be shown from disk on a cold start",
     "StorePlaylistCache": "a playlist is never saved for the next start",
-    "LoadAccountCaches": "the last library and Home are not shown while reloading",
-    "StoreLibraryCache": "the library is never saved for the next start",
-    "StoreHomeCache": "Home shelves are never saved for the next start",
     "Radio": "a radio page never resolves its songs",
 }
 

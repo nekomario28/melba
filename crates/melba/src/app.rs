@@ -4945,6 +4945,7 @@ impl App {
         self.account_caches_generation = self.load_generation;
         self.backend.send(Command::LoadAccountCaches {
             generation: self.account_caches_generation,
+            account: self.user_id().map(str::to_owned),
         });
     }
 
