@@ -78,6 +78,28 @@ curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/in
 
 The standalone installer selects the latest matching published release, verifies the Ed25519 signature on its checksum manifest against the embedded Melba publisher key, verifies the archive's SHA-256, then installs the paired `melba`/`melbad` portable layout to `~/.local/opt/melba`. It creates `~/.local/bin` links and a desktop entry (using the publisher-signed Melba icon in new archives, with a generic system-theme fallback for older ones). It works without Cargo or `cargo-about`. It uses `curl`, `openssl`, `tar`, `sha256sum` and standard Unix tools; if ALAC is selected, missing `bash`, `unzip`, `file`, `cc` and related helpers are provisioned as needed. On interactive installs, ALAC is optional with a default-yes `[Y/n]` question; non-interactive installs skip it unless `--with-alac` is explicitly passed. You can also use `--no-alac`. No external wrapper is bundled in the release.
 
+### What the one-command installer does not cover
+
+- **Its own prerequisites.** It uses `curl`, `openssl`, `tar`, `sha256sum` and
+  standard Unix tools, and stops with `missing '<tool>'` when one is absent. It
+  never installs those.
+- **Distributions without `apt-get`, `dnf` or `pacman`.** Missing runtime
+  libraries are only provisioned through those three; anything else stops with
+  `unsupported distro`. Image-based systems (Fedora Silverblue, openSUSE
+  MicroOS) and musl-based ones (Alpine) are **not supported** by this path, and
+  no musl build has been verified — use a source build inside a container, or
+  the paired Nix package on NixOS.
+- **CPUs other than x86_64 and aarch64**, which stop with
+  `no prebuilt Melba release for this CPU`.
+- **Subscription playback by itself.** Two components are never in the release:
+  AAC-256 needs a Widevine CDM already installed by Chrome, Chromium or Vivaldi
+  (or `cdm_path` in the config), and ALAC needs a FairPlay decrypt service the
+  user supplies. Without the CDM, `stream:` tracks fall back to the 30-second
+  catalog preview. Check both with `melbad doctor`.
+- **ALAC.** It is never bundled. The installer can stage a third-party service
+  (opt-in `[Y/n]`, or `--with-alac` when non-interactive), and `melbad wrapper
+  setup` adds it later.
+
 To add ALAC at any time after installation:
 
 ```sh
