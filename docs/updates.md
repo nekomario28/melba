@@ -64,19 +64,20 @@ After publishing it downloads those assets and verifies them again. The
 `release` environment can be configured with required reviewers in
 GitHub's environment protection settings for an additional approval gate.
 
-**Keep the current published-release compatibility table unchanged until the
-signed release is publicly visible and the actual `install-release.sh` path has
-been smoke-tested against it.** The native Nix package contains fixed
-v0.3.12 archive hashes; refresh those in a separate reviewed change only after
-the new release archives exist.
+The published-release compatibility table was refreshed only after both of
+its conditions held: v0.3.13 is publicly visible, and the workflow's
+`install-release.sh` jobs installed that signed release in real Debian, Ubuntu,
+Fedora and Arch containers. `crates/melba/nix/paired-release.nix` now pins the
+**v0.3.13** `melba` archive hashes; the fetch is a plain HTTPS fetch of the
+signed release asset, so a Nix build still depends on GitHub availability.
 
 ## Published releases and tested paths
 
-Signed **v0.3.12** release assets are published for `x86_64` and `aarch64` from the same source tag, with a detached signed checksum manifest. The current Linux binaries require **glibc 2.43+**, so older systems (including Ubuntu 24.04 / glibc 2.39) must use a source build until releases are built against an older baseline ([Issue #18](https://github.com/nekomario28/melba/issues/18)). The arm64 binary is build-verified on a native arm64 GitHub runner but not run-verified on arm64 hardware. The native SDK presentation bridge is x86_64-only; arm64 uses browser sign-in. The optional decrypt wrapper/rootfs remains architecture-specific and user-supplied.
+Signed **v0.3.13** release assets are the current ones for `x86_64` and `aarch64`, from the same source tag, with a detached signed checksum manifest. v0.3.13 is built against a **glibc 2.35** baseline (v0.3.12 and older required 2.43), so Debian 12/13, Ubuntu 22.04/24.04/26.04, Fedora 43/44 and current Arch/CachyOS can run the published binaries; see [Installation](installation.md#distro-compatibility-of-the-published-v0313-release) for what was actually executed on each. The arm64 binary is build-verified on a native arm64 GitHub runner but not run-verified on arm64 hardware. The native SDK presentation bridge is x86_64-only; arm64 uses browser sign-in. The optional decrypt wrapper/rootfs remains architecture-specific and user-supplied.
 
 The v0.3.5 and older portable archives contain `NOTICE.md` and the project licences but predate the complete notice-packaging fix: they do not contain `SPOTIFAST-LICENSE` or the generated third-party bundles. v0.3.6 archives carry them. Do not treat an older archive as a complete binary notice set.
 
-v0.3.6 added the complete binary notice set; v0.3.7 added automatic takeover of a busy direct output; v0.3.8 made a manual update check open the update dialog and install itself when idle; v0.3.9 sized the ALSA buffer by time (fixing audible gaps at high sample rates); v0.3.11 made the daemon restart actually run; v0.3.12 hands the started daemon this app's own directories, keeps test processes out of the user state directory, records who writes the saved queue, and regenerates the gettext template (`SPOTIFAST-LICENSE`, both generated dependency bundles and the receipt) and updates rustls, quinn-proto and the bundled CA data. The remaining rustls-webpki advisory has no fixed stable release yet.
+v0.3.6 added the complete binary notice set; v0.3.7 added automatic takeover of a busy direct output; v0.3.8 made a manual update check open the update dialog and install itself when idle; v0.3.9 sized the ALSA buffer by time (fixing audible gaps at high sample rates); v0.3.11 made the daemon restart actually run; v0.3.12 hands the started daemon this app's own directories, keeps test processes out of the user state directory, records who writes the saved queue, and regenerates the gettext template (`SPOTIFAST-LICENSE`, both generated dependency bundles and the receipt) and updates rustls, quinn-proto and the bundled CA data. v0.3.13 lowers the portable release baseline to glibc 2.35, verifies Debian, Ubuntu, Fedora and Nix install paths, installs missing runtime libraries through the native package manager, and can provision late ALAC staging tools from `melbad wrapper setup`; the rustls-webpki upgrade to 0.103.16 clears the last advisory that had no fixed stable release.
 
 v0.3.7 keeps a busy `hw:` output in the Settings picker as “in use”. Selecting it asks the session audio server, through `org.freedesktop.ReserveDevice1.RequestRelease`, to release the card, then Melba opens the direct device. This stops other system audio on that card; it is the explicit choice to give Melba exclusive control.
 

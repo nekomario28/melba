@@ -36,24 +36,41 @@ cargo install cargo-about --version 0.8.4 --locked
 
 Firefox session import also needs the `sqlite3` CLI (`sqlite3` on Debian/Ubuntu; `sqlite` on Fedora/Arch). For AAC subscription playback, a usable Widevine CDM must already be installed; Melba does not download it.
 
-## Distro compatibility of the published v0.3.12 release
+## Distro compatibility of the published v0.3.13 release
 
-The signed portable archive currently needs glibc 2.43 or newer. Our CI runs the **actual** apt/dnf package managers and signed Release installer in real containers (without real desktop/audio or Apple sign-in):
+The signed portable archive needs **glibc 2.35** or newer; measured on the
+published x86_64 archives, `melba` requires at most `GLIBC_2.35` and `melbad`
+at most `GLIBC_2.34`. CI builds the candidates in the Ubuntu 22.04 baseline and
+then runs the **actual** unsigned candidates in real containers, and runs the
+signed Release installer in five of them (without real desktop/audio or Apple
+sign-in):
 
-| Distro | glibc | Signed portable v0.3.12 | Verified installer behavior |
+| Distro | glibc | Candidate executes | Signed installer |
 | --- | --- | --- | --- |
-| Debian 13 (trixie) | 2.41 | No | ALAC helper packages install; incompatible release is refused |
-| Ubuntu 24.04 LTS | 2.39 | No | ALAC helper packages install; incompatible release is refused |
-| Ubuntu 26.04 LTS | 2.43 | Yes | Runtime libraries are installed; both binaries execute |
-| Fedora 43 | 2.42 | No | ALAC helper packages install; incompatible release is refused |
-| Fedora 44 | 2.43 | Yes | Runtime libraries are installed; both binaries execute |
-| Current Arch/CachyOS | 2.43+ | Yes | Real pacman test using CachyOS OS metadata passed |
+| Debian 12 (bookworm) | 2.36 | Yes | Yes |
+| Debian 13 (trixie) | 2.41 | Yes | — |
+| Ubuntu 22.04 LTS | 2.35 | Yes | Yes |
+| Ubuntu 24.04 LTS | 2.39 | Yes | Yes |
+| Ubuntu 26.04 LTS | 2.43 | Yes | — |
+| Fedora 43 | 2.42 | Yes | Yes |
+| Fedora 44 | 2.43 | Yes | — |
+| Current Arch/CachyOS | 2.43+ | Yes | Yes |
 
-For older distros use the [source installer](#source-install-developers); do **not** attempt to upgrade glibc manually to run an application. Lowering the release glibc baseline is tracked in [Issue #18](https://github.com/nekomario28/melba/issues/18). NixOS uses the [Nix package](#nix-and-nixos), not the generic portable installer.
+“Yes” under *Candidate executes* means both binaries started and reported
+`0.3.13`; “Yes” under *Signed installer* means `packaging/install-release.sh`
+downloaded, signature- and checksum-verified and installed the published
+release there. This is launch and shared-library compatibility only — not Apple
+sign-in, desktop rendering, physical audio output or ALAC playback.
+
+v0.3.12 and older need glibc 2.43, so on Debian 12/13, Ubuntu 22.04/24.04 and
+Fedora 43 they must be replaced with v0.3.13 (or built from source). For
+distros older than glibc 2.35 use the [source installer](#source-install-developers);
+do **not** attempt to upgrade glibc manually to run an application. NixOS uses
+the [Nix package](#nix-and-nixos), not the generic portable installer.
 
 ## Recommended: signed prebuilt release
 
-On Linux `x86_64` or `aarch64` with **glibc 2.43 or newer** (for example current CachyOS/Arch or Ubuntu 26.04), skip the Rust toolchain and Git checkout. Current published binaries require glibc 2.43; on Ubuntu 24.04 (glibc 2.39) and older distributions use the [source installer](#source-install-developers) instead. Adding system runtime packages does not upgrade the glibc ABI:
+On Linux `x86_64` or `aarch64` with **glibc 2.35 or newer** (Debian 12+, Ubuntu 22.04+, Fedora 43+, current Arch/CachyOS), skip the Rust toolchain and Git checkout. The published v0.3.13 binaries need glibc 2.35; older distributions use the [source installer](#source-install-developers) instead. Adding system runtime packages does not upgrade the glibc ABI:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/install-release.sh | sh
@@ -67,7 +84,7 @@ To add ALAC at any time after installation:
 melbad wrapper setup
 ```
 
-**Version note:** in newly built Melba, the `melbad` command checks `bash`, `curl`, `unzip`, `file` and a C compiler (`cc`) and provisions missing tools through pacman, apt-get or dnf. The **published v0.3.12 binary does not yet include this late-setup preflight**. On that release, if these tools are missing, re-run the signed installer with explicit ALAC opt-in (this reuses the published binary and installs missing ALAC tools):
+**Version note:** `melbad` checks `bash`, `curl`, `unzip`, `file` and a C compiler (`cc`) and provisions missing tools through pacman, apt-get or dnf. The published **v0.3.13** binary includes this late-setup preflight; **v0.3.12 does not**. On v0.3.12, if these tools are missing, re-run the signed installer with explicit ALAC opt-in (this reuses the published binary and installs missing ALAC tools):
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/install-release.sh | sh -s -- --with-alac

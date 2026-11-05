@@ -15,7 +15,7 @@ Melba is an unofficial, Rust-based Apple Music desktop player (`melba`) paired w
 
 ## Install
 
-Linux `x86_64` and `aarch64` are supported. **Recommended on modern Linux (glibc 2.43+)**: install the prebuilt, publisher-signed release without Git or Rust. Older glibc systems (including Debian 13, Ubuntu 24.04 and Fedora 43) must build from source; NixOS has a separate paired Nix package:
+Linux `x86_64` and `aarch64` are supported. **Recommended on any Linux with glibc 2.35+** (Debian 12+, Ubuntu 22.04+, Fedora 43+, current Arch/CachyOS): install the prebuilt, publisher-signed release without Git or Rust. Older glibc systems must build from source; NixOS has a separate paired Nix package:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/install-release.sh | sh

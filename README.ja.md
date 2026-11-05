@@ -16,7 +16,7 @@ Melba は Rust 製の非公式 Apple Music デスクトッププレイヤー（`
 
 ## インストール
 
-Linux `x86_64` / `aarch64` 対応。**glibc 2.43 以降の環境ではビルド済みの署名付きReleaseからインストールできます。** GitやRustの導入は不要です。glibc が古い Debian 13・Ubuntu 24.04・Fedora 43 などでは下記のソースビルドを利用してください。NixOS は[専用のNixパッケージ](docs/installation.md#nix-and-nixos)を利用します。
+Linux `x86_64` / `aarch64` 対応。**glibc 2.35 以降の環境（Debian 12+・Ubuntu 22.04+・Fedora 43+・最新のArch/CachyOS など）ではビルド済みの署名付きReleaseからインストールできます。** GitやRustの導入は不要です。glibc がそれより古い環境では下記のソースビルドを利用してください。NixOS は[専用のNixパッケージ](docs/installation.md#nix-and-nixos)を利用します。
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/install-release.sh | sh
