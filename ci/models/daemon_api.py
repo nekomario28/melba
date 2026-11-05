@@ -34,6 +34,7 @@ ANSWERED = {
     "MyPlaylists": "MyPlaylists",
     "MadeForYou": "MadeForYou",
     "Contains": "Contains",
+    "FavoritesPlaylist": "FavoritesPlaylist",
     "SetSaved": "SavedChanged",
     "SavedTracks": "SavedTracks",
     "SavedAlbums": "SavedAlbums",
