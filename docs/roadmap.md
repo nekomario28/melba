@@ -154,6 +154,22 @@ or infer bit-perfect playback from an ALAC label.
   generated notices are missing. Still open: a native-package pipeline
   (`packaging/native-packages.yaml`, untested) if the maintenance is worth it.
 
+### Shared-output verification
+
+- [~] **PipeWire pass-through is observable, not assumed** — `melbad doctor`
+  now reports the session graph for this daemon's stream: the chain of nodes to
+  the sink, the format the stream negotiated, whether a converter sits in the
+  path, and how many clients share the sink (`src/pipewire.rs`, parsed from
+  `pw-dump`, with unit tests for each shape). It reports facts only; the
+  playback verdict is unchanged.
+- [ ] **Decide what a verified pass-through may be called** — on the measured
+  machine a single client with no resampling still reaches the sink over an
+  `F32P` link, so the graph converts even when nothing else is playing. "Another
+  stream is silent" is necessary, not sufficient. Promoting a new verdict needs
+  a measurement that the conversion was exact on that path, which a
+  byte-comparison experiment has not yet produced: the first attempt ran with
+  two Melba streams on the same sink and did not yield a trustworthy capture.
+
 ### Dead GUI-to-worker surface
 
 - [~] **Commands the worker drops** — `daemon_worker` receives commands in one

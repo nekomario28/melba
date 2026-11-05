@@ -7,6 +7,7 @@ pub mod config;
 pub mod frontend;
 pub mod library;
 pub mod musickit;
+pub mod pipewire;
 pub mod player;
 pub mod stream;
 pub mod wrapper;

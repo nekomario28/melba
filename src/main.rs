@@ -953,6 +953,9 @@ fn main() {
                     Err("/dev/snd missing".into())
                 },
             );
+            // Facts, not a verdict: a shared graph may pass samples through,
+            // and only this can say whether it did.
+            rep("pipewire graph", pipewire_report());
             if bad > 0 {
                 std::process::exit(1);
             }
@@ -1244,6 +1247,46 @@ fn now_json() -> Result<(), String> {
     });
     println!("{}", serde_json::to_string_pretty(&out).unwrap());
     Ok(())
+}
+
+/// What the session graph says about this daemon's stream, or why nothing can
+/// be said. Never changes a playback verdict.
+fn pipewire_report() -> Result<String, String> {
+    let dump = std::process::Command::new("pw-dump")
+        .output()
+        .map_err(|_| "pw-dump not available".to_string())?;
+    if !dump.status.success() {
+        return Err("pw-dump failed".into());
+    }
+    let text = String::from_utf8_lossy(&dump.stdout);
+    let graph = melbad::pipewire::inspect(&text, "melba")
+        .ok_or("no Melba stream in the graph (nothing is playing)")?;
+    let chain = graph
+        .hops
+        .iter()
+        .map(|hop| format!("{} [{}]", hop.name, hop.class))
+        .collect::<Vec<_>>()
+        .join(" -> ");
+    let pass = if graph.pass_through_possible() {
+        "pass-through possible"
+    } else if !graph.converters.is_empty() {
+        "converted (a converter node is in the path)"
+    } else if graph.other_clients > 0 {
+        "mixed (another client shares the sink)"
+    } else {
+        "converted (the link carries the graph's float format)"
+    };
+    Ok(format!(
+        "{} -> {} | stream {} | {pass}{}",
+        graph.stream,
+        chain,
+        graph.stream_format.as_deref().unwrap_or("unknown format"),
+        if graph.other_clients > 0 {
+            format!(", {} other client(s) on it", graph.other_clients)
+        } else {
+            String::new()
+        },
+    ))
 }
 
 fn about_manifest() -> serde_json::Value {
