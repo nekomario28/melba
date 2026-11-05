@@ -654,6 +654,33 @@ pub fn verdict_str(src: &SourceFormat, g: &Granted) -> &'static str {
     }
 }
 
+/// The verdict a shared path earns when the session graph itself is the
+/// evidence: one client, no converter node, the stream at the source's rate,
+/// and no more precision than a float mantissa carries. Measured 2026-11-06:
+/// such a path delivered 88 768 frames bit-identical to the source.
+///
+/// It is a separate word on purpose. `BITPERFECT` means an exclusive device
+/// this app opened and can read back; folding a shared graph into it would
+/// make the one claim that is strong say less.
+pub fn verdict_for(
+    src: &SourceFormat,
+    g: &Granted,
+    gain: f64,
+    graph: Option<&crate::pipewire::Graph>,
+) -> &'static str {
+    let format_verdict = verdict_str(src, g);
+    let modified = gain.is_nan() || gain < 0.999;
+    let verified = format_verdict == "SHARED"
+        && graph.is_some_and(|graph| {
+            crate::pipewire::classify(src.rate, src.bits, graph) == Some("PASSTHROUGH")
+        });
+    match (modified, verified) {
+        (true, _) => "DSP",
+        (false, true) => "PASSTHROUGH",
+        (false, false) => format_verdict,
+    }
+}
+
 /// Software gain must not retain a BITPERFECT verdict merely because
 /// the hardware accepted the source format unchanged.
 pub fn verdict_with_gain(src: &SourceFormat, g: &Granted, gain: f64) -> &'static str {

@@ -291,6 +291,36 @@ fn wait_bitperfect(shared: &Arc<Shared>, rx: &Receiver<Cmd>) -> bool {
     }
 }
 
+/// Keep the shared-path verdict honest while the stream is open: a client that
+/// joins the sink, or a converter that appears, drops it back to `SHARED`, and
+/// a graph that clears up earns `PASSTHROUGH` again. Cheap enough to poll,
+/// and it never blocks the audio thread.
+fn watch_shared_graph(shared: &Arc<Shared>, src: &SourceFormat, granted: &Granted) {
+    let shared = Arc::clone(shared);
+    let src = src.clone();
+    let granted = granted.clone();
+    let generation = shared.stream_opens.load(Ordering::SeqCst);
+    std::thread::spawn(move || {
+        while !shared.quit.load(Ordering::SeqCst)
+            && shared.stream_opens.load(Ordering::SeqCst) == generation
+        {
+            std::thread::sleep(std::time::Duration::from_secs(5));
+            if shared.quit.load(Ordering::SeqCst)
+                || shared.stream_opens.load(Ordering::SeqCst) != generation
+            {
+                break;
+            }
+            let graph = crate::pipewire::current();
+            let gain = f64::from_bits(shared.volume.load(Ordering::Relaxed));
+            let verdict = audio::verdict_for(&src, &granted, gain, graph.as_ref());
+            let mut held = shared.verdict.lock().unwrap_or_else(|e| e.into_inner());
+            if *held != "DSP" || verdict == "DSP" {
+                *held = verdict.to_string();
+            }
+        }
+    });
+}
+
 /// empties or Quit arrives. Playback errors land in `shared.verdict`.
 pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
     // The ALSA stream survives across same-format tracks: the next track's
@@ -692,7 +722,19 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
         let (pcm, granted) = stream.as_ref().unwrap();
         *shared.sink.lock().unwrap_or_else(|e| e.into_inner()) = granted.device.clone();
         let gain = f64::from_bits(shared.volume.load(Ordering::Relaxed));
-        let verdict = audio::verdict_with_gain(&src, granted, gain);
+        // A shared device can still pass samples through; ask the session
+        // graph instead of assuming either way.
+        let graph = if granted.device.starts_with("hw:") {
+            None
+        } else {
+            crate::pipewire::current()
+        };
+        let verdict = audio::verdict_for(&src, granted, gain, graph.as_ref());
+        if granted.device.starts_with("hw:") {
+            // nothing to watch
+        } else {
+            watch_shared_graph(&shared, &src, granted);
+        }
         *shared.verdict.lock().unwrap_or_else(|e| e.into_inner()) = verdict.to_string();
         if verdict != "BITPERFECT" && require_block(&shared) {
             if let Some((p, _)) = stream.take() {

@@ -131,6 +131,20 @@ The implementation and installed-runtime acceptance questions are tracked in [Ro
 
 ## Shared output and bit-perfect samples (measured 2026-11-06)
 
+A shared path that the session graph itself vouches for is reported as
+`PASSTHROUGH`, never as `BITPERFECT`. The two are separate words because they
+are separate claims:
+
+| Verdict | What was established |
+| --- | --- |
+| `BITPERFECT` | This app opened the device exclusively (`hw:`) and read back the granted rate, channels and depth. Nothing else can be in the path. |
+| `PASSTHROUGH` | A shared graph passes the stream through: one client on the sink, no `audioconvert`/`audioresample` node, the stream at the source's rate, and no more than 24 bits (a float mantissa holds exactly that). |
+| `SHARED` | A shared graph that does not meet those conditions, or one that could not be read. |
+| `DSP` | Software gain below unity, which alters the samples whatever the path. |
+
+`PASSTHROUGH` is re-checked every five seconds while a shared stream plays, so
+a client joining the sink, or a converter appearing, drops it back to `SHARED`.
+
 `BITPERFECT` is a statement about the path this app can observe: an exclusive
 `hw:` device whose granted rate, channels and bit depth match the source. A
 shared graph is reported as `SHARED` because the app cannot see what happens

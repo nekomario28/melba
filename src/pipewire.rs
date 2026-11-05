@@ -56,6 +56,35 @@ impl Graph {
     }
 }
 
+/// The strongest claim this graph supports for a stream of `src_rate` Hz and
+/// `src_bits` bits. `None` means the graph does not establish a pass-through.
+///
+/// What is checked is what the measurement showed matters: no converter node,
+/// no second client on the sink, the stream running at the source's rate, and
+/// no more precision than a float mantissa carries.
+pub fn classify(src_rate: u32, src_bits: u32, graph: &Graph) -> Option<&'static str> {
+    let exact_precision = src_bits <= 24;
+    if graph.converters.is_empty()
+        && graph.other_clients == 0
+        && exact_precision
+        && graph.source_rate == src_rate
+    {
+        Some("PASSTHROUGH")
+    } else {
+        None
+    }
+}
+
+/// Read the session graph now. `None` when PipeWire is not answering, or when
+/// this daemon's stream is not in it.
+pub fn current() -> Option<Graph> {
+    let dump = std::process::Command::new("pw-dump").output().ok()?;
+    if !dump.status.success() {
+        return None;
+    }
+    inspect(&String::from_utf8_lossy(&dump.stdout), "melba")
+}
+
 fn class_of(node: &Value) -> String {
     node["info"]["props"]["media.class"]
         .as_str()
@@ -301,6 +330,28 @@ mod tests {
         let g = inspect(&text, "melbad").expect("the stream is there");
         assert!(g.pass_through_possible(24), "{g:?}");
         v.clear();
+    }
+
+    #[test]
+    fn only_the_measured_conditions_earn_the_pass_through_name() {
+        let g = inspect(&dump(vec![]), "melbad").expect("the stream is there");
+        assert_eq!(classify(48_000, 24, &g), Some("PASSTHROUGH"));
+        assert_eq!(classify(44_100, 24, &g), None, "another rate is resampled");
+        assert_eq!(classify(48_000, 32, &g), None, "a float holds 24 bits");
+
+        let busy = inspect(
+            &dump(vec![
+                node(30, "firefox", "Stream/Output/Audio", None),
+                link(30, 20, "F32P"),
+            ]),
+            "melbad",
+        )
+        .unwrap();
+        assert_eq!(
+            classify(48_000, 24, &busy),
+            None,
+            "a second client mixes before the sink"
+        );
     }
 
     #[test]

@@ -162,6 +162,13 @@ or infer bit-perfect playback from an ALAC label.
   path, and how many clients share the sink (`src/pipewire.rs`, parsed from
   `pw-dump`, with unit tests for each shape). It reports facts only; the
   playback verdict is unchanged.
+- [x] **A verified pass-through is called `PASSTHROUGH`**, not `BITPERFECT`:
+  the daemon asks the graph at stream open and re-checks it every five seconds,
+  so a second client or a converter drops the word back to `SHARED`. Measured
+  once live (`play --device default` printed `PASSTHROUGH`); the five-second
+  downgrade has unit coverage through the graph parser but was not re-observed
+  on a device, because the test harness wedged the session audio server after
+  repeated abrupt kills.
 - [ ] **Decide what a verified pass-through may be called** — the measurement
   now exists: with one client, a 48 kHz/24-bit source and a 48 kHz graph, 88 768
   frames reached the sink bit-identical, so the float link alone is not an

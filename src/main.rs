@@ -243,7 +243,13 @@ fn run_play(
         granted.device, granted.rate, granted.msbits, granted.channels
     );
 
-    let v = audio::verdict_str(&src, &granted);
+    let graph = if granted.device.starts_with("hw:") {
+        None
+    } else {
+        melbad::pipewire::current()
+    };
+    let gain = 1.0f64;
+    let v = audio::verdict_for(&src, &granted, gain, graph.as_ref());
     if v != "BITPERFECT" {
         eprintln!("verdict: {v} — not bit-perfect (the samples reach the OS mixer)");
     }
