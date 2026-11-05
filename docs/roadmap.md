@@ -154,6 +154,35 @@ or infer bit-perfect playback from an ALAC label.
   generated notices are missing. Still open: a native-package pipeline
   (`packaging/native-packages.yaml`, untested) if the maintenance is worth it.
 
+### Dead GUI-to-worker surface
+
+- [~] **Commands the worker drops** — `daemon_worker` receives commands in one
+  match whose `_ => {}` arm silently discards anything unnamed. Thirteen
+  variants were sent by the app and never handled. Three are now implemented
+  (`LoadLikedSongsCache`, `StoreLikedSongsCache`, `OpenThemesFolder`) and
+  `ci/test_daemon_commands.py` fails when a new variant is added without a
+  decision, or when a recorded exception stops applying. Still recorded there
+  with what the user loses: the playlist and account caches (5), the radio
+  lookup, the artwork accent, `NetworkStatus`, and the two playlist-cover
+  commands. `Backend::set_network` has no caller at all, so offline transitions
+  are never detected and `Event::NetworkStatus` is only ever injected by tests.
+- [ ] **Playlist and account caches** — `LoadPlaylistCache`, `StorePlaylistCache`,
+  `LoadAccountCaches`, `StoreLibraryCache` and `StoreHomeCache` carry no account
+  with them, so each needs the same treatment the liked cache got (account in
+  the command, per-account directory, format validation) before it can be
+  wired. The playlist cache also carries a snapshot the rows must still match.
+- [ ] **Radio pages** — the page resolves through `Command::Radio`, which
+  nothing answers, so a station never lists its songs. Apple publishes no
+  station endpoint; decide between removing the page (it is a Spotify concept,
+  like the podcast surface already removed) and building a seed-based mix from
+  the existing context requests.
+- [ ] **EQ, crossfade and Sound Check** — not implemented, and they cannot be
+  added as ordinary features: each one alters the samples that reach the
+  device, so the `BITPERFECT` verdict would be a lie unless the DSP is opt-in
+  and the verdict says so (`SHARED`/`DSP`). That needs its own slice: where the
+  processing sits (daemon before ALSA), what the verdict reports, and how the
+  offline/preview paths behave.
+
 ### Engineering debt
 
 - [x] **librespot dead code removed** — the inherited Spotify engine

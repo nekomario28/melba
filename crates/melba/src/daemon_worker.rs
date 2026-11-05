@@ -207,6 +207,76 @@ impl DaemonWorker {
         self.waker.wake();
     }
 
+    /// Where the account's caches live. `None` when the app handed the worker
+    /// no directories (a test default), so nothing is ever written next to the
+    /// working directory.
+    fn account_cache_dir(&self, account: &str) -> Option<std::path::PathBuf> {
+        if self.dirs.cache.as_os_str().is_empty() {
+            return None;
+        }
+        // The id names a directory, so it may not walk out of it.
+        if account.is_empty()
+            || !account
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+            || account == "."
+            || account == ".."
+        {
+            return None;
+        }
+        Some(self.dirs.cache.join("accounts").join(account))
+    }
+
+    fn load_liked_cache(&self, generation: u64, account: Option<&str>) {
+        let Some(account) = account else {
+            return self.emit(Event::LikedSongsCache {
+                account_id: String::new(),
+                generation,
+                cache: None,
+            });
+        };
+        let cache = self
+            .account_cache_dir(account)
+            .map(|dir| dir.join("liked-songs.json"))
+            .filter(|path| path.is_file())
+            .and_then(|path| std::fs::read(path).ok())
+            .and_then(|bytes| serde_json::from_slice::<crate::liked::Cache>(&bytes).ok())
+            .filter(|cache| cache.valid_for(account));
+        self.emit(Event::LikedSongsCache {
+            account_id: account.to_string(),
+            generation,
+            cache,
+        });
+    }
+
+    fn store_liked_cache(&self, cache: crate::liked::Cache) {
+        let Some(dir) = self.account_cache_dir(&cache.account_id) else {
+            return;
+        };
+        let Ok(bytes) = serde_json::to_vec(&cache) else {
+            return;
+        };
+        if std::fs::create_dir_all(&dir).is_err() {
+            return;
+        }
+        // Atomic replace: a half-written file must never be read back.
+        if let Err(error) = fastframe_file::write(&dir.join("liked-songs.json"), bytes) {
+            log::warn!("could not save the liked-songs cache: {error}");
+        }
+    }
+
+    /// The Themes folder button: the app owns the directory, the worker owns
+    /// running the desktop's file manager.
+    fn open_themes_folder(&self) {
+        if self.dirs.config.as_os_str().is_empty() {
+            return;
+        }
+        let dir = self.dirs.config.join("themes");
+        if let Err(error) = open::that(&dir) {
+            log::warn!("could not open {}: {error}", dir.display());
+        }
+    }
+
     fn proxy(&self) -> Option<dbus::blocking::Proxy<'_, &Connection>> {
         self.conn
             .as_ref()
@@ -1113,6 +1183,11 @@ impl DaemonWorker {
                         Command::Lyrics(request) => self.spawn_lyrics(*request),
                         // This port ships with Melba, not through melba's
                         // release channel — there is nothing to download.
+                        Command::LoadLikedSongsCache { generation, account } => {
+                            self.load_liked_cache(generation, account.as_deref())
+                        }
+                        Command::StoreLikedSongsCache(cache) => self.store_liked_cache(cache),
+                        Command::OpenThemesFolder => self.open_themes_folder(),
                         Command::UpdateProxy(proxy) => self.update_proxy = proxy,
                         Command::CheckForUpdates { manual, source } => {
                             if !restore_sign_in && source.is_github() {

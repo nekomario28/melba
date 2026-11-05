@@ -478,6 +478,9 @@ pub enum Command {
     },
     LoadLikedSongsCache {
         generation: u64,
+        /// Whose cache to read. The worker has no account of its own, and a
+        /// cache written for another account must never be shown.
+        account: Option<String>,
     },
     StoreLikedSongsCache(crate::liked::Cache),
     /// Read the verified account's last playlist list and Home shelves.

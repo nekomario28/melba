@@ -57,6 +57,22 @@ fn private_case(name: &str) -> bool {
     false
 }
 
+/// A worker whose app directories point at a throwaway tree, so a cache test
+/// never reads or writes the user's real state.
+fn cache_worker(events: Sender<Event>, root: &std::path::Path) -> DaemonWorker {
+    DaemonWorker::new(
+        events,
+        crate::backend::Waker::default(),
+        Arc::new(std::sync::atomic::AtomicU64::new(0)),
+        crate::settings::ProxyConfig::Off,
+        DaemonDirs {
+            config: root.join("config"),
+            state: root.join("state"),
+            cache: root.join("cache"),
+        },
+    )
+}
+
 fn worker(events: Sender<Event>) -> DaemonWorker {
     DaemonWorker::new(
         events,
@@ -534,4 +550,69 @@ fn updater_commands_report_real_results_instead_of_a_no_update_stub() {
     commands.send(Command::Shutdown).unwrap();
     runtime.block_on(task).unwrap();
     runtime.shutdown_timeout(Duration::from_millis(200));
+}
+
+/// The liked-songs cache round-trips through the worker, and an answer for
+/// another account or a path that walks out of the cache directory is refused.
+#[test]
+fn the_liked_songs_cache_round_trips_and_stays_inside_the_account() {
+    let root = std::env::temp_dir().join(format!("mlb-cache-{:016x}", rand::random::<u64>()));
+    std::fs::create_dir_all(&root).unwrap();
+    let (tx, rx) = std::sync::mpsc::channel();
+    let worker = cache_worker(tx, &root);
+
+    // Nothing saved yet: the app is told so, and is not left waiting.
+    worker.load_liked_cache(1, Some("alice"));
+    match rx.recv_timeout(Duration::from_secs(2)).unwrap() {
+        Event::LikedSongsCache {
+            account_id,
+            generation,
+            cache,
+        } => {
+            assert_eq!(account_id, "alice");
+            assert_eq!(generation, 1);
+            assert!(cache.is_none(), "an empty cache is not an answer");
+        }
+        _ => panic!("the worker answered with something else"),
+    }
+
+    assert!(
+        worker.account_cache_dir("../../etc").is_none(),
+        "an account id may not name a path outside the cache"
+    );
+    assert!(worker.account_cache_dir("alice").is_some());
+
+    // A file for this account is answered with, and one written for another
+    // account is not: the cache carries the id it was written for.
+    let dir = worker.account_cache_dir("alice").unwrap();
+    std::fs::create_dir_all(&dir).unwrap();
+    let cache_json = |account: &str| {
+        format!(
+            r#"{{"version":1,"account_id":"{account}","items":[],"total":0,"next_offset":null,"refreshed_at":0,"changes":{{}}}}"#
+        )
+    };
+    std::fs::write(dir.join("liked-songs.json"), cache_json("alice")).unwrap();
+    worker.load_liked_cache(2, Some("alice"));
+    match rx.recv_timeout(Duration::from_secs(2)).unwrap() {
+        Event::LikedSongsCache { cache, .. } => assert!(cache.is_some(), "own cache is shown"),
+        _ => panic!("the worker answered with something else"),
+    }
+
+    std::fs::write(dir.join("liked-songs.json"), cache_json("bob")).unwrap();
+    worker.load_liked_cache(3, Some("alice"));
+    match rx.recv_timeout(Duration::from_secs(2)).unwrap() {
+        Event::LikedSongsCache { cache, .. } => {
+            assert!(cache.is_none(), "another account's cache is not shown")
+        }
+        _ => panic!("the worker answered with something else"),
+    }
+
+    // A cache file for the signed-out session is never read.
+    worker.load_liked_cache(4, None);
+    match rx.recv_timeout(Duration::from_secs(2)).unwrap() {
+        Event::LikedSongsCache { cache, .. } => assert!(cache.is_none()),
+        _ => panic!("the worker answered with something else"),
+    }
+
+    let _ = std::fs::remove_dir_all(&root);
 }

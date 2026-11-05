@@ -9862,6 +9862,7 @@ impl App {
             self.library.liked.loading = true;
             self.backend.send(Command::LoadLikedSongsCache {
                 generation: self.load_generation,
+                account: self.user_id().map(str::to_owned),
             });
         } else if !self.liked_songs.fresh(jiff::Timestamp::now().as_second())
             && self.library.liked.error.is_none()
