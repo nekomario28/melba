@@ -7,6 +7,7 @@ graph = d.ModuleGraph(
     modules=[
         "main", "melba_shot",
         "player", "stream", "musickit", "wrapper", "auth_gui", "auth_webview",
+        "pipewire",
         "library",
         "audio", "auth", "config", "frontend",
     ],
@@ -19,6 +20,7 @@ graph = d.ModuleGraph(
         ("main", "library"),
         ("main", "musickit"),
         ("main", "player"),
+        ("main", "pipewire"),    # the session graph, reported by doctor
         ("main", "stream"),
         ("main", "wrapper"),
         ("player", "audio"),
