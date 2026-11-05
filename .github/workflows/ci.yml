@@ -126,28 +126,35 @@ jobs:
     timeout-minutes: 25
     strategy:
       fail-fast: false
+      # Every image here can run the published release: since v0.3.13 the
+      # archives need glibc 2.35, not 2.43. ubuntu-22.04 and debian-12 are the
+      # floor and exist to pin it. The refusal path (an older glibc installs
+      # nothing) is pinned by ci/test_packaging.py, which stubs `ldd`; no
+      # maintained image in this matrix is below the baseline, and adding an
+      # end-of-life one would make the job fail for mirror reasons instead.
       matrix:
         include:
+          - distro: ubuntu-22.04
+            image: ubuntu:22.04
+            manager: apt-get
+          - distro: debian-12
+            image: debian:bookworm
+            manager: apt-get
           - distro: debian-13
             image: debian:trixie
             manager: apt-get
-            release_compatible: false
           - distro: ubuntu-24.04
             image: ubuntu:24.04
             manager: apt-get
-            release_compatible: false
           - distro: ubuntu-26.04
             image: ubuntu:26.04
             manager: apt-get
-            release_compatible: true
           - distro: fedora-43
             image: fedora:43
             manager: dnf
-            release_compatible: false
           - distro: fedora-44
             image: fedora:44
             manager: dnf
-            release_compatible: true
     container:
       image: ${{ matrix.image }}
     steps:
@@ -170,31 +177,18 @@ jobs:
           set -euo pipefail
           sh packaging/install-deps.sh --alac
           for tool in bash curl unzip file cc; do command -v "$tool"; done
-      - name: Signed Release works or refuses old glibc without mutating installation
+      - name: Install the published signed Release and run both binaries
         shell: bash
-        env:
-          RELEASE_COMPATIBLE: ${{ matrix.release_compatible }}
         run: |
           set -euo pipefail
           export MELBA_PORTABLE_DIR="$RUNNER_TEMP/melba-distro-test/app"
           export XDG_BIN_HOME="$RUNNER_TEMP/melba-distro-test/bin"
           export XDG_DATA_HOME="$RUNNER_TEMP/melba-distro-test/data"
-          if [[ "$RELEASE_COMPATIBLE" = true ]]; then
-            sh packaging/install-release.sh --no-alac
-            test -L "$XDG_BIN_HOME/melba"
-            test -L "$XDG_BIN_HOME/melbad"
-            "$MELBA_PORTABLE_DIR/melba" --version
-            "$MELBA_PORTABLE_DIR/melbad" --version
-          else
-            if sh packaging/install-release.sh --no-alac >"$RUNNER_TEMP/release.log" 2>&1; then
-              echo "Release unexpectedly installed on an unsupported glibc" >&2
-              exit 1
-            fi
-            cat "$RUNNER_TEMP/release.log"
-            grep -q 'newer glibc' "$RUNNER_TEMP/release.log"
-            test ! -e "$MELBA_PORTABLE_DIR/melba"
-            test ! -e "$MELBA_PORTABLE_DIR/melbad"
-          fi
+          sh packaging/install-release.sh --no-alac
+          test -L "$XDG_BIN_HOME/melba"
+          test -L "$XDG_BIN_HOME/melbad"
+          "$MELBA_PORTABLE_DIR/melba" --version
+          "$MELBA_PORTABLE_DIR/melbad" --version
 
   # Nix syntax and flake evaluation are separate from an actual NixOS image
   # or a paired melba/melbad installation. Keep that distinction in docs.
