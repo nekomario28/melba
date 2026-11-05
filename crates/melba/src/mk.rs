@@ -25,6 +25,27 @@ const ME: &str = "https://api.music.apple.com/v1/me";
 /// /v1/me on the web player's own edge — library writes 401 elsewhere.
 const AMP_ME: &str = "https://amp-api-edge.music.apple.com/v1/me";
 const ORIGIN: &str = "https://music.apple.com";
+
+/// `/me/ratings/songs` accepts a comma-separated id list; 50 keeps the URL
+/// well inside what the service answers.
+const RATINGS_BATCH: usize = 50;
+
+/// A song counts as saved when it is in the library or has been loved.
+/// Apple stores those as two independent signals, and "loved without being
+/// added" is exactly what the Favorites playlist is.
+fn saved_flag(in_library: bool, rating: Option<i64>) -> bool {
+    in_library || rating == Some(1)
+}
+
+/// The body Apple accepts for a rating write. The service refuses a bare
+/// `{"value": 1}` with 400, so the envelope is part of the wire contract.
+fn rating_body(value: i64) -> serde_json::Value {
+    serde_json::json!({
+        "type": "rating",
+        "attributes": { "value": value },
+    })
+}
+
 const TOKEN_PAGE: &str = "https://music.apple.com/us";
 
 pub fn storefront() -> String {
@@ -291,6 +312,16 @@ impl MusicKit {
 
     /// Per-uri library membership flags, batched into one catalog request
     /// per kind (`fields[<kind>]=inLibrary`). Unmapped uris report false.
+    ///
+    /// Apple Music keeps two independent user signals for a song: library
+    /// membership and a like/dislike rating (`/me/ratings/songs`, value 1).
+    /// A song loved from the Apple Music app lands in the account's
+    /// "Favorite Songs" playlist without joining the library, and that
+    /// playlist is a `user-shared` resource whose ids are per-account, so
+    /// the rating is the only portable way to read the same intent. `saved`
+    /// therefore means "in the library **or** rated", and the rating read is
+    /// best-effort: an account or storefront that refuses it must not take
+    /// the library answer down with it.
     pub async fn contains(&self, uris: &[String]) -> Result<Vec<bool>, String> {
         let mut flags = vec![false; uris.len()];
         for kind in ["songs", "albums", "artists", "playlists"] {
@@ -329,11 +360,72 @@ impl MusicKit {
             for (n, &i) in idx.iter().enumerate() {
                 flags[i] = *by_id.get(&ids[n]).unwrap_or(&false);
             }
+            if kind == "songs" {
+                let ratings = self.ratings(&ids).await;
+                for (n, &i) in idx.iter().enumerate() {
+                    flags[i] = saved_flag(flags[i], ratings.get(&ids[n]).copied());
+                }
+            }
         }
         Ok(flags)
     }
 
-    /// Save catalog uris to the user library — one POST per kind.
+    /// Like/dislike value per song id, from `/me/ratings/songs`. Missing ids
+    /// are unrated. Never fails the caller: a refused rating read only means
+    /// the library answer stands alone.
+    async fn ratings(&self, ids: &[String]) -> std::collections::HashMap<String, i64> {
+        let mut out = std::collections::HashMap::new();
+        for chunk in ids.chunks(RATINGS_BATCH) {
+            let joined = chunk.join(",");
+            let answer = self
+                .me_get("/ratings/songs", &[("ids", joined.as_str())])
+                .await;
+            match answer {
+                Ok(v) => {
+                    for item in v["data"].as_array().into_iter().flatten() {
+                        if let (Some(id), Some(value)) = (
+                            item["id"].as_str(),
+                            item["attributes"]["value"].as_i64(),
+                        ) {
+                            out.insert(id.to_string(), value);
+                        }
+                    }
+                }
+                Err(error) => log::warn!("ratings read failed: {error}"),
+            }
+        }
+        out
+    }
+
+    /// Record or clear the like/dislike rating for a song, so the account's
+    /// own "Favorite Songs" list agrees with the heart this app drew.
+    async fn set_rating(&self, id: &str, value: Option<i64>) -> Result<(), String> {
+        match value {
+            Some(value) => {
+                let body = rating_body(value);
+                self.me_send(
+                    reqwest::Method::PUT,
+                    &format!("/ratings/songs/{id}"),
+                    &[],
+                    Some(&body),
+                )
+                .await
+                .map(|_| ())
+            }
+            None => {
+                self.me_write(
+                    reqwest::Method::DELETE,
+                    &format!("/ratings/songs/{id}"),
+                    &[],
+                )
+                .await
+            }
+        }
+    }
+
+    /// Save catalog uris to the user library — one POST per kind. Songs are
+    /// also rated (value 1) so the account's "Favorite Songs" list shows the
+    /// same heart this app drew; adding to the library alone leaves them out.
     pub async fn save(&self, uris: &[String]) -> Result<(), String> {
         for kind in ["songs", "albums", "artists", "playlists"] {
             let ids: Vec<String> = uris
@@ -349,6 +441,17 @@ impl MusicKit {
                 &[(format!("ids[{kind}]"), ids.join(","))],
             )
             .await?;
+            // One heart is one rating. A bulk save (a whole playlist or a
+            // multi-row selection) already lands in the library in a single
+            // request, and fanning it out into one rating write per song
+            // would spend the account's request budget for no visible gain:
+            // the library flag alone already draws the heart filled.
+            if kind == "songs"
+                && let [id] = ids.as_slice()
+                && let Err(error) = self.set_rating(id, Some(1)).await
+            {
+                log::warn!("could not rate {id}: {error}");
+            }
         }
         Ok(())
     }
@@ -356,11 +459,20 @@ impl MusicKit {
     /// Remove catalog uris — DELETE accepts library ids (`i.*`) only, so
     /// each uri first resolves its library copy via the catalog
     /// relationship; absent copies are already unsaved (noop).
+    ///
+    /// The rating is cleared first and independently: a song loved from the
+    /// Apple Music app has no library copy at all, so clearing only the
+    /// library membership would leave the heart on after the next read.
     pub async fn unsave(&self, uris: &[String]) -> Result<(), String> {
         for uri in uris {
             let Some((kind, id)) = apple_ref(uri) else {
                 continue;
             };
+            if kind == "songs"
+                && let Err(error) = self.set_rating(id, None).await
+            {
+                log::warn!("could not clear the rating for {id}: {error}");
+            }
             let v = self.get(&format!("/{kind}/{id}/library"), &[]).await?;
             let Some(lib) = v["data"]
                 .as_array()
@@ -1027,6 +1139,35 @@ mod tests {
             "https://is1-ssl.mzstatic.com/640x640bb.jpg"
         );
         assert_eq!(album.images[0].width, Some(640));
+    }
+
+    /// A song loved from the Apple Music app joins the Favorites playlist
+    /// without joining the library, so the library flag alone leaves the
+    /// heart hollow. The rating is the account-portable signal for it.
+    #[test]
+    fn a_loved_song_is_saved_even_without_library_membership() {
+        assert!(!saved_flag(false, None), "unrated and absent is not saved");
+        assert!(
+            saved_flag(false, Some(1)),
+            "loved without a library copy is saved"
+        );
+        assert!(saved_flag(true, None), "in the library is saved");
+        assert!(saved_flag(true, Some(1)), "both signals agree");
+        assert!(
+            !saved_flag(false, Some(-1)),
+            "a dislike is not a like even though a rating exists"
+        );
+    }
+
+    /// The rating write carries Apple's own envelope, not a bare value: the
+    /// service answers 400 for `{"value": 1}` and 200 for this shape, so a
+    /// refactor that drops `type` breaks the write silently.
+    #[test]
+    fn the_rating_write_uses_the_rating_envelope() {
+        let body = rating_body(1);
+        assert_eq!(body["type"], "rating");
+        assert_eq!(body["attributes"]["value"], 1);
+        assert_eq!(rating_body(-1)["attributes"]["value"], -1);
     }
 
     #[test]
