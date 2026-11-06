@@ -44,11 +44,16 @@ jobs:
     steps:
       - name: Bootstrap checkout prerequisites
         run: |
+          # No checkout yet, so the shared script is not in the workspace:
+          # the same three settings, kept in step with ci/apt-transfers.sh.
+          printf '%s\n' 'Acquire::Retries "3";' 'Acquire::http::Timeout "30";' \
+            'Acquire::https::Timeout "30";' > /etc/apt/apt.conf.d/99-ci-transfers
           apt-get update
           apt-get install -y --no-install-recommends git ca-certificates curl
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install oldest supported native GUI/audio build dependencies
         run: |
+          bash ci/apt-transfers.sh
           apt-get update
           apt-get install -y --no-install-recommends \
             build-essential binutils cmake pkg-config python3 \
@@ -134,6 +139,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$PKG_MANAGER" == apt ]]; then
+            bash ci/apt-transfers.sh
             apt-get update
             DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl tar
           elif [[ "$PKG_MANAGER" == dnf ]]; then

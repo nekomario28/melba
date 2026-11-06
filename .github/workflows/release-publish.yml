@@ -161,6 +161,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$MANAGER" == apt ]]; then
+            bash ci/apt-transfers.sh
             apt-get update
             DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl openssl coreutils tar mawk
           elif [[ "$MANAGER" == dnf ]]; then
