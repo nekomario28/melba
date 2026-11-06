@@ -190,34 +190,48 @@ static int args_consistent(int argc, char **argv, char **envp) {
     return argc >= 1 && argc < 256 && argv && envp && argv + argc + 1 == envp;
 }
 
-static int recover_args(int *argc, char ***argv, char ***envp) {
-    char buf[1024];
+/* Parse field 28 (startstack) out of a /proc/self/stat image. The index is
+ * only meaningful for a complete line: comm (field 2) may itself contain
+ * spaces and parens, so a truncated read would land the count on a different
+ * field and hand back an arbitrary number. Refuse rather than trust it —
+ * that number becomes an address two lines later. */
+static int parse_startstack(const char *buf, long n, unsigned long *out) {
     unsigned long v = 0;
-    long fd, n, i, f;
+    long i, f;
+    if (n <= 0) return 0;
+    i = n - 1;
+    while (i > 0 && buf[i] != ')') i--;
+    if (i <= 0 || buf[i] != ')') return 0;
+    i++;
+    f = -1;
+    while (i < n && f < 25) {
+        if (buf[i] == ' ') f++;
+        i++;
+    }
+    if (f < 25) return 0;
+    while (i < n && buf[i] >= '0' && buf[i] <= '9') {
+        v = v * 10 + (unsigned long)(buf[i] - '0');
+        i++;
+    }
+    if (!v || (v & 7)) return 0;
+    *out = v;
+    return 1;
+}
+
+static int recover_args(int *argc, char ***argv, char ***envp) {
+    char buf[2048];
+    unsigned long v = 0;
+    long fd, n;
     long *sp;
     char **av;
     fd = sc4(SYS_openat, -100, (long)"/proc/self/stat", 0, 0);
     if (fd < 0) return 0;
     n = sc3(SYS_read, fd, (long)buf, (long)sizeof(buf) - 1);
     sc3(SYS_close, fd, 0, 0);
-    if (n <= 0) return 0;
+    /* A line that fills the buffer may have been cut short. */
+    if (n <= 0 || n >= (long)sizeof(buf) - 1) return 0;
     buf[n] = 0;
-    /* comm (field 2) may contain spaces and parens: parse after the last ')' */
-    i = n - 1;
-    while (i > 0 && buf[i] != ')') i--;
-    if (buf[i] != ')') return 0;
-    i++;
-    f = -1;
-    while (buf[i] && f < 25) {
-        if (buf[i] == ' ') f++;
-        i++;
-    }
-    if (f < 25) return 0;
-    while (buf[i] >= '0' && buf[i] <= '9') {
-        v = v * 10 + (unsigned long)(buf[i] - '0');
-        i++;
-    }
-    if (!v || (v & 7)) return 0;
+    if (!parse_startstack(buf, n, &v)) return 0;
     sp = (long *)v;
     if (sp[0] < 1 || sp[0] >= 256) return 0;
     av = (char **)(sp + 1);

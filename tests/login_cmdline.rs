@@ -474,6 +474,52 @@ fn login_aborts_when_the_shim_does_not_apply() {
     );
 }
 
+/// The field index of `/proc/self/stat` field 28 is only meaningful for a
+/// complete line: a truncated one lands the count on a different field and
+/// hands back an arbitrary number, which `recover_args` then turns into an
+/// address. This compiles the shim's own parser (by including its source) and
+/// holds it to both halves of that: a complete line yields the address, a cut
+/// one yields nothing rather than a number to dereference.
+const STAT_PARSER_HARNESS: &str = r#"
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <string.h>
+#include "%SRC%"
+int main(void) {
+    static const char *full = %FULL%;
+    static const char *truncated = %TRUNC%;
+    static const char *shortline = "1 (x) S 1 2 3\n";
+    unsigned long v = 0;
+    int ok_full = parse_startstack(full, (long)strlen(full), &v);
+    int full_value = ok_full && v == %ADDR%UL;
+    int ok_trunc = parse_startstack(truncated, (long)strlen(truncated), &v);
+    int ok_short = parse_startstack(shortline, (long)strlen(shortline), &v);
+    printf("full=%d full_value=%d trunc=%d short=%d\n",
+           ok_full, full_value, ok_trunc, ok_short);
+    return 0;
+}
+"#;
+
+/// A `/proc/self/stat` line with the field count that matters, built rather
+/// than pasted: field 28 must land on the 8-byte-aligned address, and comm
+/// carries a space and parens so the count has to skip past the last `)`.
+fn stat_line(fields: usize, startstack: u64) -> String {
+    const ADDR_FIELD: usize = 28;
+    let mut parts = vec![
+        "1234".to_string(),
+        "(melba wr)apper (x)".to_string(),
+        "S".to_string(),
+    ];
+    for field in 4..=fields {
+        parts.push(if field == ADDR_FIELD {
+            startstack.to_string()
+        } else {
+            (field * 7).to_string()
+        });
+    }
+    parts.join(" ") + r"\n"
+}
+
 /// bionic can run a preloaded library's `.init_array` before its own
 /// argc/argv/envp are set, handing the shim garbage (observed: argc of
 /// 262984144). The shim must recover the real argument block from the
@@ -515,6 +561,42 @@ int main(int argc, char **argv, char **envp) {
     return 0;
 }
 "#;
+
+#[test]
+fn the_stat_parser_refuses_a_truncated_line() {
+    let root = Sandbox::new();
+    let harness = root.path("stat-parser");
+    let shim_src = Path::new(env!("CARGO_MANIFEST_DIR")).join("packaging/argv-scrub.c");
+    let addr: u64 = 0x7ffd_1c66_4400;
+    let full = stat_line(60, addr);
+    // Cut before field 28: the index the parser counts to no longer names it.
+    let truncated = stat_line(24, addr);
+    let src = STAT_PARSER_HARNESS
+        .replace("%SRC%", &shim_src.display().to_string())
+        .replace("%ADDR%", &addr.to_string())
+        .replace("%FULL%", &format!("{q}{full}{q}", q = '"'))
+        .replace("%TRUNC%", &format!("{q}{truncated}{q}", q = '"'));
+    compile_c(&harness, &src);
+    let output = Command::new(&harness).output().unwrap();
+    let out = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        output.status.success(),
+        "harness failed: {:?} {out}",
+        output.status
+    );
+    assert!(
+        out.contains("full=1 full_value=1"),
+        "a complete line must yield the address: {out}"
+    );
+    assert!(
+        out.contains("trunc=0"),
+        "a truncated line must yield nothing: {out}"
+    );
+    assert!(
+        out.contains("short=0"),
+        "a line without field 28 must yield nothing: {out}"
+    );
+}
 
 #[test]
 fn shim_recovers_real_arguments_when_the_loader_passes_garbage() {
