@@ -718,6 +718,86 @@ fn a_queue_row_named_with_an_id_still_asks_for_its_song() {
     );
 }
 
+/// A cache entry with no cover and no length is the same gap the row has, not
+/// an answer to it. Trusting it left the row art-less for the whole session,
+/// because the cache hit stopped the only request that would have filled it.
+#[test]
+fn a_cached_track_without_a_cover_does_not_stop_the_request() {
+    if isolated() {
+        return;
+    }
+    let mut ui = TestUi::new();
+    ui.app.handle_api(ApiResponse::Me(Ok(User {
+        id: "fixture".into(),
+        ..Default::default()
+    })));
+    ui.app.local_ready = true;
+    ui.app.local = LocalState {
+        connected: true,
+        playback: Playback::Paused,
+        ..Default::default()
+    };
+    let id = "1748962004";
+    // Whatever put this here — a page row the service under-described.
+    ui.app.track_cache.insert(
+        id.to_owned(),
+        crate::api::models::Track {
+            id: Some(id.to_owned()),
+            uri: format!("melba:track:{id}"),
+            name: "ChouCho — 虹を編めたら".into(),
+            ..Default::default()
+        },
+    );
+    ui.app.queue = Loadable::Loaded(Queue {
+        currently_playing: None,
+        queue: vec![PlayableItem::Track(crate::api::models::Track {
+            uri: format!("melba:track:{id}"),
+            name: "ChouCho — 虹を編めたら".into(),
+            ..Default::default()
+        })],
+    });
+    ui.app.queue_tab = QueueTab::Queue;
+    ui.app.show_queue_panel = true;
+    let _ = ui.tree(Vec::new());
+    let sent = ui.app.backend.take_sent_api();
+    assert!(
+        sent.iter().any(|r| matches!(r, ApiRequest::Track { id: got } if got == id)),
+        "an undescribed cache entry must not answer for the song: {sent:?}"
+    );
+
+    // When the answer arrives, the row shows the cover it was missing.
+    let mut full = crate::api::models::Track {
+        id: Some(id.to_owned()),
+        uri: format!("melba:track:{id}"),
+        name: "虹を編めたら".into(),
+        duration_ms: 240_000,
+        ..Default::default()
+    };
+    full.album = Some(crate::api::models::Album {
+        images: vec![crate::api::models::Image {
+            url: "https://example.invalid/cover.jpg".into(),
+            width: Some(300),
+            height: Some(300),
+        }],
+        ..Default::default()
+    });
+    ui.app.handle_api(ApiResponse::Track {
+        id: id.to_owned(),
+        result: Ok(full),
+    });
+    let row = PlayableItem::Track(crate::api::models::Track {
+        uri: format!("melba:track:{id}"),
+        name: "ChouCho — 虹を編めたら".into(),
+        ..Default::default()
+    });
+    let shown = ui.app.queue_display_item(&row);
+    assert_eq!(
+        shown.image(64),
+        Some("https://example.invalid/cover.jpg"),
+        "the answered song draws its cover"
+    );
+}
+
 /// A row the player labelled but could not describe — no cover, no length —
 /// used to be taken as done, so it kept a note icon and 0:00 all session.
 #[test]

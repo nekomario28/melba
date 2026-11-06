@@ -756,8 +756,13 @@ fn link_recording(
 /// for, otherwise it keeps a note icon and a zero duration all session.
 fn row_is_complete(row: &Track) -> bool {
     let named = !row.name.is_empty() && row.name != row.uri && !name_is_an_id(&row.name);
-    let described = row.duration_ms > 0 || row.album.is_some() || !row.images.is_empty();
-    named && described
+    named && track_is_described(row)
+}
+
+/// Whether a track carries anything beyond its name: a length, an album, or
+/// artwork. A name alone cannot draw a row.
+fn track_is_described(track: &Track) -> bool {
+    track.duration_ms > 0 || track.album.is_some() || !track.images.is_empty()
 }
 
 /// A daemon that has not been told a song's name yet can still report the
@@ -4039,17 +4044,29 @@ impl App {
         let Some(id) = util::uri_id(&row.uri).map(str::to_owned) else {
             return item.clone();
         };
-        let Some(known) = self.read_cached_track(&id) else {
-            if !self.track_failed_recently(&id) && self.track_requests.insert(id.clone()) {
-                self.backend.api(ApiRequest::Track { id });
-            }
-            return item.clone();
-        };
-        PlayableItem::Track(Track {
-            id: row.id.clone(),
-            uri: row.uri.clone(),
-            ..known
-        })
+        // A cache entry that carries no cover and no length is not an answer,
+        // it is the same gap the daemon just described. Whatever put it there
+        // — a page row the service under-described, an earlier partial answer
+        // — keeping it would leave the row art-less for the whole session.
+        let cached = self.read_cached_track(&id);
+        if let Some(known) = cached.clone().filter(track_is_described) {
+            return PlayableItem::Track(Track {
+                id: row.id.clone(),
+                uri: row.uri.clone(),
+                ..known
+            });
+        }
+        if !self.track_failed_recently(&id) && self.track_requests.insert(id.clone()) {
+            self.backend.api(ApiRequest::Track { id });
+        }
+        match cached {
+            Some(known) => PlayableItem::Track(Track {
+                id: row.id.clone(),
+                uri: row.uri.clone(),
+                ..known
+            }),
+            None => item.clone(),
+        }
     }
 
     /// Keeps the songs a page already showed available to rows that only
