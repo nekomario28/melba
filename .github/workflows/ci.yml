@@ -52,12 +52,29 @@ jobs:
 
   # End-to-end smoke tests the real signed public Release (not fixture data).
   release-install-smoke:
-    # The currently published binary requires GLIBC_2.43, which this runner
-    # provides. Ubuntu 24.04 has 2.39 and must use a source build instead.
+    # The host path, not a container: the installer resolves the desktop file
+    # and the XDG links against a real system. Since v0.3.13 the published
+    # archives need glibc 2.35, so any current runner qualifies; this one is
+    # simply the newest Ubuntu host.
     runs-on: ubuntu-26.04
-    timeout-minutes: 15
+    # Installing the published release pulls in WebKitGTK and its dependency
+    # set (over 100 MB) from the runner's mirror. At 15 minutes that download
+    # has twice been cut off mid-transfer and reported as a cancelled job, so
+    # the budget covers a slow mirror rather than the work itself.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Fail fast on a stalled package mirror
+        shell: bash
+        # A mirror that stops sending bytes is what burns the whole budget;
+        # retries plus a socket timeout turn that into an error we can see.
+        run: |
+          set -euo pipefail
+          sudo tee /etc/apt/apt.conf.d/99-ci-transfers >/dev/null <<'CONF'
+          Acquire::Retries "3";
+          Acquire::http::Timeout "30";
+          Acquire::https::Timeout "30";
+          CONF
       - name: Verify signed release and install paired binaries
         shell: bash
         run: |
