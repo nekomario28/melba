@@ -13,10 +13,22 @@ jobs:
     runs-on: ubuntu-latest
     # The suite takes about 12 minutes. Without a limit a stalled mirror left
     # this job in `apt-get update` for 44 minutes with nothing to stop it,
-    # blocking a release PR behind a check that would never conclude.
-    timeout-minutes: 30
+    # blocking a release PR behind a check that would never conclude. The limit
+    # is a backstop, not a budget: a mirror that is merely slow still has to
+    # fit (one took 30 minutes for the GTK/WebKit headers alone), while a
+    # stalled socket now errors after 30 seconds thanks to ci/apt-transfers.sh.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Cache the system packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          # Keyed on the workflow, so a changed package list misses the cache
+          # instead of installing a stale set.
+          key: apt-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
+          path: |
+            /var/cache/apt/archives
+            /var/lib/apt/lists
       - name: Release signing script syntax and missing-key fail-closed gate
         run: |
           set -euo pipefail
