@@ -102,6 +102,9 @@ pub struct Shared {
     pub title: Mutex<String>,
     pub art_url: Mutex<String>,
     pub verdict: Mutex<String>,
+    /// The session graph as last read, so the per-packet verdict does not have
+    /// to ask PipeWire again. Set at stream open and by the watcher.
+    pub graph: Mutex<Option<crate::pipewire::Graph>>,
     pub sink: Mutex<String>,
     /// Refuse shared/default output and any non-bit-perfect verdict.
     pub require_bitperfect: std::sync::atomic::AtomicBool,
@@ -149,6 +152,7 @@ impl Shared {
             title: Mutex::new(String::new()),
             art_url: Mutex::new(String::new()),
             verdict: Mutex::new("—".into()),
+            graph: Mutex::new(None),
             sink: Mutex::new("auto".into()),
             require_bitperfect: std::sync::atomic::AtomicBool::new(false),
             bitperfect_blocked: std::sync::atomic::AtomicBool::new(false),
@@ -313,6 +317,7 @@ fn watch_shared_graph(shared: &Arc<Shared>, src: &SourceFormat, granted: &Grante
             let graph = crate::pipewire::current();
             let gain = f64::from_bits(shared.volume.load(Ordering::Relaxed));
             let verdict = audio::verdict_for(&src, &granted, gain, graph.as_ref());
+            *shared.graph.lock().unwrap_or_else(|e| e.into_inner()) = graph.clone();
             let mut held = shared.verdict.lock().unwrap_or_else(|e| e.into_inner());
             if *held != "DSP" || verdict == "DSP" {
                 *held = verdict.to_string();
@@ -730,6 +735,7 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
             crate::pipewire::current()
         };
         let verdict = audio::verdict_for(&src, granted, gain, graph.as_ref());
+        *shared.graph.lock().unwrap_or_else(|e| e.into_inner()) = graph.clone();
         if granted.device.starts_with("hw:") {
             // nothing to watch
         } else {
@@ -1420,7 +1426,12 @@ fn play_controlled(
             }
         };
         let gain = f64::from_bits(shared.volume.load(Ordering::Relaxed));
-        let verdict = audio::verdict_with_gain(src, g, gain);
+        let graph = shared
+            .graph
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone();
+        let verdict = audio::verdict_for(src, g, gain, graph.as_ref());
         {
             let mut current = shared.verdict.lock().unwrap_or_else(|e| e.into_inner());
             if current.as_str() != verdict {
