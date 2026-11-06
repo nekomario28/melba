@@ -718,6 +718,96 @@ fn a_queue_row_named_with_an_id_still_asks_for_its_song() {
     );
 }
 
+/// A row the player labelled but could not describe — no cover, no length —
+/// used to be taken as done, so it kept a note icon and 0:00 all session.
+#[test]
+fn a_named_queue_row_without_a_cover_still_asks_for_its_song() {
+    if isolated() {
+        return;
+    }
+    let mut ui = TestUi::new();
+    ui.app.handle_api(ApiResponse::Me(Ok(User {
+        id: "fixture".into(),
+        ..Default::default()
+    })));
+    ui.app.local_ready = true;
+    ui.app.local = LocalState {
+        connected: true,
+        playback: Playback::Paused,
+        ..Default::default()
+    };
+    let id = "1528663193";
+    ui.app.queue = Loadable::Loaded(Queue {
+        currently_playing: None,
+        queue: vec![PlayableItem::Track(crate::api::models::Track {
+            uri: format!("melba:track:{id}"),
+            // Exactly what the daemon reports before the slot is reached.
+            name: "雨宮天 — カラフル。".into(),
+            duration_ms: 0,
+            ..Default::default()
+        })],
+    });
+    ui.app.queue_tab = QueueTab::Queue;
+    ui.app.show_queue_panel = true;
+    let _ = ui.tree(Vec::new());
+    let sent = ui.app.backend.take_sent_api();
+    assert!(
+        sent.iter().any(|r| matches!(r, ApiRequest::Track { id: got } if got == id)),
+        "a row with no cover must still ask for the song: {sent:?}"
+    );
+}
+
+/// A lookup that failed must not become one request per frame.
+#[test]
+fn a_failed_lookup_is_not_retried_every_frame() {
+    if isolated() {
+        return;
+    }
+    let mut ui = TestUi::new();
+    ui.app.handle_api(ApiResponse::Me(Ok(User {
+        id: "fixture".into(),
+        ..Default::default()
+    })));
+    ui.app.local_ready = true;
+    ui.app.queue = Loadable::Loaded(Queue {
+        currently_playing: None,
+        queue: vec![PlayableItem::Track(crate::api::models::Track {
+            uri: "melba:track:999".into(),
+            name: String::new(),
+            ..Default::default()
+        })],
+    });
+    ui.app.queue_tab = QueueTab::Queue;
+    ui.app.show_queue_panel = true;
+    let _ = ui.tree(Vec::new());
+    let first = ui
+        .app
+        .backend
+        .take_sent_api()
+        .into_iter()
+        .filter(|r| matches!(r, ApiRequest::Track { .. }))
+        .count();
+    assert_eq!(first, 1, "the first frame asks once");
+    ui.app.handle_api(ApiResponse::Track {
+        id: "999".into(),
+        result: Err(crate::api::ApiError::Status {
+            status: 404,
+            message: "song 999 not found".into(),
+        }),
+    });
+    for _ in 0..5 {
+        let _ = ui.tree(Vec::new());
+    }
+    let again = ui
+        .app
+        .backend
+        .take_sent_api()
+        .into_iter()
+        .filter(|r| matches!(r, ApiRequest::Track { .. }))
+        .count();
+    assert_eq!(again, 0, "a failed id waits before it is asked for again");
+}
+
 /// Home used to offer the same songs twice: a synthetic tile that opens Liked
 /// Songs, and the account's own Favorites playlist further along the row. Once
 /// that playlist is known and listed, the stand-in steps aside.

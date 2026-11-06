@@ -18,6 +18,12 @@ on:
   workflow_dispatch:
   workflow_call:
 
+# Same reasoning as ci.yml: a superseded pull-request run is a cancelled one,
+# and its two glibc builds are the most expensive part of a pull request.
+concurrency:
+  group: baseline-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
