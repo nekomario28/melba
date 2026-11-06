@@ -91,7 +91,7 @@ pub fn decrypt_url() -> String {
 
 /// True when config asks melbad to run the decrypt service itself.
 pub fn managed() -> bool {
-    crate::config::config()["wrapper_mode"].as_str() == Some("managed")
+    crate::config::config().wrapper_mode == Some(crate::config::WrapperMode::Managed)
 }
 
 /// TCP reachability probe for a configured wrapper — accepts the same

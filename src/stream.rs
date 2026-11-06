@@ -49,7 +49,7 @@ pub fn cdm_so() -> Option<PathBuf> {
     let home = PathBuf::from(std::env::var_os("HOME")?);
     let mut cands = Vec::new();
     // config.json may override
-    if let Some(p) = crate::config::config()["cdm_path"].as_str() {
+    if let Some(p) = crate::config::config().cdm_path.as_deref() {
         cands.push(PathBuf::from(p));
     }
     for base in [
