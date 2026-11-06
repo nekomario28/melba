@@ -163,8 +163,6 @@ pub enum ApiRequest {
     Contains {
         uris: Vec<String>,
     },
-    /// The desktop reports network reachability changed.
-    NetworkStatus(bool),
     /// Which library playlist is the account's Favorites list, if one is.
     /// Apple names no id for it, so the daemon identifies it by its contents.
     FavoritesPlaylist {
