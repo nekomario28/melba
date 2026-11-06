@@ -56,10 +56,10 @@ fn catalogs_cover_the_template_and_preserve_named_placeholders() {
         let template_ids = messages(&template);
         let catalog_ids = messages(&translated_catalog);
         // Sets first: they name the offending message, which a count cannot.
-        for missing in template_ids.difference(&catalog_ids) {
+        if let Some(missing) = template_ids.difference(&catalog_ids).next() {
             panic!("{}: no entry for {:?}", path.display(), missing);
         }
-        for extra in catalog_ids.difference(&template_ids) {
+        if let Some(extra) = catalog_ids.difference(&template_ids).next() {
             panic!("{}: entry not in the template: {:?}", path.display(), extra);
         }
         assert_eq!(template_ids.len(), catalog_ids.len(), "{}", path.display());

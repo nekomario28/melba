@@ -19,14 +19,14 @@ clap = { version = "4", features = ["derive"] }
 nix = { version = "0.29", features = ["signal"] }
 plist = "1.10.1"
 roxmltree = "0.21.1"
-jsonschema = "0.58.6"
+jsonschema = "0.60.2"
 sha2 = "0.11.1"
 dbus = "0.9"
 dbus-crossroads = "0.5"
 libc = "0.2.190"
 ureq = "2"
 wry = "0.53"
-tao = "0.34"
+tao = "0.37"
 # Widevine CDM host + Apple Music HLS/fMP4 streaming (AAC + ALAC)
 melba-cdm = { path = "crates/melba-cdm" }
 melba-auth = { path = "crates/melba-auth" }
