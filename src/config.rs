@@ -4,11 +4,96 @@
 //! direction acyclic.
 use std::path::PathBuf;
 
-pub fn config() -> serde_json::Value {
-    config_dir()
-        .and_then(|d| std::fs::read(d.join("config.json")).ok())
-        .and_then(|b| serde_json::from_slice(&b).ok())
-        .unwrap_or_else(|| serde_json::json!({}))
+/// Where the wrapper for ALAC comes from.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WrapperMode {
+    /// `melbad` runs the decrypt service itself.
+    Managed,
+    /// Anything else, including the default: an external decrypt service at
+    /// `wrapper_url`. `serde(other)` must be the last variant, and it keeps a
+    /// value this build does not know from failing the whole file.
+    #[default]
+    #[serde(other)]
+    External,
+}
+
+/// `config.json` as this build understands it.
+///
+/// The file used to be read as free-form JSON, so every caller indexed it and
+/// re-checked the shape of each value. Reading it as this struct puts the
+/// shape in one place; keys this build does not know about are kept in `extra`
+/// and written back, so a newer Melba's settings survive an older one saving
+/// the file.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct Config {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wrapper_url: Option<String>,
+    /// Allow a wrapper that is not on the loopback interface.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub wrapper_allow_remote: bool,
+    /// `auto`, `default`, or `hw:X,Y`; validated on read.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio_device: Option<String>,
+    /// Widevine CDM shared object to prefer over the browser installs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cdm_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wrapper_mode: Option<WrapperMode>,
+    /// Settings written by another build, preserved verbatim.
+    #[serde(flatten)]
+    pub extra: serde_json::Map<String, serde_json::Value>,
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
+}
+
+impl Config {
+    /// Read the file. A missing, unreadable or malformed file is the default
+    /// configuration: this is read on playback paths that must not fail.
+    pub fn load() -> Self {
+        config_dir()
+            .and_then(|dir| std::fs::read(dir.join("config.json")).ok())
+            .and_then(|bytes| Self::parse(&bytes).ok())
+            .unwrap_or_default()
+    }
+
+    /// Parse a file body. Separate from [`Config::load`] so the shape is
+    /// testable without a filesystem.
+    pub fn parse(bytes: &[u8]) -> Result<Self, String> {
+        serde_json::from_slice(bytes).map_err(|e| e.to_string())
+    }
+
+    /// Write this configuration atomically, creating the directory.
+    pub fn save(&self) -> Result<(), String> {
+        let dir = config_dir().ok_or("no XDG_CONFIG_HOME or HOME")?;
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let body = serde_json::to_vec_pretty(self).map_err(|e| e.to_string())?;
+        let tmp = dir.join(".config.json.tmp");
+        std::fs::write(&tmp, &body).map_err(|e| e.to_string())?;
+        std::fs::rename(&tmp, dir.join("config.json")).map_err(|e| e.to_string())
+    }
+
+    /// The audio device to open, if the file names a valid one.
+    pub fn audio_device(&self) -> Option<String> {
+        self.audio_device
+            .as_deref()
+            .filter(|value| valid_audio_device(value))
+            .map(|value| value.trim().to_string())
+    }
+
+    /// This file's own opt-in for a non-loopback wrapper. Reading it here
+    /// keeps one owner for the file's shape; see
+    /// [`Config::allows_remote_wrapper`] for the combined answer.
+    pub fn allows_remote_wrapper(&self) -> bool {
+        self.wrapper_allow_remote
+    }
+}
+
+/// The configuration in effect. Every read goes through the typed struct.
+pub fn config() -> Config {
+    Config::load()
 }
 
 fn config_dir() -> Option<PathBuf> {
@@ -67,46 +152,28 @@ fn test_root() -> PathBuf {
 /// The upstream wrapper's key and decrypt ports are unauthenticated;
 /// see `WrapperKeySource` in melba-cdm.
 pub fn wrapper_url() -> Option<String> {
-    let cfg = config();
-    let raw = cfg["wrapper_url"].as_str()?;
-    melba_cdm::stream::vetted_wrapper_url(raw).ok()
+    let raw = config().wrapper_url?;
+    melba_cdm::stream::vetted_wrapper_url(&raw).ok()
 }
 
 /// Error for a `wrapper_url` that is set but rejected by the loopback check.
 pub fn wrapper_url_rejection() -> Option<String> {
-    let cfg = config();
-    let raw = cfg["wrapper_url"].as_str()?;
+    let raw = config().wrapper_url?;
     if raw.trim().is_empty() {
         return None;
     }
-    melba_cdm::stream::vetted_wrapper_url(raw).err()
-}
-
-fn write_config(c: &serde_json::Value) -> Result<(), String> {
-    let dir = config_dir().ok_or("no XDG_CONFIG_HOME or HOME")?;
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    let body = serde_json::to_vec_pretty(c).map_err(|e| e.to_string())?;
-    let tmp = dir.join(".config.json.tmp");
-    std::fs::write(&tmp, &body).map_err(|e| e.to_string())?;
-    std::fs::rename(&tmp, dir.join("config.json")).map_err(|e| e.to_string())
+    melba_cdm::stream::vetted_wrapper_url(&raw).err()
 }
 
 /// Persist `wrapper_url` in config.json (atomically, other keys kept).
 /// `None`/empty removes the key — ALAC off, AAC only.
 pub fn set_wrapper(url: Option<&str>) -> Result<(), String> {
-    let mut c = config();
-    match url.map(str::trim).filter(|s| !s.is_empty()) {
-        Some(u) => {
-            let u = melba_cdm::stream::vetted_wrapper_url(u)?;
-            c["wrapper_url"] = serde_json::json!(u);
-        }
-        None => {
-            if let Some(m) = c.as_object_mut() {
-                m.remove("wrapper_url");
-            }
-        }
-    }
-    write_config(&c)
+    let mut cfg = config();
+    cfg.wrapper_url = match url.map(str::trim).filter(|s| !s.is_empty()) {
+        Some(u) => Some(melba_cdm::stream::vetted_wrapper_url(u)?),
+        None => None,
+    };
+    cfg.save()
 }
 
 /// Output device override: `auto`, `default` (OS mixer) or `hw:X,Y`.
@@ -129,19 +196,16 @@ pub fn valid_audio_device(value: &str) -> bool {
 }
 
 pub fn audio_device() -> Option<String> {
-    config()["audio_device"]
-        .as_str()
-        .filter(|v| valid_audio_device(v))
-        .map(|v| v.trim().to_string())
+    config().audio_device()
 }
 
 pub fn set_audio_device(value: &str) -> Result<(), String> {
     if !valid_audio_device(value) {
         return Err("audio_device must be auto, default, or hw:X,Y".into());
     }
-    let mut c = config();
-    c["audio_device"] = serde_json::json!(value.trim());
-    write_config(&c)
+    let mut cfg = config();
+    cfg.audio_device = Some(value.trim().to_string());
+    cfg.save()
 }
 
 #[cfg(test)]
@@ -194,6 +258,74 @@ mod tests {
                 None => std::env::remove_var("MELBA_WRAPPER_ALLOW_REMOTE"),
             }
         }
+    }
+
+    /// Unknown keys belong to another build; saving this one must not drop
+    /// them. A settings file is shared state, not this build's private one.
+    #[test]
+    fn a_save_keeps_settings_this_build_does_not_know() {
+        let _g = lock();
+        let dir = std::env::temp_dir().join(format!("melbacfg-extra-{}", std::process::id()));
+        std::env::set_var("XDG_CONFIG_HOME", &dir);
+        std::fs::create_dir_all(dir.join("melba")).unwrap();
+        std::fs::write(
+            dir.join("melba/config.json"),
+            r#"{"audio_device":"hw:1,0","crossfade_seconds":6,"future":{"nested":true}}"#,
+        )
+        .unwrap();
+        set_wrapper(Some("tcp://127.0.0.1:10020")).unwrap();
+        let saved: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(dir.join("melba/config.json")).unwrap()).unwrap();
+        assert_eq!(saved["audio_device"], "hw:1,0");
+        assert_eq!(saved["crossfade_seconds"], 6);
+        assert_eq!(saved["future"]["nested"], true);
+        assert_eq!(saved["wrapper_url"], "tcp://127.0.0.1:10020");
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    /// Every key this build reads has a type, so a value of the wrong shape is
+    /// one ignored setting rather than a whole file that fails to parse.
+    #[test]
+    fn the_known_keys_are_typed() {
+        let cfg = Config::parse(
+            br#"{"wrapper_url":"tcp://127.0.0.1:10020","wrapper_allow_remote":true,
+                 "audio_device":"hw:0,0","cdm_path":"/opt/cdm/libwidevinecdm.so",
+                 "wrapper_mode":"managed","unknown_key":7}"#,
+        )
+        .expect("parses");
+        assert_eq!(cfg.wrapper_url.as_deref(), Some("tcp://127.0.0.1:10020"));
+        assert!(cfg.allows_remote_wrapper());
+        assert_eq!(cfg.audio_device(), Some("hw:0,0".to_string()));
+        assert_eq!(cfg.cdm_path.as_deref(), Some("/opt/cdm/libwidevinecdm.so"));
+        assert_eq!(cfg.wrapper_mode, Some(WrapperMode::Managed));
+        assert_eq!(cfg.extra["unknown_key"], 7);
+    }
+
+    /// A wrapper mode this build does not recognise is the external one, not a
+    /// parse failure that would silently drop the rest of the file.
+    #[test]
+    fn an_unknown_wrapper_mode_reads_as_external() {
+        let cfg = Config::parse(br#"{"wrapper_mode":"sidecar","audio_device":"default"}"#)
+            .expect("parses");
+        assert_eq!(cfg.wrapper_mode, Some(WrapperMode::External));
+        assert_eq!(cfg.audio_device(), Some("default".to_string()));
+    }
+
+    /// A malformed file is the default configuration, and writing over it is
+    /// still atomic and readable.
+    #[test]
+    fn a_malformed_file_reads_as_defaults() {
+        let _g = lock();
+        let dir = std::env::temp_dir().join(format!("melbacfg-broken-{}", std::process::id()));
+        std::env::set_var("XDG_CONFIG_HOME", &dir);
+        std::fs::create_dir_all(dir.join("melba")).unwrap();
+        std::fs::write(dir.join("melba/config.json"), b"{ not json").unwrap();
+        assert_eq!(config().wrapper_url, None);
+        set_audio_device("hw:0,0").unwrap();
+        let saved: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(dir.join("melba/config.json")).unwrap()).unwrap();
+        assert_eq!(saved["audio_device"], "hw:0,0");
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]

@@ -31,12 +31,16 @@ jobs:
       - name: Cache the system packages
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
-          # Keyed on the workflow, so a changed package list misses the cache
-          # instead of installing a stale set.
-          key: apt-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
-          path: |
-            /var/cache/apt/archives
-            /var/lib/apt/lists
+          # A constant key on purpose. Hashing this file made every edit to the
+          # workflow miss the cache, which is exactly when the packages are
+          # wanted. The archives are versioned file names, so a stale entry is
+          # harmless: apt verifies what it reuses and downloads the rest.
+          #
+          # The cache directory must be writable by the runner, so the debs are
+          # staged under $HOME and copied in and out around the install.
+          key: apt-debs-${{ runner.os }}
+          restore-keys: apt-debs-${{ runner.os }}
+          path: ~/.cache/melba-apt
       - name: Release signing script syntax and missing-key fail-closed gate
         run: |
           set -euo pipefail
@@ -48,12 +52,21 @@ jobs:
       - name: system deps (alsa, dbus, gtk/webkit for tao+wry)
         run: |
           bash ci/apt-transfers.sh
+          # Reuse the cached debs: GTK and WebKit headers are the slow part of
+          # this job, and were taking over 25 minutes from the runner's mirror.
+          sudo mkdir -p /var/cache/apt/archives
+          sudo cp -a ~/.cache/melba-apt/. /var/cache/apt/archives/ 2>/dev/null || true
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential \
             libasound2-dev libdbus-1-dev libgtk-3-dev \
             libwebkit2gtk-4.1-dev libayatana-appindicator3-dev libxdo-dev \
             libsoup-3.0-dev libjavascriptcoregtk-4.1-dev libglib2.0-bin xdg-utils ffmpeg
+      - name: Keep the downloaded packages for the next run
+        run: |
+          mkdir -p ~/.cache/melba-apt
+          cp -a /var/cache/apt/archives/. ~/.cache/melba-apt/ 2>/dev/null || true
+          du -sh ~/.cache/melba-apt || true
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
           components: rustfmt, clippy
