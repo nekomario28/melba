@@ -11,6 +11,10 @@ permissions:
 jobs:
   gates:
     runs-on: ubuntu-latest
+    # The suite takes about 12 minutes. Without a limit a stalled mirror left
+    # this job in `apt-get update` for 44 minutes with nothing to stop it,
+    # blocking a release PR behind a check that would never conclude.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Release signing script syntax and missing-key fail-closed gate
