@@ -146,6 +146,54 @@ fn spawn_failure_preserves_a_saved_binding() {
     }
 }
 
+/// An install staged before this build carries an older shim. Login repairs
+/// it from the source in the binary and still never puts the password on the
+/// command line — no trip back to `wrapper setup` for a file we already ship.
+#[test]
+fn a_stale_argv_scrub_is_rebuilt_and_the_login_proceeds() {
+    let sandbox = Sandbox::new();
+    let wrap = sandbox.0.join("data/melba/wrapper");
+    let lib64 = wrap.join("rootfs/system/lib64");
+    fs::create_dir_all(&lib64).unwrap();
+    // Older protocol: no marker this binary accepts.
+    fs::write(lib64.join("argv-scrub.so"), b"melba-login-fd-v1").unwrap();
+    let run = wrap.join("run");
+    fs::write(&run, "#!/bin/sh\ntouch spawned\n").unwrap();
+    fs::set_permissions(&run, fs::Permissions::from_mode(0o755)).unwrap();
+
+    if std::process::Command::new("cc")
+        .arg("--version")
+        .output()
+        .map(|out| !out.status.success())
+        .unwrap_or(true)
+    {
+        return; // no compiler here: nothing to prove, and the refusal is covered above
+    }
+
+    let secret = "fixture-password-do-not-print";
+    let output = Command::new(env!("CARGO_BIN_EXE_melbad"))
+        .args(["wrapper", "login", "user@example.com"])
+        .current_dir(&sandbox.0)
+        .env("XDG_DATA_HOME", sandbox.0.join("data"))
+        .env("XDG_CONFIG_HOME", sandbox.0.join("config"))
+        .env("MELBA_WRAPPER_PASSWORD", secret)
+        .output()
+        .unwrap();
+    let err = String::from_utf8(output.stderr).unwrap();
+    assert!(!err.contains(secret), "password leaked: {err}");
+    let rebuilt = fs::read(lib64.join("argv-scrub.so")).unwrap();
+    assert!(
+        rebuilt
+            .windows(17)
+            .any(|w| w == b"melba-login-fd-v3" || w == b"melba-login-fd-v2"),
+        "the shim was not rebuilt"
+    );
+    assert!(
+        wrap.join("spawned").exists(),
+        "a repaired shim must let the login proceed: {err}"
+    );
+}
+
 #[test]
 fn missing_argv_scrub_does_not_spawn_the_wrapper() {
     let sandbox = Sandbox::new();
@@ -156,10 +204,24 @@ fn missing_argv_scrub_does_not_spawn_the_wrapper() {
     fs::write(&run, "#!/bin/sh\ntouch spawned\n").unwrap();
     fs::set_permissions(&run, fs::Permissions::from_mode(0o755)).unwrap();
 
+    // A shim that cannot be built is the case that still has to refuse: with a
+    // working `cc`, login now repairs the shim instead of demanding setup again.
+    let fake = sandbox.0.join("fakebin");
+    fs::create_dir_all(&fake).unwrap();
+    let cc = fake.join("cc");
+    fs::write(&cc, "#!/bin/sh\nexit 1\n").unwrap();
+    fs::set_permissions(&cc, fs::Permissions::from_mode(0o755)).unwrap();
+
     let secret = "fixture-password-do-not-print";
+    let path = format!(
+        "{}:{}",
+        fake.display(),
+        std::env::var("PATH").unwrap_or_default()
+    );
     let output = Command::new(env!("CARGO_BIN_EXE_melbad"))
         .args(["wrapper", "login", "user@example.com"])
         .current_dir(&sandbox.0)
+        .env("PATH", path)
         .env("XDG_DATA_HOME", sandbox.0.join("data"))
         .env("XDG_CONFIG_HOME", sandbox.0.join("config"))
         .env("MELBA_WRAPPER_PASSWORD", secret)
@@ -174,7 +236,7 @@ fn missing_argv_scrub_does_not_spawn_the_wrapper() {
     );
     assert!(
         !wrap.join("spawned").exists(),
-        "wrapper was spawned without argv-scrub.so"
+        "wrapper was spawned without a working argv-scrub.so"
     );
     assert_eq!(
         fs::read(proof).unwrap(),

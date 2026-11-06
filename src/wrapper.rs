@@ -434,6 +434,44 @@ fn argv_scrub_ready(lib64: &Path) -> bool {
         .unwrap_or(false)
 }
 
+/// The shim's source, so an install whose `.so` predates this build can be
+/// repaired without asking the user to run setup again. It carries the same
+/// marker as this binary; a mismatch in either direction means "rebuild".
+const SCRUB_SOURCE: &str = include_str!("../packaging/argv-scrub.c");
+
+/// Build the preload shim beside the wrapper, exactly as `wrapper setup` does.
+/// `cc` is the only requirement, and a machine that staged the wrapper already
+/// had it.
+fn rebuild_argv_scrub(lib64: &Path) -> Result<(), String> {
+    let source = lib64.join(".argv-scrub.c");
+    std::fs::create_dir_all(lib64).map_err(|e| format!("{}: {e}", lib64.display()))?;
+    std::fs::write(&source, SCRUB_SOURCE).map_err(|e| format!("{}: {e}", source.display()))?;
+    let shim = lib64.join("argv-scrub.so");
+    let status = Command::new("cc")
+        .args([
+            "-O2",
+            "-fPIC",
+            "-shared",
+            "-nostdlib",
+            "-fno-stack-protector",
+            "-fno-builtin",
+            "-o",
+        ])
+        .arg(&shim)
+        .arg(&source)
+        .args(["-Wl,--hash-style=sysv", "-Wl,-z,noexecstack"])
+        .status();
+    let _ = std::fs::remove_file(&source);
+    match status {
+        Ok(status) if status.success() && argv_scrub_ready(lib64) => Ok(()),
+        Ok(_) => {
+            let _ = std::fs::remove_file(&shim);
+            Err("could not build argv-scrub.so".into())
+        }
+        Err(_) => Err("cc is not installed".into()),
+    }
+}
+
 fn contains_bytes(hay: &[u8], needle: &[u8]) -> bool {
     !needle.is_empty() && hay.windows(needle.len()).any(|w| w == needle)
 }
@@ -651,11 +689,15 @@ pub fn login(user: &str, pass: &str) -> Result<String, String> {
     let d = dir().ok_or("no XDG_DATA_HOME or HOME")?;
     let lib64 = d.join("rootfs/system/lib64");
     if !argv_scrub_ready(&lib64) {
-        return Err(
-            "argv-scrub.so is missing or out of date — refusing to start login. \
-             Install `cc` and re-run `melbad wrapper setup`"
-                .into(),
-        );
+        // An install staged before this build carries the older shim, which
+        // cannot hand the password over on bionic. Repair it here rather than
+        // sending the user back to `wrapper setup` for a file we ship.
+        if let Err(reason) = rebuild_argv_scrub(&lib64) {
+            return Err(format!(
+                "argv-scrub.so is missing or out of date ({reason}) — refusing to start \
+                 login. Install `cc` and re-run `melbad wrapper setup`"
+            ));
+        }
     }
     let credential = write_login_memfd(&cred)?;
     let cred_fd = credential.as_raw_fd();
@@ -859,6 +901,52 @@ mod tests {
     fn login_rejects_empty_password() {
         let e = login("user@example.com", "  ").unwrap_err();
         assert!(e.contains("empty password"), "{e}");
+    }
+
+    /// Repair builds a shim that this binary then accepts, from the source it
+    /// carries. A machine without `cc` is the one case that still needs the
+    /// user, and it says so instead of failing silently.
+    #[test]
+    fn a_stale_shim_is_rebuilt_from_the_embedded_source() {
+        let root = std::env::temp_dir().join(format!("mlb-scrub-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        assert!(!argv_scrub_ready(&root), "nothing installed yet");
+        match rebuild_argv_scrub(&root) {
+            Ok(()) => {
+                assert!(
+                    argv_scrub_ready(&root),
+                    "the rebuilt shim carries the marker"
+                );
+                assert!(
+                    !root.join(".argv-scrub.c").exists(),
+                    "the source is not left behind"
+                );
+            }
+            Err(reason) => {
+                assert_eq!(
+                    reason, "cc is not installed",
+                    "only a missing cc excuses this"
+                );
+            }
+        }
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    /// The shim the binary repairs an install with must be the shim this
+    /// binary's marker accepts: if one side moves the marker without the
+    /// other, every existing install would rebuild on every login, or never
+    /// become ready at all.
+    #[test]
+    fn the_embedded_shim_carries_the_marker_this_binary_accepts() {
+        assert!(
+            SCRUB_SOURCE.contains(std::str::from_utf8(SCRUB_MARKER).unwrap()),
+            "packaging/argv-scrub.c and SCRUB_MARKER disagree"
+        );
+        assert!(
+            SCRUB_SOURCE.contains("argv_scrub_init"),
+            "the embedded source is not the shim"
+        );
     }
 
     #[test]

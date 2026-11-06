@@ -90,3 +90,12 @@ wrapper databases.
 - The service's license, Apple's terms, and Melba's licenses are separate.
 - Melba contains the client/protocol and ALAC decode path, not the FairPlay key
   derivation; do not describe an installation as legal clearance.
+
+## Upgrading an existing install
+
+`login` needs a preload shim that matches the binary: it is what keeps the
+Apple ID password out of `/proc/<pid>/cmdline`. When an install carries an
+older shim, `melbad wrapper login` rebuilds it from the source carried in the
+binary and continues — `melbad wrapper setup` does not have to be re-run for
+this. A machine without `cc` is the only case that still needs one: the login
+then refuses and says so.
