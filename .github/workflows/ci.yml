@@ -5,6 +5,14 @@ on:
     branches: [main, master]
   pull_request:
 
+# A push that supersedes an unfinished run should cancel it. Without this,
+# three pushes to one pull request run three complete matrices at once, which
+# is most of what made CI look expensive: the later runs answer a question
+# nobody is waiting for any more.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
@@ -56,11 +64,11 @@ jobs:
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
       # Linux-only daemon integration (including sign-in subprocess resolution)
-      # is not compiled by the windows-check job below.
-      - run: cargo test --locked --manifest-path crates/melba/Cargo.toml --all-features --lib
-      # The integration tests are separate targets. `--lib` alone never ran
-      # localization, which is how a stale gettext template stayed broken.
-      - run: cargo test --locked --manifest-path crates/melba/Cargo.toml --all-features --tests
+      # is not compiled by the windows-check job below. One invocation: `--lib`
+      # and `--tests` used to build the same crate twice for the same features.
+      # Both targets must stay listed — `--lib` alone never ran localization,
+      # which is how a stale gettext template stayed broken.
+      - run: cargo test --locked --manifest-path crates/melba/Cargo.toml --all-features --lib --tests
       - run: cargo build
       # check.sh fail-closes on real gates (cargo.test, import×3, scan,
       # licenses) and honestly skips what the runner lacks (no

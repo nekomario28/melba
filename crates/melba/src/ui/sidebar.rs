@@ -312,6 +312,14 @@ fn liked_entry(app: &App) -> Entry {
     }
 }
 
+impl Entry {
+    /// Whether this row opens a playlist, which is what makes a generated
+    /// cover appropriate: albums and artists come with their own artwork.
+    fn page_is_playlist(&self) -> bool {
+        matches!(self.page, Page::Playlist(_))
+    }
+}
+
 pub(crate) fn selected_sort(app: &App, shelf: Filter) -> LibrarySort {
     if let Some(sort) = app.settings.library_sort.get(&shelf).copied()
         && sort.supports(shelf)
@@ -1218,6 +1226,14 @@ fn contents(app: &mut App, ui: &mut egui::Ui, grid_art: Option<Rect>) {
                         );
                         if entry.liked {
                             liked_cover(ui, cover_rect, 6.0);
+                        } else if entry.grid_image.is_none()
+                            && entry.image.is_none()
+                            && entry.page_is_playlist()
+                        {
+                            // Same reasoning as the Home tile: a playlist the
+                            // service never drew gets a cover from its name
+                            // rather than a flat placeholder.
+                            generated_cover(ui, cover_rect, 6.0, &entry.name);
                         } else {
                             super::widgets::paint_cover(
                                 ui,
@@ -1818,6 +1834,88 @@ pub fn liked_cover(ui: &egui::Ui, rect: Rect, radius: f32) {
     Icon::HeartFilled
         .image(egui::Color32::WHITE, size)
         .paint_at(ui, icon_rect);
+}
+
+/// A playlist Apple never drew a cover for. User-made playlists have no
+/// artwork of their own, so a flat placeholder reads as "broken" rather than
+/// "no cover"; this paints a cover derived from the playlist's name, the way
+/// the service does for the same case.
+/// The two colours behind a generated playlist cover. Same name, same cover:
+/// the point is a stable identity, not decoration.
+fn generated_cover_colors(seed: &str) -> (egui::Color32, egui::Color32) {
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for byte in seed.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x100_0000_01b3);
+    }
+    let hue_a = (hash % 360) as f32;
+    let hue_b = (hue_a + 32.0 + (hash >> 9) as f32 % 48.0) % 360.0;
+    let top: egui::Color32 =
+        egui::ecolor::Hsva::new(hue_a / 360.0, 0.62, 0.62, 1.0).into();
+    let bottom: egui::Color32 =
+        egui::ecolor::Hsva::new(hue_b / 360.0, 0.55, 0.32, 1.0).into();
+    (top, bottom)
+}
+
+pub fn generated_cover(ui: &egui::Ui, rect: Rect, radius: f32, seed: &str) {
+    let (top, bottom) = generated_cover_colors(seed);
+    let texture_id = egui::Id::new(("generated-cover", seed));
+    let texture = ui
+        .data(|data| data.get_temp::<egui::TextureHandle>(texture_id))
+        .unwrap_or_else(|| {
+            let size = 64;
+            let mut pixels = Vec::with_capacity(size * size);
+            for y in 0..size {
+                let t = y as f32 / (size - 1) as f32;
+                let mix = |a: u8, b: u8| (a as f32 + (b as f32 - a as f32) * t).round() as u8;
+                let row = egui::Color32::from_rgb(
+                    mix(top.r(), bottom.r()),
+                    mix(top.g(), bottom.g()),
+                    mix(top.b(), bottom.b()),
+                );
+                pixels.extend(std::iter::repeat_n(row, size));
+            }
+            let texture = ui.ctx().load_texture(
+                "generated-cover",
+                egui::ColorImage::new([size, size], pixels),
+                egui::TextureOptions::LINEAR,
+            );
+            ui.data_mut(|data| data.insert_temp(texture_id, texture.clone()));
+            texture
+        });
+    egui::Image::new(&texture)
+        .corner_radius(CornerRadius::same(radius.min(127.0) as u8))
+        .paint_at(ui, rect);
+    let size = rect.width() * 0.42;
+    let icon_rect = Rect::from_center_size(rect.center(), Vec2::splat(size));
+    Icon::ListMusic
+        .image(egui::Color32::from_white_alpha(215), size)
+        .paint_at(ui, icon_rect);
+}
+
+#[cfg(test)]
+mod generated_cover_tests {
+    use super::generated_cover_colors;
+
+    /// Same playlist, same cover: the tile is an identity, so it must not
+    /// change between frames or runs.
+    #[test]
+    fn the_same_name_gives_the_same_colours() {
+        assert_eq!(
+            generated_cover_colors("Anime"),
+            generated_cover_colors("Anime")
+        );
+    }
+
+    /// Different playlists must not all look alike, and the two stops must
+    /// differ from each other so the tile reads as a gradient.
+    #[test]
+    fn different_names_give_different_covers() {
+        let anime = generated_cover_colors("Anime");
+        let rock = generated_cover_colors("Rock");
+        assert_ne!(anime, rock);
+        assert_ne!(anime.0, anime.1);
+    }
 }
 
 #[cfg(all(test, feature = "demo"))]

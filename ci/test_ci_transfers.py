@@ -88,6 +88,27 @@ class AptTransfers(unittest.TestCase):
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertIn("nothing to configure", done.stderr.decode())
 
+    def test_a_superseded_pull_request_run_is_cancelled(self):
+        """Without this, every push to a pull request runs the whole matrix.
+
+        Measured before adding it: one pull request with four pushes ran four
+        complete matrices, three of which answered a revision nobody was
+        waiting for. The value has to be an expression, not `false`: turning
+        cancellation off is the regression this guards.
+        """
+        wrong = []
+        for name in ("ci.yml", "portable-baseline.yml"):
+            text = (WORKFLOWS / name).read_text(encoding="utf-8")
+            if not re.search(r"^concurrency:", text, re.MULTILINE):
+                wrong.append(f"{name}: no concurrency")
+                continue
+            cancel = re.search(
+                r"^\s+cancel-in-progress:\s*(.+)$", text, re.MULTILINE
+            )
+            if not cancel or "pull_request" not in cancel.group(1):
+                wrong.append(f"{name}: cancel-in-progress is not tied to pull requests")
+        self.assertEqual(wrong, [], "superseded pull-request runs would keep running")
+
     def test_the_script_is_only_called_after_a_checkout(self):
         """Calling it earlier fails: the file is not in the workspace yet.
 

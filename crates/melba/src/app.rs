@@ -416,6 +416,9 @@ pub struct App {
     pub radio_pages: HashMap<String, RadioPage>,
     pub track_cache: HashMap<String, Track>,
     track_requests: HashSet<String>,
+    /// Ids whose lookup failed, with when. A row that cannot be resolved must
+    /// not ask again on every frame: a 404 would become a request per frame.
+    track_failed: HashMap<String, Instant>,
     /// Album URIs already resolved or attempted this session.
     /// Built table rows, keyed by page. Capped; dropped on reset and eviction.
     pub table_rows: HashMap<Page, TableRowsCache>,
@@ -747,6 +750,16 @@ fn link_recording(
     recording_uris.entry(key).or_default().insert(uri);
 }
 
+/// A queue row the daemon could only partly describe. It knows the label but
+/// not the cover or the length, because the player reports those per slot as
+/// it gets to them; a row like that still has a song behind it worth asking
+/// for, otherwise it keeps a note icon and a zero duration all session.
+fn row_is_complete(row: &Track) -> bool {
+    let named = !row.name.is_empty() && row.name != row.uri && !name_is_an_id(&row.name);
+    let described = row.duration_ms > 0 || row.album.is_some() || !row.images.is_empty();
+    named && described
+}
+
 /// A daemon that has not been told a song's name yet can still report the
 /// queue slot it holds. `stream:<id>` is an identifier, not a title, so a row
 /// carrying one is treated as unnamed and asked for like any other.
@@ -921,6 +934,7 @@ impl App {
             radio_pages: HashMap::new(),
             track_cache: HashMap::new(),
             track_requests: HashSet::new(),
+            track_failed: HashMap::new(),
             table_rows: HashMap::new(),
             page_used: HashMap::new(),
             track_used: HashMap::new(),
@@ -2905,6 +2919,11 @@ impl App {
             }
             ApiResponse::Track { id, result } => {
                 self.track_requests.remove(&id);
+                if result.is_err() {
+                    self.track_failed.insert(id.clone(), Instant::now());
+                } else {
+                    self.track_failed.remove(&id);
+                }
                 match result {
                     Ok(track) => {
                         self.remember_track_recording(&track);
@@ -3998,6 +4017,14 @@ impl App {
         true
     }
 
+    /// Whether this id failed too recently to ask again.
+    fn track_failed_recently(&self, id: &str) -> bool {
+        const RETRY_AFTER: Duration = Duration::from_secs(300);
+        self.track_failed
+            .get(id)
+            .is_some_and(|at| at.elapsed() < RETRY_AFTER)
+    }
+
     /// Names the songs behind a daemon queue row. The daemon can only echo
     /// the URI it will open, so without this the panel would show
     /// `stream:<id>` where the user chose a song. The row keeps the daemon's
@@ -4006,14 +4033,14 @@ impl App {
         let PlayableItem::Track(row) = item else {
             return item.clone();
         };
-        if !row.name.is_empty() && row.name != row.uri && !name_is_an_id(&row.name) {
+        if row_is_complete(row) {
             return item.clone();
         }
         let Some(id) = util::uri_id(&row.uri).map(str::to_owned) else {
             return item.clone();
         };
         let Some(known) = self.read_cached_track(&id) else {
-            if self.track_requests.insert(id.clone()) {
+            if !self.track_failed_recently(&id) && self.track_requests.insert(id.clone()) {
                 self.backend.api(ApiRequest::Track { id });
             }
             return item.clone();

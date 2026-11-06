@@ -143,6 +143,11 @@ fn quick_access(app: &mut App, ui: &mut egui::Ui) {
                     let cover = Rect::from_min_size(rect.min, Vec2::splat(TILE_HEIGHT));
                     if *liked {
                         super::sidebar::liked_cover(ui, cover, 6.0);
+                    } else if image.is_none() {
+                        // A user-made playlist has no artwork of its own. A flat
+                        // placeholder reads as missing; a cover derived from the
+                        // name reads as a playlist.
+                        super::sidebar::generated_cover(ui, cover, 6.0, name);
                     } else {
                         widgets::paint_cover(
                             ui,
