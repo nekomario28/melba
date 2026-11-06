@@ -27,8 +27,6 @@ UNHANDLED = {
     "CheckPlaylistCover": "a chosen cover is never checked against the playlist",
     "ChoosePlaylistCover": "the native cover picker never opens",
     "NetworkStatus": "offline transitions are not reported to the app",
-    "LoadPlaylistCache": "a playlist cannot be shown from disk on a cold start",
-    "StorePlaylistCache": "a playlist is never saved for the next start",
     "Radio": "a radio page never resolves its songs",
 }
 

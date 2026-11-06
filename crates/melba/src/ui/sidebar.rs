@@ -1960,8 +1960,14 @@ mod ordering_tests {
         let rows = projected(&app, "お気に入りの曲");
         assert_eq!(rows.len(), 2);
         assert!(rows.iter().all(|row| !row.liked));
-        assert!(rows.iter().any(|row| row.page == Page::Playlist("p.user-named-favorites".into())));
-        assert!(rows.iter().any(|row| row.page == Page::Playlist("p.apple-favorites".into())));
+        assert!(
+            rows.iter()
+                .any(|row| row.page == Page::Playlist("p.user-named-favorites".into()))
+        );
+        assert!(
+            rows.iter()
+                .any(|row| row.page == Page::Playlist("p.apple-favorites".into()))
+        );
 
         app.settings.library_by_you = true;
         let own = projected(&app, "");

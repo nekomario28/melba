@@ -37,6 +37,7 @@ pub mod notch;
 pub mod opener;
 pub mod paths;
 pub mod player;
+pub mod playlist_cache;
 pub mod playlist_cover;
 pub mod power;
 pub mod settings;

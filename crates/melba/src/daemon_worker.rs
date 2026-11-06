@@ -269,6 +269,61 @@ impl DaemonWorker {
         }
     }
 
+    fn playlist_cache_path(&self, account: &str, id: &str) -> Option<std::path::PathBuf> {
+        if !safe_cache_name(id) {
+            return None;
+        }
+        self.account_cache_dir(account)
+            .map(|dir| dir.join("playlists").join(format!("{id}.json")))
+    }
+
+    fn load_playlist_cache(&self, id: &str, generation: u64, account: Option<&str>) {
+        let Some(account) = account else {
+            return self.emit(Event::PlaylistCache {
+                account_id: String::new(),
+                id: id.to_string(),
+                generation,
+                cache: None,
+            });
+        };
+        let cache = self
+            .playlist_cache_path(account, id)
+            .and_then(|path| crate::playlist_cache::read(&path, account));
+        self.emit(Event::PlaylistCache {
+            account_id: account.to_string(),
+            id: id.to_string(),
+            generation,
+            cache,
+        });
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn store_playlist_cache(
+        &self,
+        account: Option<&str>,
+        id: &str,
+        _generation: u64,
+        snapshot: String,
+        rows: crate::backend::PlaylistCacheRows,
+        total: u32,
+        next_offset: Option<u32>,
+    ) {
+        let Some(account) = account else { return };
+        let Some(path) = self.playlist_cache_path(account, id) else {
+            return;
+        };
+        // Appending onto another snapshot's rows would mix two lists.
+        let existing = crate::playlist_cache::read(&path, account)
+            .filter(|cache| cache.snapshot == snapshot)
+            .map(|cache| cache.items);
+        let items = crate::playlist_cache::rows_to_write(existing, rows);
+        if let Err(error) =
+            crate::playlist_cache::write(&path, account, &snapshot, total, next_offset, items)
+        {
+            log::warn!("could not save the {id} playlist cache: {error}");
+        }
+    }
+
     fn load_account_caches(&self, generation: u64, account: Option<&str>) {
         let Some(account) = account else {
             return self.emit(Event::AccountCaches {
@@ -284,17 +339,22 @@ impl DaemonWorker {
                 .filter(|path| path.is_file())
                 .and_then(|path| std::fs::read(path).ok())
         };
-        let playlists = read("library.json").and_then(|bytes| {
-            serde_json::from_slice::<crate::account_cache::Cache<Vec<crate::api::models::Playlist>>>(&bytes)
+        let playlists =
+            read("library.json").and_then(|bytes| {
+                serde_json::from_slice::<
+                    crate::account_cache::Cache<Vec<crate::api::models::Playlist>>,
+                >(&bytes)
                 .ok()
                 .filter(|cache| cache.account_id == account)
                 .map(|cache| cache.data)
-        });
+            });
         let home = read("home.json").and_then(|bytes| {
-            serde_json::from_slice::<crate::account_cache::Cache<crate::model::HomeSnapshot>>(&bytes)
-                .ok()
-                .filter(|cache| cache.account_id == account)
-                .map(|cache| cache.data)
+            serde_json::from_slice::<crate::account_cache::Cache<crate::model::HomeSnapshot>>(
+                &bytes,
+            )
+            .ok()
+            .filter(|cache| cache.account_id == account)
+            .map(|cache| cache.data)
         });
         self.emit(Event::AccountCaches {
             account_id: account.to_string(),
@@ -304,7 +364,12 @@ impl DaemonWorker {
         });
     }
 
-    fn store_account_cache(&self, account: &str, name: &str, bytes: Result<Vec<u8>, serde_json::Error>) {
+    fn store_account_cache(
+        &self,
+        account: &str,
+        name: &str,
+        bytes: Result<Vec<u8>, serde_json::Error>,
+    ) {
         let (Some(dir), Ok(bytes)) = (self.account_cache_dir(account), bytes) else {
             return;
         };
@@ -1259,6 +1324,28 @@ impl DaemonWorker {
                         Command::Lyrics(request) => self.spawn_lyrics(*request),
                         // This port ships with Melba, not through melba's
                         // release channel — there is nothing to download.
+                        Command::LoadPlaylistCache {
+                            id,
+                            generation,
+                            account,
+                        } => self.load_playlist_cache(&id, generation, account.as_deref()),
+                        Command::StorePlaylistCache {
+                            account,
+                            id,
+                            generation,
+                            snapshot,
+                            rows,
+                            total,
+                            next_offset,
+                        } => self.store_playlist_cache(
+                            account.as_deref(),
+                            &id,
+                            generation,
+                            snapshot,
+                            rows,
+                            total,
+                            next_offset,
+                        ),
                         Command::LoadAccountCaches { generation, account } => {
                             self.load_account_caches(generation, account.as_deref())
                         }

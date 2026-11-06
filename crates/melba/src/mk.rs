@@ -442,10 +442,9 @@ impl MusicKit {
             match answer {
                 Ok(v) => {
                     for item in v["data"].as_array().into_iter().flatten() {
-                        if let (Some(id), Some(value)) = (
-                            item["id"].as_str(),
-                            item["attributes"]["value"].as_i64(),
-                        ) {
+                        if let (Some(id), Some(value)) =
+                            (item["id"].as_str(), item["attributes"]["value"].as_i64())
+                        {
                             out.insert(id.to_string(), value);
                         }
                     }
@@ -1297,8 +1296,12 @@ mod tests {
     /// crafted tag or a stored plain-http URL cannot make it read elsewhere.
     #[test]
     fn accent_fetches_accept_only_plain_https_urls() {
-        assert!(artwork_url_ok("https://is1-ssl.mzstatic.com/image/thumb/x.jpg"));
-        assert!(!artwork_url_ok("http://is1-ssl.mzstatic.com/image/thumb/x.jpg"));
+        assert!(artwork_url_ok(
+            "https://is1-ssl.mzstatic.com/image/thumb/x.jpg"
+        ));
+        assert!(!artwork_url_ok(
+            "http://is1-ssl.mzstatic.com/image/thumb/x.jpg"
+        ));
         assert!(!artwork_url_ok("file:///etc/passwd"));
         assert!(!artwork_url_ok("https://"));
         assert!(!artwork_url_ok("https://host/a b.jpg"));

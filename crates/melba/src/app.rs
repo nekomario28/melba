@@ -2690,7 +2690,9 @@ impl App {
                         }
                     }
                     Ok(None) => {
-                        log::info!("no favorites playlist on this account; Liked Songs stays library-backed");
+                        log::info!(
+                            "no favorites playlist on this account; Liked Songs stays library-backed"
+                        );
                     }
                     Err(error) => log::warn!("could not identify the favorites playlist: {error}"),
                 }
@@ -5146,6 +5148,7 @@ impl App {
                     self.backend.send(Command::LoadPlaylistCache {
                         id: id.clone(),
                         generation,
+                        account: self.user_id().map(str::to_owned),
                     });
                 }
                 if self.network_reachable {
@@ -6320,10 +6323,7 @@ impl App {
     /// Ask the daemon which library playlist is the Favorites one, once per
     /// account and only when a page needs it.
     fn request_favorites_playlist(&mut self) {
-        if self.favorites_playlist.is_some()
-            || self.favorites_pending
-            || self.user_id().is_none()
-        {
+        if self.favorites_playlist.is_some() || self.favorites_pending || self.user_id().is_none() {
             return;
         }
         self.favorites_generation = self.favorites_generation.wrapping_add(1);
@@ -7074,6 +7074,7 @@ impl App {
         if self.playlist_cache_write_in_flight {
             return;
         }
+        let account = self.user_id().map(str::to_owned);
         let command = self.playlist_pages.get_mut(id).and_then(|page| {
             let snapshot = page
                 .playlist
@@ -7132,6 +7133,7 @@ impl App {
                 page.cache_append_valid = true;
             }
             Some(Command::StorePlaylistCache {
+                account,
                 id: id.to_string(),
                 generation: page.generation,
                 snapshot,

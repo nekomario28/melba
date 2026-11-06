@@ -466,9 +466,11 @@ pub enum Command {
     LoadPlaylistCache {
         id: String,
         generation: u64,
+        account: Option<String>,
     },
     /// Remember a playlist prefix on disk under its snapshot.
     StorePlaylistCache {
+        account: Option<String>,
         id: String,
         generation: u64,
         snapshot: String,

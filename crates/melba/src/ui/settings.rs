@@ -41,8 +41,7 @@ fn alac_service_configured_for_user() -> bool {
             .map(std::path::PathBuf::from)
             .filter(|path| path.is_absolute())
             .or_else(|| {
-                std::env::var_os("HOME")
-                    .map(|home| std::path::PathBuf::from(home).join(fallback))
+                std::env::var_os("HOME").map(|home| std::path::PathBuf::from(home).join(fallback))
             })
     };
     match (
@@ -269,7 +268,6 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
         });
     }
 
-
     let alac_title = gettext(locale, "Lossless audio (ALAC)");
     // Local file checks are cached so they do not run on every paint.
     // An external installation is detected on return to Settings.
@@ -284,9 +282,15 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
         }
     };
     let alac_detail = if alac_configured {
-        gettext(locale, "ALAC service configured. Lossless playback still requires a valid sign-in.")
+        gettext(
+            locale,
+            "ALAC service configured. Lossless playback still requires a valid sign-in.",
+        )
     } else {
-        gettext(locale, "ALAC requires an external service; installing Melba alone does not enable lossless playback.")
+        gettext(
+            locale,
+            "ALAC requires an external service; installing Melba alone does not enable lossless playback.",
+        )
     };
     let alac_rows = [RowText::new(alac_title.clone(), alac_detail)];
     if section_matches(&needle, &alac_title, &alac_rows) {

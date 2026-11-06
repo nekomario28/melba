@@ -107,10 +107,7 @@ mod tests {
 
         let x64 = missing_opengl_message(crate::i18n::Locale::English, false);
         assert_eq!(x64.title, "melba cannot open its window");
-        assert_eq!(
-            x64.page,
-            "https://github.com/nekomario28/melba/releases"
-        );
+        assert_eq!(x64.page, "https://github.com/nekomario28/melba/releases");
         assert!(x64.text.contains("OpenGL 2.0"));
         assert!(x64.text.contains("virtual machine"));
         assert!(

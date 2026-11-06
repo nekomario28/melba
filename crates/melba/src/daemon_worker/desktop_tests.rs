@@ -664,3 +664,51 @@ fn the_account_caches_round_trip_per_account() {
 
     let _ = std::fs::remove_dir_all(&root);
 }
+
+/// A playlist prefix is answered for the account that wrote it, and carries
+/// the snapshot it was written under: the app is the one that decides whether
+/// that snapshot still describes the list it is showing.
+#[test]
+fn the_playlist_cache_keeps_its_own_account_and_snapshot() {
+    use crate::api::models::{PlayableItem, PlaylistItem, Track};
+    let root = std::env::temp_dir().join(format!("mlb-plc-{:016x}", rand::random::<u64>()));
+    std::fs::create_dir_all(&root).unwrap();
+    let (tx, rx) = std::sync::mpsc::channel();
+    let worker = cache_worker(tx, &root);
+    let rows = || {
+        crate::backend::PlaylistCacheRows::Replace(vec![PlaylistItem {
+            item: Some(PlayableItem::Track(Track {
+                uri: "melba:track:one".into(),
+                ..Track::default()
+            })),
+            ..PlaylistItem::default()
+        }])
+    };
+
+    // Nothing written yet: the app hears a miss and fetches, as it would.
+    worker.load_playlist_cache("p1", 1, Some("alice"));
+    match rx.recv_timeout(Duration::from_secs(2)).unwrap() {
+        Event::PlaylistCache { cache, .. } => assert!(cache.is_none()),
+        _ => panic!("the worker answered with something else"),
+    }
+
+    worker.store_playlist_cache(Some("alice"), "p1", 2, "snap-1".into(), rows(), 1, None);
+    worker.load_playlist_cache("p1", 3, Some("alice"));
+    match rx.recv_timeout(Duration::from_secs(2)).unwrap() {
+        Event::PlaylistCache { cache, .. } => {
+            let cache = cache.expect("own prefix");
+            assert_eq!(cache.items.len(), 1);
+            assert_eq!(cache.snapshot, "snap-1");
+        }
+        _ => panic!("the worker answered with something else"),
+    }
+
+    // Another account's directory holds nothing for it.
+    worker.load_playlist_cache("p1", 4, Some("bob"));
+    match rx.recv_timeout(Duration::from_secs(2)).unwrap() {
+        Event::PlaylistCache { cache, .. } => assert!(cache.is_none()),
+        _ => panic!("the worker answered with something else"),
+    }
+
+    let _ = std::fs::remove_dir_all(&root);
+}

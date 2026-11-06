@@ -1436,9 +1436,11 @@ mod tests {
         );
         assert!(app.settings.library_by_you);
         let tree = accessible_frame(&ctx, &mut app, vec![]);
-        assert!(tree.nodes.iter().all(|(_, node)| {
-            node.label() != Some("Liked Songs")
-        }));
+        assert!(
+            tree.nodes
+                .iter()
+                .all(|(_, node)| { node.label() != Some("Liked Songs") })
+        );
         accessible_node(&tree, "Late night focus", Role::Button);
         assert!(
             !tree
@@ -2208,9 +2210,10 @@ mod tests {
             .nodes
             .iter()
             .find_map(|(_, node)| {
-                let bounds = (node.role() == Role::Button && node.label() == Some("Late night focus"))
-                    .then(|| node.bounds())
-                    .flatten()?;
+                let bounds = (node.role() == Role::Button
+                    && node.label() == Some("Late night focus"))
+                .then(|| node.bounds())
+                .flatten()?;
                 Some(egui::pos2(bounds.x0 as f32 + 24.0, bounds.y0 as f32 + 24.0))
             })
             .expect("Playlist card");
@@ -7279,7 +7282,10 @@ mod tests {
             }],
         );
         egui::DragAndDrop::clear_payload(&ctx);
-        assert!(!app.settings.sidebar_order.is_empty(), "playlist drop produced no order");
+        assert!(
+            !app.settings.sidebar_order.is_empty(),
+            "playlist drop produced no order"
+        );
         let expected: Vec<String> = [0, 4]
             .into_iter()
             .chain((1..PLAYLISTS.len()).filter(|index| *index != 4))
@@ -7308,7 +7314,12 @@ mod tests {
                 node.role() == Role::Button && node.label() == Some("Liked Songs")
             }));
             accessible_node(&tree, "Late night focus", Role::Button);
-            assert!(app.settings.library_pins().iter().any(|key| key == LIKED_SONGS_KEY));
+            assert!(
+                app.settings
+                    .library_pins()
+                    .iter()
+                    .any(|key| key == LIKED_SONGS_KEY)
+            );
             app.backend.shutdown();
         }
     }
