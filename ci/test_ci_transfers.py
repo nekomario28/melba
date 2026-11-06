@@ -17,9 +17,22 @@ WORKFLOWS = ROOT / ".github" / "workflows"
 SCRIPT = "ci/apt-transfers.sh"
 
 
+def workflow_lines(path):
+    """The lines of a workflow, starting at the `jobs:` block.
+
+    Anything before it is trigger configuration, and a trigger key such as
+    `pull_request:` sits at the same indentation as a job name.
+    """
+    lines = path.read_text(encoding="utf-8").splitlines()
+    for index, line in enumerate(lines):
+        if line.rstrip() == "jobs:":
+            return lines[index + 1 :]
+    return []
+
+
 def jobs(path):
     """(job name, [step run text]) for each job in a workflow file."""
-    text = path.read_text(encoding="utf-8")
+    text = "\n".join(workflow_lines(path))
     found = []
     job = None
     step_run = False
@@ -120,7 +133,7 @@ class AptTransfers(unittest.TestCase):
         for path in sorted(WORKFLOWS.glob("*.yml")):
             job = None
             checked_out = False
-            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for number, line in enumerate(workflow_lines(path), 1):
                 top = re.match(r"^  ([A-Za-z0-9_-]+):\s*$", line)
                 if top:
                     job = top.group(1)
