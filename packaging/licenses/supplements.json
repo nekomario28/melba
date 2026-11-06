@@ -185,6 +185,18 @@
       "path": "upstream/enum-map-derive-MIT.txt",
       "sha256": "b85dcd3e453d05982552c52b5fc9e0bdd6d23c6f8e844b984a88af32570b0cc0",
       "url": "https://codeberg.org/xfix/enum-map/raw/commit/2026968c30ad14d268f3d70c618a704e22a3b980/LICENSES/MIT.txt"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#jsonschema-regex@0.60.2",
+      "path": "upstream/jsonschema-regex-MIT.txt",
+      "sha256": "117829c3ca21efb132d81a44b55363d395ab8eea18526873bc828da4c0e5f038",
+      "url": "https://raw.githubusercontent.com/Stranger6667/jsonschema/0b657fa991c9333908e8c51e8a582d602aac5391/LICENSE"
+    },
+    {
+      "package": "registry+https://github.com/rust-lang/crates.io-index#jsonschema-value@0.60.2",
+      "path": "upstream/jsonschema-value-MIT.txt",
+      "sha256": "117829c3ca21efb132d81a44b55363d395ab8eea18526873bc828da4c0e5f038",
+      "url": "https://raw.githubusercontent.com/Stranger6667/jsonschema/0b657fa991c9333908e8c51e8a582d602aac5391/LICENSE"
     }
   ],
   "extra_files": [
