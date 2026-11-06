@@ -161,7 +161,10 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$MANAGER" == apt ]]; then
-            bash ci/apt-transfers.sh
+            # This job downloads a prebuilt artifact and never checks out, so
+            # the shared script is not here: the same three settings.
+            printf '%s\n' 'Acquire::Retries "3";' 'Acquire::http::Timeout "30";' \
+              'Acquire::https::Timeout "30";' > /etc/apt/apt.conf.d/99-ci-transfers
             apt-get update
             DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl openssl coreutils tar mawk
           elif [[ "$MANAGER" == dnf ]]; then

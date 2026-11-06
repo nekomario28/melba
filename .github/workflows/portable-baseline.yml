@@ -139,7 +139,10 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$PKG_MANAGER" == apt ]]; then
-            bash ci/apt-transfers.sh
+            # Still before checkout: the shared script is not in the workspace
+            # yet, so the same three settings, kept in step with it.
+            printf '%s\n' 'Acquire::Retries "3";' 'Acquire::http::Timeout "30";' \
+              'Acquire::https::Timeout "30";' > /etc/apt/apt.conf.d/99-ci-transfers
             apt-get update
             DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl tar
           elif [[ "$PKG_MANAGER" == dnf ]]; then
@@ -159,6 +162,10 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$PKG_MANAGER" == apt ]]; then
+            # This job downloads a prebuilt artifact and never checks out, so
+            # the shared script is not here: the same three settings.
+            printf '%s\n' 'Acquire::Retries "3";' 'Acquire::http::Timeout "30";' \
+              'Acquire::https::Timeout "30";' > /etc/apt/apt.conf.d/99-ci-transfers
             # Ubuntu 24.04's libasound2 is virtual and needs the t64 provider.
             # Debian 12 / Ubuntu 22.04 have no libasound2t64 package.
             alsa_pkg=libasound2

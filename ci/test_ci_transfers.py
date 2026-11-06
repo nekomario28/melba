@@ -88,6 +88,33 @@ class AptTransfers(unittest.TestCase):
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertIn("nothing to configure", done.stderr.decode())
 
+    def test_the_script_is_only_called_after_a_checkout(self):
+        """Calling it earlier fails: the file is not in the workspace yet.
+
+        That is not hypothetical — an edit here put the call in a container
+        bootstrap step that runs before `actions/checkout`, and five matrix
+        jobs died with `ci/apt-transfers.sh: No such file or directory`.
+        """
+        premature = []
+        for path in sorted(WORKFLOWS.glob("*.yml")):
+            job = None
+            checked_out = False
+            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                top = re.match(r"^  ([A-Za-z0-9_-]+):\s*$", line)
+                if top:
+                    job = top.group(1)
+                    checked_out = False
+                    continue
+                if "actions/checkout@" in line:
+                    checked_out = True
+                if SCRIPT in line and not line.lstrip().startswith("#") and not checked_out:
+                    premature.append(f"{path.name}:{job}:{number}")
+        self.assertEqual(
+            premature,
+            [],
+            "these call the shared script before the workspace is checked out",
+        )
+
     def test_every_job_that_installs_packages_arms_them_first(self):
         missing = []
         for path in sorted(WORKFLOWS.glob("*.yml")):
