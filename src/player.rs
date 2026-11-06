@@ -1551,6 +1551,26 @@ fn track_uri(orig: &str) -> String {
 
 /// Full MPRIS `Metadata` dict for the current track — shared by the property
 /// getter and the PropertiesChanged watcher so signals carry identical data.
+/// A title to show while nothing has named this entry yet. A file path can
+/// supply its own stem, but a URI cannot: `stream:1538278608` is an id, and
+/// passing it on as a name makes every consumer believe the entry is named.
+fn title_from_key(key: &str) -> String {
+    let is_uri = key.split_once(':').is_some_and(|(scheme, _)| {
+        !scheme.is_empty()
+            && !key.starts_with('/')
+            && scheme
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.'))
+    });
+    if is_uri {
+        return String::new();
+    }
+    PathBuf::from(key)
+        .file_stem()
+        .map(|x| x.to_string_lossy().to_string())
+        .unwrap_or_else(|| key.to_string())
+}
+
 fn metadata_map(shared: &Shared) -> dbus::arg::PropMap {
     use dbus::arg::{RefArg, Variant};
     let mut m: dbus::arg::PropMap = std::collections::HashMap::new();
@@ -1703,14 +1723,7 @@ fn metadata_map(shared: &Shared) -> dbus::arg::PropMap {
             Box::new(
                 paths
                     .iter()
-                    .map(|k| {
-                        tm.get(k).cloned().unwrap_or_else(|| {
-                            PathBuf::from(k)
-                                .file_stem()
-                                .map(|x| x.to_string_lossy().to_string())
-                                .unwrap_or_else(|| k.clone())
-                        })
-                    })
+                    .map(|k| tm.get(k).cloned().unwrap_or_else(|| title_from_key(k)))
                     .collect::<Vec<String>>(),
             ),
         );
@@ -2308,6 +2321,29 @@ pub fn serve(
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod title_from_key_tests {
+    use super::title_from_key;
+
+    /// A queue slot the player has not named yet used to be labelled with its
+    /// own identifier, and every consumer downstream believed that label.
+    #[test]
+    fn a_uri_is_not_a_title() {
+        assert_eq!(title_from_key("stream:1538278608"), "");
+        assert_eq!(title_from_key("melba:track:1417843841"), "");
+        assert_eq!(title_from_key("spotify:track:abc"), "");
+        assert_eq!(title_from_key("file:///music/a.flac"), "");
+    }
+
+    /// A path still names itself, because its stem is what the entry is.
+    #[test]
+    fn a_path_still_supplies_its_stem() {
+        assert_eq!(title_from_key("/music/01 - Track.flac"), "01 - Track");
+        assert_eq!(title_from_key("Track.mp3"), "Track");
+        assert_eq!(title_from_key("no-extension"), "no-extension");
+    }
 }
 
 #[cfg(test)]

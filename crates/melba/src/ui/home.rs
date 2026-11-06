@@ -57,10 +57,10 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
     }
 }
 
-struct Tile {
+pub(crate) struct Tile {
     image: Option<String>,
-    name: String,
-    page: Page,
+    pub(crate) name: String,
+    pub(crate) page: Page,
     uri: Option<String>,
     liked: bool,
     owned_playlist: Option<Playlist>,
@@ -70,19 +70,25 @@ struct Tile {
 const TILE_HEIGHT: f32 = 60.0;
 
 /// Liked Songs and the first playlists, as Home's quick-access tiles.
-fn quick_access_tiles(app: &App) -> Vec<Tile> {
+pub(crate) fn quick_access_tiles(app: &App) -> Vec<Tile> {
     let tile_art = app.art_px(TILE_HEIGHT);
-    let mut tiles: Vec<Tile> = vec![Tile {
-        image: None,
-        name: gettext(app.locale, "Liked Songs").into_owned(),
-        page: Page::LikedSongs,
-        uri: app
-            .user
-            .as_ref()
-            .map(|user| format!("melba:user:{}:collection", user.id)),
-        liked: true,
-        owned_playlist: None,
-    }];
+    // The synthetic tile stands in for the account's Favorites playlist. Once
+    // the daemon has identified that playlist and the library list shows it,
+    // Home would offer the same songs twice, so the stand-in steps aside.
+    let mut tiles: Vec<Tile> = Vec::new();
+    if app.favorites_playlist_in_library().is_none() {
+        tiles.push(Tile {
+            image: None,
+            name: gettext(app.locale, "Liked Songs").into_owned(),
+            page: Page::LikedSongs,
+            uri: app
+                .user
+                .as_ref()
+                .map(|user| format!("melba:user:{}:collection", user.id)),
+            liked: true,
+            owned_playlist: None,
+        });
+    }
     if let Some(playlists) = app.library.playlists.get() {
         for playlist in playlists.iter().take(7) {
             tiles.push(Tile {

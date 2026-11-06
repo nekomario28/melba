@@ -678,3 +678,122 @@ fn queue_rows_show_the_loaded_song_instead_of_the_daemon_uri() {
         "a playable URI is not a song name: {labels:?}"
     );
 }
+
+/// The daemon can report the slot it holds before it knows what is in it, and
+/// `stream:<id>` used to pass as a name, so the row neither asked nor waited.
+#[test]
+fn a_queue_row_named_with_an_id_still_asks_for_its_song() {
+    if isolated() {
+        return;
+    }
+    let mut ui = TestUi::new();
+    ui.app.handle_api(ApiResponse::Me(Ok(User {
+        id: "fixture".into(),
+        ..Default::default()
+    })));
+    ui.app.local_ready = true;
+    ui.app.local = LocalState {
+        connected: true,
+        playback: Playback::Paused,
+        ..Default::default()
+    };
+    let id = "1538278608";
+    ui.app.queue = Loadable::Loaded(Queue {
+        currently_playing: None,
+        queue: vec![PlayableItem::Track(crate::api::models::Track {
+            // The worker rewrites the URI the daemon reports; the name it
+            // passes through unchanged is what the player invented.
+            uri: format!("melba:track:{id}"),
+            name: format!("stream:{id}"),
+            ..Default::default()
+        })],
+    });
+    ui.app.queue_tab = QueueTab::Queue;
+    ui.app.show_queue_panel = true;
+    let _ = ui.tree(Vec::new());
+    let sent = ui.app.backend.take_sent_api();
+    assert!(
+        sent.iter().any(|r| matches!(r, ApiRequest::Track { id: got } if got == id)),
+        "a row labelled with its id must still ask for the song: {sent:?}"
+    );
+}
+
+/// Home used to offer the same songs twice: a synthetic tile that opens Liked
+/// Songs, and the account's own Favorites playlist further along the row. Once
+/// that playlist is known and listed, the stand-in steps aside.
+#[test]
+fn home_drops_the_stand_in_tile_once_it_lists_the_favorites_playlist() {
+    if isolated() {
+        return;
+    }
+    let mut ui = TestUi::new();
+    ui.app.handle_api(ApiResponse::Me(Ok(User {
+        id: "fixture".into(),
+        ..Default::default()
+    })));
+    let playlist = crate::api::models::Playlist {
+        id: "pl.favorites".into(),
+        uri: "melba:playlist:pl.favorites".into(),
+        name: "Favorites".into(),
+        ..Default::default()
+    };
+    ui.app.library.playlists = Loadable::Loaded(vec![playlist.clone()]);
+    let stand_in = |app: &crate::app::App| {
+        crate::ui::home::quick_access_tiles(app)
+            .iter()
+            .any(|tile| tile.page == crate::model::Page::LikedSongs)
+    };
+    assert!(
+        stand_in(&ui.app),
+        "before the playlist is known, the tile is the only way in"
+    );
+
+    let generation = ui.app.favorites_generation_for_test();
+    let account = ui.app.user_id().map(str::to_owned);
+    ui.app.handle_api(ApiResponse::FavoritesPlaylist {
+        generation,
+        account_id: account,
+        result: Ok(Some(playlist.id.clone())),
+    });
+    assert!(
+        !stand_in(&ui.app),
+        "the real playlist replaces the tile that duplicates it"
+    );
+}
+
+/// A queue row the daemon could not name asks for the song once, and says
+/// nothing about a URI while the answer is in flight.
+#[test]
+fn an_unnamed_queue_row_asks_for_its_song() {
+    if isolated() {
+        return;
+    }
+    let mut ui = TestUi::new();
+    ui.app.handle_api(ApiResponse::Me(Ok(User {
+        id: "fixture".into(),
+        ..Default::default()
+    })));
+    ui.app.local_ready = true;
+    ui.app.local = LocalState {
+        connected: true,
+        playback: Playback::Paused,
+        ..Default::default()
+    };
+    let id = "1538278608";
+    ui.app.queue = Loadable::Loaded(Queue {
+        currently_playing: None,
+        queue: vec![PlayableItem::Track(crate::api::models::Track {
+            uri: format!("stream:{id}"),
+            name: String::new(),
+            ..Default::default()
+        })],
+    });
+    ui.app.queue_tab = QueueTab::Queue;
+    ui.app.show_queue_panel = true;
+    let _ = ui.tree(Vec::new());
+    let sent = ui.app.backend.take_sent_api();
+    assert!(
+        sent.iter().any(|r| matches!(r, ApiRequest::Track { id: got } if got == id)),
+        "unnamed queue row must request its song: {sent:?}"
+    );
+}

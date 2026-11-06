@@ -747,6 +747,15 @@ fn link_recording(
     recording_uris.entry(key).or_default().insert(uri);
 }
 
+/// A daemon that has not been told a song's name yet can still report the
+/// queue slot it holds. `stream:<id>` is an identifier, not a title, so a row
+/// carrying one is treated as unnamed and asked for like any other.
+fn name_is_an_id(name: &str) -> bool {
+    name.strip_prefix("stream:").is_some_and(|rest| {
+        !rest.is_empty() && rest.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    })
+}
+
 impl App {
     pub fn new(waker: &Waker, dirs: AppDirs, settings: Settings, options: AppOptions) -> Self {
         let plays = crate::history::History::load(&dirs.history_file());
@@ -3997,7 +4006,7 @@ impl App {
         let PlayableItem::Track(row) = item else {
             return item.clone();
         };
-        if !row.name.is_empty() && row.name != row.uri {
+        if !row.name.is_empty() && row.name != row.uri && !name_is_an_id(&row.name) {
             return item.clone();
         }
         let Some(id) = util::uri_id(&row.uri).map(str::to_owned) else {
@@ -6318,6 +6327,25 @@ impl App {
             self.request_favorites_playlist();
         }
         self.open(page);
+    }
+
+    /// The lookup's current generation, for tests that answer it.
+    #[cfg(test)]
+    pub(crate) fn favorites_generation_for_test(&self) -> u64 {
+        self.favorites_generation
+    }
+
+    /// The playlist Apple keeps for liked songs, once the daemon has found it
+    /// and the library list can show it. Home uses this to avoid a second tile
+    /// for the same songs.
+    pub(crate) fn favorites_playlist_in_library(&self) -> Option<&str> {
+        let id = self.favorites_playlist.as_deref()?;
+        let listed = self
+            .library
+            .playlists
+            .get()
+            .is_some_and(|playlists| playlists.iter().any(|playlist| playlist.id == id));
+        listed.then_some(id)
     }
 
     /// Ask the daemon which library playlist is the Favorites one, once per

@@ -777,6 +777,21 @@ impl DaemonWorker {
         self.load(spec);
     }
 
+    /// The cover the player reported for one queue slot. An empty or absent
+    /// entry stays empty rather than fabricating an image to draw.
+    fn queue_art(arts: &[String], i: usize) -> Vec<crate::api::models::Image> {
+        arts.get(i)
+            .filter(|url| !url.is_empty())
+            .map(|url| {
+                vec![crate::api::models::Image {
+                    url: url.clone(),
+                    width: None,
+                    height: None,
+                }]
+            })
+            .unwrap_or_default()
+    }
+
     fn queue_track(&self, i: usize) -> Option<PlayableItem> {
         let uri = self.queue_uris.get(i)?.clone();
         Some(PlayableItem::Track(Track {
@@ -797,6 +812,10 @@ impl DaemonWorker {
                 })
                 .unwrap_or_default(),
             album: None,
+            // The player reports a cover per queue slot; rows that only name
+            // themselves would otherwise draw the placeholder for every song
+            // that has not started yet.
+            images: Self::queue_art(&self.queue_arts, i),
             ..Track::default()
         }))
     }
@@ -2411,6 +2430,28 @@ mod tests {
         profile_user, sign_in_command,
     };
     use crate::api::models::Image;
+
+    /// A queue row the player could name but not cover used to draw the
+    /// placeholder, because the reported art URL was parsed and then dropped.
+    #[test]
+    fn a_queue_row_carries_the_cover_the_player_reported() {
+        let arts = vec![
+            "https://example.invalid/a.jpg".to_string(),
+            String::new(),
+            "https://example.invalid/c.jpg".to_string(),
+        ];
+        let first = crate::daemon_worker::DaemonWorker::queue_art(&arts, 0);
+        assert_eq!(first.len(), 1);
+        assert_eq!(first[0].url, "https://example.invalid/a.jpg");
+        assert!(
+            crate::daemon_worker::DaemonWorker::queue_art(&arts, 1).is_empty(),
+            "an empty slot must not become an image"
+        );
+        assert!(
+            crate::daemon_worker::DaemonWorker::queue_art(&arts, 9).is_empty(),
+            "a slot past the reported list must not become an image"
+        );
+    }
 
     /// The daemon must be told where this app keeps its files. Inheriting the
     /// environment let a test run point a real daemon at the user's live
