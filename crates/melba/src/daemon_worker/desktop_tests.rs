@@ -278,7 +278,7 @@ fn audio_outputs_and_selection_cross_the_worker_api() {
         return;
     }
     let (events, received) = std::sync::mpsc::channel();
-    let mut probe = worker(events);
+    let probe = worker(events);
     let _daemon = start_fixture(&probe);
     probe.handle_api(ApiRequest::AudioDevices);
     let outputs = received

@@ -542,7 +542,7 @@ impl MusicKit {
             .as_array()
             .into_iter()
             .flatten()
-            .filter_map(|item| song_catalog_id(item))
+            .filter_map(song_catalog_id)
             .collect();
         if ids.len() < FAVORITES_MIN_TRACKS {
             return Ok(false);
