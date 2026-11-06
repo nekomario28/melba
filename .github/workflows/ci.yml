@@ -11,6 +11,10 @@ permissions:
 jobs:
   gates:
     runs-on: ubuntu-latest
+    # The suite takes about 12 minutes. Without a limit a stalled mirror left
+    # this job in `apt-get update` for 44 minutes with nothing to stop it,
+    # blocking a release PR behind a check that would never conclude.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Release signing script syntax and missing-key fail-closed gate
@@ -23,6 +27,7 @@ jobs:
           fi
       - name: system deps (alsa, dbus, gtk/webkit for tao+wry)
         run: |
+          bash ci/apt-transfers.sh
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential \
@@ -68,13 +73,7 @@ jobs:
         shell: bash
         # A mirror that stops sending bytes is what burns the whole budget;
         # retries plus a socket timeout turn that into an error we can see.
-        run: |
-          set -euo pipefail
-          sudo tee /etc/apt/apt.conf.d/99-ci-transfers >/dev/null <<'CONF'
-          Acquire::Retries "3";
-          Acquire::http::Timeout "30";
-          Acquire::https::Timeout "30";
-          CONF
+        run: bash ci/apt-transfers.sh
       - name: Verify signed release and install paired binaries
         shell: bash
         run: |
@@ -183,6 +182,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$PKG_MANAGER" = apt-get ]]; then
+            bash ci/apt-transfers.sh
             apt-get update
             DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl openssl
           else
@@ -251,6 +251,7 @@ jobs:
         working-directory: crates/melba
       - name: MinGW C compiler for the Windows target
         run: |
+          bash ci/apt-transfers.sh
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends gcc-mingw-w64-x86-64
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
