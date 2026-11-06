@@ -11,6 +11,8 @@
 //!   music-user-token  ~/.config/melba/music-user-token  (`melbad auth open`)
 
 use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
@@ -91,6 +93,9 @@ pub fn storefront() -> String {
 /// the on-disk cache is shared with `melbad` (`~/.cache/melba/dev-token`).
 pub struct MusicKit {
     http: reqwest::Client,
+    /// 0 unknown, 1 reached, 2 unreachable — set from request outcomes only,
+    /// so nothing here can report an outage the machine did not have.
+    reach: Arc<AtomicU8>,
     dev: Mutex<Option<String>>,
     storefront: String,
 }
@@ -99,6 +104,7 @@ impl MusicKit {
     pub fn new(http: reqwest::Client) -> Self {
         Self {
             http,
+            reach: Arc::new(AtomicU8::new(0)),
             dev: Mutex::new(None),
             storefront: storefront(),
         }
@@ -230,7 +236,18 @@ impl MusicKit {
             if let Some(ut) = Self::user_token() {
                 req = req.header("Music-User-Token", ut);
             }
-            let res = req.query(query).send().await.map_err(|e| e.to_string())?;
+            let res = match req.query(query).send().await {
+                Ok(res) => {
+                    self.reach.store(1, Ordering::Relaxed);
+                    res
+                }
+                Err(error) => {
+                    // A transport failure is the only thing that means the
+                    // service was not reached; an HTTP status does not.
+                    self.reach.store(2, Ordering::Relaxed);
+                    return Err(error.to_string());
+                }
+            };
             let status = res.status();
             let body = res.text().await.map_err(|e| e.to_string())?;
             if status.as_u16() == 401 && !retried {
@@ -329,7 +346,16 @@ impl MusicKit {
             Some(b) => req.json(b),
             None => req.header("Content-Length", "0"),
         };
-        let res = req.send().await.map_err(|e| e.to_string())?;
+        let res = match req.send().await {
+            Ok(res) => {
+                self.reach.store(1, Ordering::Relaxed);
+                res
+            }
+            Err(error) => {
+                self.reach.store(2, Ordering::Relaxed);
+                return Err(error.to_string());
+            }
+        };
         let status = res.status();
         let text = res.text().await.unwrap_or_default();
         if status.is_success() || status.as_u16() == 202 {
@@ -403,6 +429,16 @@ impl MusicKit {
             }
         }
         Ok(flags)
+    }
+
+    /// Whether the last request that used the network reached the service.
+    /// `None` until one has been tried.
+    pub fn reachability(&self) -> Option<bool> {
+        match self.reach.load(Ordering::Relaxed) {
+            1 => Some(true),
+            2 => Some(false),
+            _ => None,
+        }
     }
 
     /// Fetch an artwork image the app already holds the URL for. Artwork is a

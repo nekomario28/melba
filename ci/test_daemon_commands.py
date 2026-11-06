@@ -26,7 +26,6 @@ REWRITTEN = {"SignIn": "Backend::send turns it into AuthStart"}
 UNHANDLED = {
     "CheckPlaylistCover": "a chosen cover is never checked against the playlist",
     "ChoosePlaylistCover": "the native cover picker never opens",
-    "NetworkStatus": "offline transitions are not reported to the app",
     "Radio": "a radio page never resolves its songs",
 }
 

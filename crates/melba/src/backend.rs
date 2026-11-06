@@ -163,6 +163,8 @@ pub enum ApiRequest {
     Contains {
         uris: Vec<String>,
     },
+    /// The desktop reports network reachability changed.
+    NetworkStatus(bool),
     /// Which library playlist is the account's Favorites list, if one is.
     /// Apple names no id for it, so the daemon identifies it by its contents.
     FavoritesPlaylist {
@@ -405,6 +407,8 @@ pub enum PlaylistCacheRows {
 /// Work for the daemon worker, sent over the command channel.
 pub enum Command {
     OpenThemesFolder,
+    /// The desktop reports the network came back or went away.
+    NetworkStatus(bool),
     CheckPlaylistCover {
         id: String,
         request: u64,
@@ -439,8 +443,6 @@ pub enum Command {
         url: String,
     },
     Shutdown,
-    /// OS reports network reachability changed.
-    NetworkStatus(bool),
     /// Internal: the daemon asks for a reconnect.
     Reconnect,
     /// Ask GitHub whether a newer release exists. Manual checks report every

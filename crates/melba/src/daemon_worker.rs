@@ -77,6 +77,8 @@ pub struct DaemonWorker {
     codec: String,
     device_name: String,
     emitted_ready: bool,
+    /// Last reachability published, so only transitions reach the app.
+    last_network: Option<bool>,
     authed: bool,
     auth_ticks: u8,
     mk: Arc<MusicKit>,
@@ -136,6 +138,34 @@ pub(crate) fn safe_cache_name(name: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
 }
 
+#[cfg(test)]
+mod network_transition_tests {
+    use super::network_transition;
+
+    #[test]
+    fn only_a_change_is_published() {
+        let mut last = None;
+        assert_eq!(network_transition(&mut last, None), None, "nothing tried yet");
+        assert_eq!(network_transition(&mut last, Some(true)), Some(true));
+        assert_eq!(network_transition(&mut last, Some(true)), None, "same state");
+        assert_eq!(network_transition(&mut last, Some(false)), Some(false));
+        assert_eq!(network_transition(&mut last, Some(false)), None);
+        assert_eq!(network_transition(&mut last, Some(true)), Some(true), "back");
+    }
+}
+
+/// Publish a reachability change only when there is one. A first observation
+/// that matches nothing said before is still a change: the app starts out
+/// believing it is online, and a machine that was never online should say so.
+fn network_transition(last: &mut Option<bool>, now: Option<bool>) -> Option<bool> {
+    let now = now?;
+    if *last == Some(now) {
+        return None;
+    }
+    *last = Some(now);
+    Some(now)
+}
+
 fn daemon_command(
     executable: Option<std::path::PathBuf>,
     dirs: &DaemonDirs,
@@ -192,6 +222,7 @@ impl DaemonWorker {
             codec: String::new(),
             device_name: String::new(),
             emitted_ready: false,
+            last_network: None,
             authed: false,
             auth_ticks: 0,
             mk: Arc::new(MusicKit::new(reqwest::Client::new())),
@@ -1364,6 +1395,13 @@ impl DaemonWorker {
                         }
                         Command::StoreLikedSongsCache(cache) => self.store_liked_cache(cache),
                         Command::OpenThemesFolder => self.open_themes_folder(),
+                        Command::NetworkStatus(reachable) => {
+                            // The desktop knows the link dropped; pass it on and
+                            // remember it, so a request outcome that agrees does
+                            // not say it twice.
+                            self.last_network = Some(reachable);
+                            self.emit(Event::NetworkStatus(reachable));
+                        }
                         Command::Accent { url } => self.spawn_accent(url),
                         Command::UpdateProxy(proxy) => self.update_proxy = proxy,
                         Command::CheckForUpdates { manual, source } => {
@@ -1404,6 +1442,11 @@ impl DaemonWorker {
                     }
                 }
                 _ = interval.tick() => {
+                    // Reachability comes from what the requests actually did;
+                    // there is no probe that could call a captive portal up.
+                    if let Some(change) = network_transition(&mut self.last_network, self.mk.reachability()) {
+                        self.emit(Event::NetworkStatus(change));
+                    }
                     if daemon_managed {
                         self.supervise_daemon();
                     }
