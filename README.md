@@ -71,6 +71,7 @@ Unofficial; not affiliated with or endorsed by Apple Inc. The `aarch64` release 
 - [Installation](docs/installation.md) · [Audio and playback](docs/audio.md) · [Authentication](docs/authentication.md)
 - [Updating](docs/updates.md) · [Integrations](docs/integrations.md) · [Development](docs/development.md)
 - [Wrapper control](docs/wrapper.md) · [日本語](docs/wrapper.ja.md) · [Security and threat model](docs/security.md)
+- [Environment variables](docs/environment.md) · [Security policy](SECURITY.md)
 - [Roadmap](docs/roadmap.md)
 - [Publication scope](PUBLICATION.md) · [Third-party notices](NOTICE.md) · [Agent-facing specs](specs/README.md)
 
