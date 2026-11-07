@@ -119,7 +119,7 @@ fn spawn_failure_preserves_a_saved_binding() {
         let wrap = sandbox.0.join("data/melba/wrapper");
         let lib = wrap.join("rootfs/system/lib64");
         fs::create_dir_all(&lib).unwrap();
-        fs::write(lib.join("argv-scrub.so"), b"melba-login-fd-v2").unwrap();
+        fs::write(lib.join("argv-scrub.so"), b"melba-login-fd-v3").unwrap();
         let run = wrap.join("run");
         fs::write(&run, "#!/no-such-melba-test-interpreter\n").unwrap();
         fs::set_permissions(
