@@ -407,6 +407,11 @@ pub struct App {
     pub queue_tab: QueueTab,
     pub search: SearchState,
     pub playlist_pages: HashMap<String, PlaylistPage>,
+    /// Cover art composed from a playlist's first tracks, for the playlists the
+    /// service drew nothing for. Keyed by playlist id.
+    pub playlist_mosaics: HashMap<String, Vec<String>>,
+    /// Playlists already asked for, so a render pass asks once.
+    pub playlist_mosaic_asked: HashSet<String>,
     /// One checkpoint snapshot at a time, including pages evicted while it writes.
     playlist_cache_write_in_flight: bool,
     load_generation: u64,
@@ -932,6 +937,8 @@ impl App {
                 .unwrap_or_default(),
             search: SearchState::default(),
             playlist_pages: HashMap::new(),
+            playlist_mosaics: HashMap::new(),
+            playlist_mosaic_asked: HashSet::new(),
             playlist_cache_write_in_flight: false,
             load_generation: 0,
             album_pages: HashMap::new(),
@@ -2086,6 +2093,13 @@ impl App {
                     if shown || next_offset.is_none() {
                         self.apply_playlist_edits();
                         self.note_listed_playlists();
+                        // A user-made playlist has no artwork of its own, so
+                        // the group icon has to come from its songs.
+                        self.request_playlist_mosaics();
+                        // The Favorites lookup used to wait for Liked Songs to
+                        // be opened, which left the synthetic tile in place on
+                        // Home for anyone who never opened it.
+                        self.request_favorites_playlist();
                     }
                     if next_offset.is_none() {
                         self.store_library_cache();
@@ -2309,6 +2323,12 @@ impl App {
                 // A sorted table means the whole list, not the loaded part.
                 if self.table_sorts.contains_key(&Page::Playlist(id.clone())) {
                     self.load_more(Page::Playlist(id));
+                }
+            }
+            ApiResponse::PlaylistMosaic { id, result } => {
+                self.playlist_mosaic_asked.insert(id.clone());
+                if let Ok(covers) = result {
+                    self.playlist_mosaics.insert(id, covers);
                 }
             }
             ApiResponse::PlaylistCreated(result) => {
@@ -6377,6 +6397,33 @@ impl App {
     #[cfg(test)]
     pub(crate) fn favorites_generation_for_test(&self) -> u64 {
         self.favorites_generation
+    }
+
+    /// Ask for group art for playlists the service drew nothing for.
+    ///
+    /// A user-made playlist has no artwork of its own; the service composes a
+    /// group icon from its first tracks, and so does this. Asked once per
+    /// playlist per session, and only for the ones actually listed.
+    pub fn request_playlist_mosaics(&mut self) {
+        let Some(playlists) = self.library.playlists.get() else {
+            return;
+        };
+        let wanted: Vec<String> = playlists
+            .iter()
+            .filter(|playlist| playlist.images.is_empty())
+            .map(|playlist| playlist.id.clone())
+            .filter(|id| !self.playlist_mosaic_asked.contains(id))
+            .take(8)
+            .collect();
+        for id in wanted {
+            self.playlist_mosaic_asked.insert(id.clone());
+            self.backend.api(ApiRequest::PlaylistMosaic { id });
+        }
+    }
+
+    /// The group art for a playlist, if it arrived.
+    pub fn playlist_mosaic(&self, id: &str) -> Option<&[String]> {
+        self.playlist_mosaics.get(id).map(Vec::as_slice)
     }
 
     /// The playlist Apple keeps for liked songs, once the daemon has found it

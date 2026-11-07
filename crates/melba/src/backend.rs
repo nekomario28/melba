@@ -101,6 +101,11 @@ pub enum ApiRequest {
         offset: u32,
         generation: u64,
     },
+    /// Cover art for a playlist the service drew none for: the artworks of its
+    /// first few tracks, which is what a group icon is composed of.
+    PlaylistMosaic {
+        id: String,
+    },
     CreatePlaylist {
         name: String,
         public: bool,
@@ -275,6 +280,10 @@ pub enum ApiResponse {
         offset: u32,
         generation: u64,
         result: ApiResult<Page<PlaylistItem>>,
+    },
+    PlaylistMosaic {
+        id: String,
+        result: ApiResult<Vec<String>>,
     },
     PlaylistCreated(ApiResult<Playlist>),
     PlaylistCoverUploaded {

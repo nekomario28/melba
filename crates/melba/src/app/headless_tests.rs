@@ -888,6 +888,112 @@ fn a_failed_lookup_is_not_retried_every_frame() {
     assert_eq!(again, 0, "a failed id waits before it is asked for again");
 }
 
+fn page_of(items: Vec<crate::api::models::Playlist>) -> crate::api::models::Page<crate::api::models::Playlist> {
+    crate::api::models::Page {
+        items,
+        total: 1,
+        limit: 50,
+        offset: 0,
+        next: None,
+    }
+}
+
+/// The Favorites lookup used to wait for Liked Songs to be opened, so Home kept
+/// a synthetic tile beside the real playlist for anyone who never opened it.
+#[test]
+fn loading_the_playlists_asks_which_one_is_favorites() {
+    if isolated() {
+        return;
+    }
+    let mut ui = TestUi::new();
+    ui.app.handle_api(ApiResponse::Me(Ok(User {
+        id: "fixture".into(),
+        ..Default::default()
+    })));
+    let before = ui.app.favorites_generation_for_test();
+    let generation = ui.app.library.playlists_generation;
+    ui.app.handle_api(ApiResponse::MyPlaylists {
+        offset: 0,
+        generation,
+        result: Ok(page_of(vec![crate::api::models::Playlist {
+            id: "pl.favorites".into(),
+            uri: "melba:playlist:pl.favorites".into(),
+            name: "Favorites".into(),
+            ..Default::default()
+        }])),
+    });
+    let asked = ui.app.backend.take_sent_api();
+    assert!(
+        asked
+            .iter()
+            .any(|r| matches!(r, ApiRequest::FavoritesPlaylist { .. })),
+        "the playlists loading must ask which is Favorites: {asked:?}"
+    );
+    assert_ne!(
+        ui.app.favorites_generation_for_test(),
+        before,
+        "the lookup gets its own generation"
+    );
+}
+
+/// A user-made playlist has no artwork of its own, so a group icon is composed
+/// from its first tracks — asked for once, and only for playlists without art.
+#[test]
+fn a_playlist_without_art_asks_for_its_group_icon_once() {
+    if isolated() {
+        return;
+    }
+    let mut ui = TestUi::new();
+    ui.app.handle_api(ApiResponse::Me(Ok(User {
+        id: "fixture".into(),
+        ..Default::default()
+    })));
+    let bare = crate::api::models::Playlist {
+        id: "p.mine".into(),
+        uri: "melba:playlist:p.mine".into(),
+        name: "Mine".into(),
+        ..Default::default()
+    };
+    let drawn = crate::api::models::Playlist {
+        id: "p.drawn".into(),
+        uri: "melba:playlist:p.drawn".into(),
+        name: "Drawn".into(),
+        images: vec![crate::api::models::Image {
+            url: "https://example.invalid/a.jpg".into(),
+            width: Some(300),
+            height: Some(300),
+        }],
+        ..Default::default()
+    };
+    let generation = ui.app.library.playlists_generation;
+    ui.app.handle_api(ApiResponse::MyPlaylists {
+        offset: 0,
+        generation,
+        result: Ok(page_of(vec![bare, drawn])),
+    });
+    let asked: Vec<String> = ui
+        .app
+        .backend
+        .take_sent_api()
+        .into_iter()
+        .filter_map(|r| match r {
+            ApiRequest::PlaylistMosaic { id } => Some(id),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(asked, vec!["p.mine".to_string()], "only the undrawn playlist");
+
+    // The answer lands where the tile looks for it.
+    ui.app.handle_api(ApiResponse::PlaylistMosaic {
+        id: "p.mine".into(),
+        result: Ok(vec!["https://example.invalid/1.jpg".into()]),
+    });
+    assert_eq!(
+        ui.app.playlist_mosaic("p.mine").map(<[String]>::len),
+        Some(1)
+    );
+}
+
 /// Home used to offer the same songs twice: a synthetic tile that opens Liked
 /// Songs, and the account's own Favorites playlist further along the row. Once
 /// that playlist is known and listed, the stand-in steps aside.
