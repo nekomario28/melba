@@ -1789,6 +1789,53 @@ async fn catalog_answer(mk: &MusicKit, request: ApiRequest) -> Option<ApiRespons
                 result,
             })
         }
+        ApiRequest::PlaylistMosaic { id } => {
+            // A playlist the service drew nothing for still has songs, and a
+            // group icon is composed from the first few of them. Four is what
+            // the mosaic needs; asking for more would be a page load.
+            let result = async {
+                let data = if id.starts_with("p.") {
+                    mk.me_get(
+                        &format!("/library/playlists/{id}/tracks"),
+                        &[("limit", "4"), ("offset", "0")],
+                    )
+                    .await?
+                } else {
+                    let full = mk
+                        .get(&format!("/playlists/{id}"), &[("extend", "audioVariants")])
+                        .await?;
+                    let mut sliced = full.clone();
+                    let tracks = full["data"][0]["relationships"]["tracks"]["data"]
+                        .as_array()
+                        .cloned()
+                        .unwrap_or_default()
+                        .into_iter()
+                        .take(4)
+                        .collect::<Vec<_>>();
+                    sliced["data"] = serde_json::json!([{ "tracks": { "data": tracks } }]);
+                    sliced
+                };
+                let mut covers: Vec<String> = Vec::new();
+                for item in data["data"].as_array().cloned().unwrap_or_default() {
+                    let track = crate::mk::song(&item);
+                    if let Some(url) = track.image(300)
+                        && !covers.iter().any(|held| held == url)
+                    {
+                        covers.push(url.to_string());
+                    }
+                    if covers.len() == 4 {
+                        break;
+                    }
+                }
+                if covers.is_empty() {
+                    return Err("no cover art in this playlist's tracks".to_string());
+                }
+                Ok(covers)
+            }
+            .await
+            .map_err(err);
+            Some(ApiResponse::PlaylistMosaic { id, result })
+        }
         ApiRequest::MyPlaylists { offset, generation } => {
             let result = mk
                 .me_get("/library/playlists", &[("limit", "50")])
