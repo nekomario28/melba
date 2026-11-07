@@ -31,6 +31,7 @@ ANSWERED = {
     "RelatedArtists": "RelatedArtists",
     "Playlist": "Playlist",
     "PlaylistItems": "PlaylistItems",
+    "PlaylistMosaic": "PlaylistMosaic",
     "MyPlaylists": "MyPlaylists",
     "MadeForYou": "MadeForYou",
     "Contains": "Contains",

@@ -64,6 +64,8 @@ pub(crate) struct Tile {
     uri: Option<String>,
     liked: bool,
     owned_playlist: Option<Playlist>,
+    /// Group art composed from the playlist's first tracks, when it arrived.
+    mosaic: Option<Vec<String>>,
 }
 
 /// The height of a quick-access tile, and so the side of its cover.
@@ -87,6 +89,7 @@ pub(crate) fn quick_access_tiles(app: &App) -> Vec<Tile> {
                 .map(|user| format!("melba:user:{}:collection", user.id)),
             liked: true,
             owned_playlist: None,
+            mosaic: None,
         });
     }
     if let Some(playlists) = app.library.playlists.get() {
@@ -101,6 +104,7 @@ pub(crate) fn quick_access_tiles(app: &App) -> Vec<Tile> {
                     .user_id()
                     .is_some_and(|id| playlist.owned_by(id))
                     .then(|| playlist.clone()),
+                mosaic: app.playlist_mosaic(&playlist.id).map(<[String]>::to_vec),
             });
         }
     }
@@ -126,6 +130,7 @@ fn quick_access(app: &mut App, ui: &mut egui::Ui) {
                     uri,
                     liked,
                     owned_playlist,
+                    mosaic: playlist_mosaic,
                 }) = tiles.get(row * columns + column)
                 else {
                     break;
@@ -143,10 +148,20 @@ fn quick_access(app: &mut App, ui: &mut egui::Ui) {
                     let cover = Rect::from_min_size(rect.min, Vec2::splat(TILE_HEIGHT));
                     if *liked {
                         super::sidebar::liked_cover(ui, cover, 6.0);
+                    } else if let Some(covers) = playlist_mosaic.as_deref() {
+                        // The group icon the service composes for a playlist it
+                        // drew nothing for: its first tracks, laid together.
+                        super::sidebar::mosaic_cover(
+                            ui,
+                            cover,
+                            6.0,
+                            covers,
+                            Some(app.backend.art()),
+                        );
                     } else if image.is_none() {
-                        // A user-made playlist has no artwork of its own. A flat
-                        // placeholder reads as missing; a cover derived from the
-                        // name reads as a playlist.
+                        // Until the tracks are known, a cover derived from the
+                        // name reads as a playlist; a flat placeholder reads as
+                        // missing.
                         super::sidebar::generated_cover(ui, cover, 6.0, name);
                     } else {
                         widgets::paint_cover(

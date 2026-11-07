@@ -318,6 +318,14 @@ impl Entry {
     fn page_is_playlist(&self) -> bool {
         matches!(self.page, Page::Playlist(_))
     }
+
+    /// The playlist this row opens, when it opens one.
+    fn page_playlist_id(&self) -> Option<&str> {
+        match &self.page {
+            Page::Playlist(id) => Some(id.as_str()),
+            _ => None,
+        }
+    }
 }
 
 pub(crate) fn selected_sort(app: &App, shelf: Filter) -> LibrarySort {
@@ -1226,13 +1234,25 @@ fn contents(app: &mut App, ui: &mut egui::Ui, grid_art: Option<Rect>) {
                         );
                         if entry.liked {
                             liked_cover(ui, cover_rect, 6.0);
+                        } else if let Some(covers) = entry
+                            .page_playlist_id()
+                            .and_then(|id| app.playlist_mosaic(id))
+                        {
+                            // The group icon the service composes: the
+                            // playlist's first tracks, laid together.
+                            mosaic_cover(
+                                ui,
+                                cover_rect,
+                                6.0,
+                                covers,
+                                Some(app.backend.art()),
+                            );
                         } else if entry.grid_image.is_none()
                             && entry.image.is_none()
                             && entry.page_is_playlist()
                         {
-                            // Same reasoning as the Home tile: a playlist the
-                            // service never drew gets a cover from its name
-                            // rather than a flat placeholder.
+                            // Until the tracks are known, the name decides the
+                            // cover rather than a flat placeholder.
                             generated_cover(ui, cover_rect, 6.0, &entry.name);
                         } else {
                             super::widgets::paint_cover(
@@ -1836,6 +1856,64 @@ pub fn liked_cover(ui: &egui::Ui, rect: Rect, radius: f32) {
         .paint_at(ui, icon_rect);
 }
 
+/// Where each cover of a group icon goes: four squares, or halves and a single
+/// when there are fewer. Split out from the painting so the layout can be
+/// checked without a GPU.
+fn mosaic_cells(rect: Rect, count: usize) -> Vec<Rect> {
+    let half_w = rect.width() / 2.0;
+    let half_h = rect.height() / 2.0;
+    let left = Rect::from_min_size(rect.min, vec2(half_w, rect.height()));
+    let right = Rect::from_min_size(pos2(rect.min.x + half_w, rect.min.y), vec2(half_w, rect.height()));
+    let top_right = Rect::from_min_size(pos2(rect.min.x + half_w, rect.min.y), vec2(half_w, half_h));
+    let bottom_right = Rect::from_min_size(
+        pos2(rect.min.x + half_w, rect.min.y + half_h),
+        vec2(half_w, half_h),
+    );
+    match count {
+        0 => Vec::new(),
+        1 => vec![rect],
+        2 => vec![left, right],
+        3 => vec![left, top_right, bottom_right],
+        _ => vec![
+            Rect::from_min_size(rect.min, vec2(half_w, half_h)),
+            top_right,
+            Rect::from_min_size(pos2(rect.min.x, rect.min.y + half_h), vec2(half_w, half_h)),
+            bottom_right,
+        ],
+    }
+}
+
+/// A group icon: the covers of a playlist's first tracks, laid out the way the
+/// service composes one.
+pub fn mosaic_cover(
+    ui: &egui::Ui,
+    rect: Rect,
+    radius: f32,
+    covers: &[String],
+    art: Option<&crate::images::ArtLoader>,
+) {
+    let painter = ui.painter();
+    painter.rect_filled(
+        rect,
+        CornerRadius::same(radius.min(127.0) as u8),
+        ui.visuals().faint_bg_color,
+    );
+    let pixels = |cell: Rect| {
+        crate::images::cover_pixels(cell.width().max(cell.height()) * ui.ctx().pixels_per_point())
+    };
+    for (url, cell) in covers.iter().zip(mosaic_cells(rect, covers.len())) {
+        if let Some(art) = art {
+            art.touch(url);
+        }
+        // Same pipeline as every other cover: the byte loader fills it, and a
+        // frame before it arrives simply draws the fill underneath.
+        egui::Image::new(crate::images::scaled_uri(url, pixels(cell)))
+            .texture_options(crate::images::COVER_TEXTURE)
+            .show_loading_spinner(false)
+            .paint_at(ui, cell.shrink(0.5));
+    }
+}
+
 /// A playlist Apple never drew a cover for. User-made playlists have no
 /// artwork of their own, so a flat placeholder reads as "broken" rather than
 /// "no cover"; this paints a cover derived from the playlist's name, the way
@@ -1891,6 +1969,48 @@ pub fn generated_cover(ui: &egui::Ui, rect: Rect, radius: f32, seed: &str) {
     Icon::ListMusic
         .image(egui::Color32::from_white_alpha(215), size)
         .paint_at(ui, icon_rect);
+}
+
+#[cfg(test)]
+mod mosaic_cells_tests {
+    use super::mosaic_cells;
+    use egui::{pos2, Rect};
+
+    fn tile() -> Rect {
+        Rect::from_min_size(pos2(10.0, 20.0), egui::vec2(60.0, 60.0))
+    }
+
+    /// The cells must tile the tile: a group icon with a gap or an overlap is
+    /// visible immediately.
+    #[test]
+    fn the_cells_cover_the_tile_without_overlapping() {
+        let rect = tile();
+        for count in 1..=4 {
+            let cells = mosaic_cells(rect, count);
+            assert_eq!(cells.len(), count);
+            let area: f32 = cells.iter().map(|cell| cell.width() * cell.height()).sum();
+            assert!(
+                (area - rect.width() * rect.height()).abs() < 0.01,
+                "{count} cells cover {area}, tile is {}",
+                rect.width() * rect.height()
+            );
+            for (index, a) in cells.iter().enumerate() {
+                for b in cells.iter().skip(index + 1) {
+                    assert!(
+                        a.intersect(*b).area() < 0.01,
+                        "{count} cells overlap: {a:?} and {b:?}"
+                    );
+                }
+            }
+        }
+        assert!(mosaic_cells(rect, 0).is_empty());
+    }
+
+    /// A single cover fills the tile rather than a quarter of it.
+    #[test]
+    fn one_cover_fills_the_tile() {
+        assert_eq!(mosaic_cells(tile(), 1), vec![tile()]);
+    }
 }
 
 #[cfg(test)]
