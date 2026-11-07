@@ -202,6 +202,23 @@ fn running(c: &mut Option<ProcessGroup>) -> bool {
 /// Spawn the service and store the child under `guard` — callers hold the
 /// CHILD mutex across the alive check + spawn so two racing opens can't
 /// each start a copy fighting over the same ports.
+/// Keep the previous session's log before the new one starts.
+///
+/// The log is created fresh on every start, and the error this file reports is
+/// "managed wrapper exited early — see wrapper.log". Restarting the wrapper
+/// after a failure therefore used to delete the only evidence, which is the one
+/// moment the log exists for. One previous session is kept as `wrapper.log.1`;
+/// older ones are not.
+fn rotate_log(path: &Path) {
+    let Ok(metadata) = std::fs::metadata(path) else {
+        return;
+    };
+    if metadata.len() == 0 {
+        return;
+    }
+    let _ = std::fs::rename(path, path.with_extension("log.1"));
+}
+
 fn spawn_locked(guard: &mut Option<ProcessGroup>, detached: bool) -> Result<String, String> {
     let bin = binary().ok_or_else(|| {
         "ALAC needs the decrypt service — run `melbad wrapper setup` first \
@@ -214,6 +231,7 @@ fn spawn_locked(guard: &mut Option<ProcessGroup>, detached: bool) -> Result<Stri
     let lease = session_lock()?;
     let fd = lease.as_raw_fd();
     let log = d.join("wrapper.log");
+    rotate_log(&log);
     let lf = std::fs::File::create(&log).map_err(|e| e.to_string())?;
     // `run` already supplies -H 127.0.0.1 — passing it again makes the
     // wrapper binary reject the duplicate and exit early
@@ -844,6 +862,42 @@ pub fn setup(apk: Option<&Path>) -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
+    /// The wrapper log is created fresh at every start and the failure message
+    /// points at it, so the previous session has to survive a restart.
+    #[test]
+    fn the_previous_wrapper_log_survives_a_restart() {
+        let dir = std::env::temp_dir().join(format!("melba-wraplog-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let log = dir.join("wrapper.log");
+
+        // Nothing to keep yet.
+        rotate_log(&log);
+        assert!(!dir.join("wrapper.log.1").exists());
+
+        // An empty log is not worth keeping either.
+        std::fs::write(&log, b"").unwrap();
+        rotate_log(&log);
+        assert!(!dir.join("wrapper.log.1").exists());
+
+        std::fs::write(&log, b"session one failed here").unwrap();
+        rotate_log(&log);
+        assert_eq!(
+            std::fs::read_to_string(dir.join("wrapper.log.1")).unwrap(),
+            "session one failed here"
+        );
+        assert!(!log.exists(), "the new session starts with an empty log");
+
+        // A second restart replaces the kept log with the more recent one.
+        std::fs::write(&log, b"session two failed here").unwrap();
+        rotate_log(&log);
+        assert_eq!(
+            std::fs::read_to_string(dir.join("wrapper.log.1")).unwrap(),
+            "session two failed here"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     use super::*;
 
     #[test]
