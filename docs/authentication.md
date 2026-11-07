@@ -1,6 +1,6 @@
 # Apple Music sign-in and credential handling
 
-[README](../README.md) · [Wrapper control](wrapper.md) · [Roadmap](roadmap.md)
+[README](../README.md) · [Wrapper control](wrapper.md) · [Security](security.md) · [Roadmap](roadmap.md)
 
 Full-track subscription playback requires an eligible Apple Music account and a valid `music-user-token`. The browser and native wrapper sign-in paths are distinct; do not treat a working token or fake SDK test as proof that all sign-in methods are supported end to end.
 

@@ -76,11 +76,86 @@ pub(crate) fn store(path: &Path, token: &str) -> Result<(), String> {
     result
 }
 
+/// Read the stored token.
+///
+/// A token kept in a file the rest of the machine can read is not a secret any
+/// more, so the file's own permissions are checked rather than assumed. This
+/// does not refuse to work — a restore from a backup with the wrong modes is
+/// common and locking the user out of their own library would not undo the
+/// exposure — but it says so once, and `melbad auth status` reports it.
 pub fn get() -> Option<String> {
-    std::fs::read_to_string(token_path()?)
+    let configured = std::env::var("MELBA_MUSIC_USER_TOKEN_CMD").ok();
+    if let Some(token) = external_token(configured.as_deref()) {
+        return Some(token);
+    }
+    let path = token_path()?;
+    let token = std::fs::read_to_string(&path)
         .ok()
         .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
+        .filter(|s| !s.is_empty())?;
+    if let Some(problem) = insecure_storage(&path) {
+        warn_once(&format!(
+            "warning: {problem}; run `melbad auth open` to sign in again and rewrite it privately"
+        ));
+    }
+    Some(token)
+}
+
+/// An external secret store, for people who keep tokens in one.
+///
+/// The command's stdout is the token. This is the answer for a keyring, a
+/// password manager or anything else: Melba does not need a dependency on any
+/// of them, and the token need never be written to disk here.
+///
+/// The command is a parameter rather than a variable read, so the behaviour is
+/// testable without one test reaching into the process-wide environment the
+/// rest of the suite shares.
+fn external_token(command: Option<&str>) -> Option<String> {
+    let command = command.map(str::trim).filter(|value| !value.is_empty())?;
+    let output = std::process::Command::new("sh")
+        .arg("-c")
+        .arg(command)
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let token = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if token.is_empty() {
+        return None;
+    }
+    valid_token(&token).ok().map(str::to_string)
+}
+
+/// Why the file holding the token is not private, if it is not.
+fn insecure_storage(path: &Path) -> Option<String> {
+    let metadata = std::fs::symlink_metadata(path).ok()?;
+    if metadata.file_type().is_symlink() {
+        return Some(format!("{} is a symlink", path.display()));
+    }
+    let mode = metadata.permissions().mode() & 0o777;
+    if mode & 0o077 != 0 {
+        return Some(format!("{} is mode {:04o}", path.display(), mode));
+    }
+    let parent = path.parent()?;
+    let parent_mode = std::fs::metadata(parent).ok()?.permissions().mode() & 0o777;
+    if parent_mode & 0o077 != 0 {
+        return Some(format!("{} is mode {:04o}", parent.display(), parent_mode));
+    }
+    None
+}
+
+/// Say something once per process; the read path runs on every request.
+fn warn_once(message: &str) {
+    use std::sync::Once;
+    static ONCE: Once = Once::new();
+    ONCE.call_once(|| eprintln!("{message}"));
+}
+
+/// The storage problem for `melbad auth status` to print, if there is one.
+pub fn storage_problem() -> Option<String> {
+    let path = token_path()?;
+    path.exists().then(|| insecure_storage(&path)).flatten()
 }
 
 pub fn clear() -> Result<(), String> {
@@ -415,6 +490,56 @@ mod tests {
         fn drop(&mut self) {
             let _ = fs::remove_dir_all(&self.0);
         }
+    }
+
+    /// The file's own permissions are the only thing that keeps the token
+    /// private, so they are checked rather than assumed: a restore from a
+    /// backup with the wrong modes is a real way to end up here.
+    #[test]
+    fn a_token_file_others_can_read_is_reported() {
+        let dir = TestDir::new();
+        let path = dir.0.join("music-user-token");
+        store(&path, "fixture-token").unwrap();
+        assert_eq!(insecure_storage(&path), None, "written private");
+
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
+        let problem = insecure_storage(&path).expect("mode 0644 is not private");
+        assert!(problem.contains("0644"), "{problem}");
+
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
+        fs::set_permissions(&dir.0, fs::Permissions::from_mode(0o755)).unwrap();
+        let problem = insecure_storage(&path).expect("a readable directory is not private");
+        assert!(problem.contains("0755"), "{problem}");
+        fs::set_permissions(&dir.0, fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(insecure_storage(&path), None);
+    }
+
+    #[test]
+    fn a_symlinked_token_file_is_reported() {
+        let dir = TestDir::new();
+        let real = dir.0.join("elsewhere");
+        store(&real, "fixture-token").unwrap();
+        let path = dir.0.join("music-user-token");
+        std::os::unix::fs::symlink(&real, &path).unwrap();
+        let problem = insecure_storage(&path).expect("a symlink is not a private file");
+        assert!(problem.contains("symlink"), "{problem}");
+    }
+
+    /// A secret store outside Melba is supported without depending on any of
+    /// them: the command's stdout is the token, and it is still validated.
+    #[test]
+    fn an_external_command_can_supply_the_token() {
+        assert_eq!(
+            external_token(Some("printf 'external-token'")).as_deref(),
+            Some("external-token")
+        );
+        // Unset, blank, empty output, a failing command, and control
+        // characters in the output are not tokens.
+        assert_eq!(external_token(None), None);
+        assert_eq!(external_token(Some("   ")), None);
+        assert_eq!(external_token(Some("true")), None);
+        assert_eq!(external_token(Some("false")), None);
+        assert_eq!(external_token(Some(r"printf 'a\tb'")), None);
     }
 
     #[test]
