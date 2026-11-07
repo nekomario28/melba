@@ -45,6 +45,7 @@ class ReadmeDocs(unittest.TestCase):
             'docs/installation.md', 'docs/audio.md',
             'docs/authentication.md', 'docs/updates.md',
             'docs/integrations.md', 'docs/development.md',
+            'docs/security.md', 'docs/environment.md', 'SECURITY.md',
             'crates/melba/PACKAGING.md', 'crates/melba/CONTRIBUTING.md',
         )
         for name in documents:
