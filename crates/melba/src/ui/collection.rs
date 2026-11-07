@@ -39,6 +39,8 @@ pub(super) struct Hero<'a> {
 #[derive(Default)]
 pub(super) struct HeroImages<'a> {
     pub image: Option<&'a str>,
+    /// Group art for a playlist the service drew nothing for.
+    pub mosaic: Option<&'a [String]>,
     pub previous: Option<&'a str>,
     pub thumbnail: Option<&'a str>,
     pub align_thumbnail: bool,
@@ -75,6 +77,7 @@ pub(super) fn hero_images<'a>(
     let thumbnail = crate::api::models::SMALL_ART_WIDTH;
     HeroImages {
         image,
+        mosaic: None,
         previous: image.and_then(|image| {
             preview
                 .and_then(|images| pick_image(images, art.card))
@@ -108,6 +111,10 @@ pub(super) fn hero(app: &mut App, ui: &mut egui::Ui, hero: Hero<'_>) {
         widgets::paint_shadow(ui, &palette, rect, radius);
         if hero.liked {
             super::sidebar::liked_cover(ui, rect, radius);
+        } else if let Some(covers) = hero.images.mosaic {
+            // A playlist the service drew nothing for: the group icon it
+            // composes from the first tracks, at header size.
+            super::sidebar::mosaic_cover(ui, rect, radius, covers, Some(app.backend.art()));
         } else {
             widgets::paint_cover_with_thumbnail(
                 ui,
@@ -1785,7 +1792,17 @@ pub fn album(app: &mut App, ui: &mut egui::Ui, id: &str) {
 }
 
 fn playlist_loading_hero(app: &mut App, ui: &mut egui::Ui, playlist: &Playlist) {
-    let images = hero_images(&playlist.images, None, false, HeroArt::of(app));
+    let mut images = hero_images(&playlist.images, None, false, HeroArt::of(app));
+    // No art of the service's own: the page header shows the group icon.
+    let group: Option<Vec<String>> = if images.image.is_none() {
+        if app.playlist_mosaic(&playlist.id).is_none() {
+            app.request_playlist_mosaic(&playlist.id.clone());
+        }
+        app.playlist_mosaic(&playlist.id).map(<[String]>::to_vec)
+    } else {
+        None
+    };
+    images.mosaic = group.as_deref();
     let mut byline = vec![(owner_name(playlist).to_string(), None)];
     let count = playlist.track_total();
     if count > 0 {

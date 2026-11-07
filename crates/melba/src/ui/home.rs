@@ -287,10 +287,24 @@ fn made_for_you(app: &mut App, ui: &mut egui::Ui) {
                     app.playing_context_uri().as_deref() == Some(playlist.uri.as_str());
                 let playing_here = context_here && app.believed_playing();
                 let card_art = app.art_px(widgets::CARD_ART);
-                let card = widgets::card(
+                // One answer for every renderer: the service's picture, or
+                // the group icon composed from the playlist's songs.
+                if app.playlist_mosaic(&playlist.id).is_none()
+                    && pick_image(&playlist.images, card_art).is_none()
+                {
+                    app.request_playlist_mosaic(&playlist.id.clone());
+                }
+                let group: Option<Vec<String>> = app.playlist_mosaic(&playlist.id).map(<[String]>::to_vec);
+                let url: Option<String> = pick_image(&playlist.images, card_art).map(str::to_string);
+                let cover = match (url.as_deref(), group.as_deref()) {
+                    (Some(url), _) => widgets::PlaylistCover::Image(url),
+                    (None, Some(covers)) => widgets::PlaylistCover::Group(covers),
+                    (None, None) => widgets::PlaylistCover::Nothing,
+                };
+                let card = widgets::card_cover(
                     ui,
                     app,
-                    pick_image(&playlist.images, card_art),
+                    cover,
                     &playlist.name,
                     &subtitle,
                     widgets::CardCover::square(playing_here),

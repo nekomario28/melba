@@ -28,6 +28,8 @@ struct Entry {
     editable: bool,
     playlist_index: Option<usize>,
     added_at: Option<i64>,
+    /// Group art for a playlist the service drew nothing for.
+    mosaic: Option<Vec<String>>,
 }
 
 impl Entry {
@@ -309,6 +311,7 @@ fn liked_entry(app: &App) -> Entry {
         editable: false,
         playlist_index: None,
         added_at: None,
+        mosaic: None,
     }
 }
 
@@ -319,13 +322,6 @@ impl Entry {
         matches!(self.page, Page::Playlist(_))
     }
 
-    /// The playlist this row opens, when it opens one.
-    fn page_playlist_id(&self) -> Option<&str> {
-        match &self.page {
-            Page::Playlist(id) => Some(id.as_str()),
-            _ => None,
-        }
-    }
 }
 
 pub(crate) fn selected_sort(app: &App, shelf: Filter) -> LibrarySort {
@@ -670,6 +666,7 @@ fn playlist_rows(app: &App, needle: &str, entries: &mut Vec<Entry>) {
                 user_id.unwrap_or(""),
                 app.can_edit_playlist(playlist),
                 EntryArt::of(app),
+                app.playlist_mosaic(&playlist.id).map(<[String]>::to_vec),
             ));
         }
     }
@@ -698,6 +695,7 @@ fn playlist_entry(
     user_id: &str,
     editable: bool,
     art: EntryArt,
+    mosaic: Option<Vec<String>>,
 ) -> Entry {
     Entry {
         image: pick_image(&playlist.images, art.row).map(str::to_string),
@@ -714,6 +712,7 @@ fn playlist_entry(
         editable,
         playlist_index: Some(index),
         added_at: None,
+        mosaic,
     }
 }
 
@@ -1008,6 +1007,7 @@ fn contents(app: &mut App, ui: &mut egui::Ui, grid_art: Option<Rect>) {
                     editable: false,
                     playlist_index: None,
                     added_at: saved_time(saved.added_at.as_deref()),
+                    mosaic: None,
                 });
             }
             loading = app.library.albums.loading && app.library.albums.items.is_empty();
@@ -1035,6 +1035,7 @@ fn contents(app: &mut App, ui: &mut egui::Ui, grid_art: Option<Rect>) {
                     editable: false,
                     playlist_index: None,
                     added_at: None,
+                    mosaic: None,
                 });
             }
             loading = app.library.artists.loading && app.library.artists.items.is_empty();
@@ -1234,10 +1235,7 @@ fn contents(app: &mut App, ui: &mut egui::Ui, grid_art: Option<Rect>) {
                         );
                         if entry.liked {
                             liked_cover(ui, cover_rect, 6.0);
-                        } else if let Some(covers) = entry
-                            .page_playlist_id()
-                            .and_then(|id| app.playlist_mosaic(id))
-                        {
+                        } else if let Some(covers) = entry.mosaic.as_deref() {
                             // The group icon the service composes: the
                             // playlist's first tracks, laid together.
                             mosaic_cover(
@@ -1767,6 +1765,7 @@ fn full_playlist_order(app: &App) -> Vec<String> {
                 app.user_id().unwrap_or(""),
                 false,
                 EntryArt::of(app),
+                app.playlist_mosaic(&playlist.id).map(<[String]>::to_vec),
             )
         })
         .collect();
@@ -1883,6 +1882,22 @@ fn mosaic_cells(rect: Rect, count: usize) -> Vec<Rect> {
     }
 }
 
+/// Which corners of one cell follow the tile's rounding: only those on the
+/// tile's own edge, so the cells meet flat in the middle.
+fn mosaic_corners(tile: Rect, cell: Rect, radius: f32) -> CornerRadius {
+    let r = radius.min(127.0) as u8;
+    let left = cell.min.x - tile.min.x < 0.5;
+    let right = tile.max.x - cell.max.x < 0.5;
+    let top = cell.min.y - tile.min.y < 0.5;
+    let bottom = tile.max.y - cell.max.y < 0.5;
+    CornerRadius {
+        nw: if left && top { r } else { 0 },
+        ne: if right && top { r } else { 0 },
+        sw: if left && bottom { r } else { 0 },
+        se: if right && bottom { r } else { 0 },
+    }
+}
+
 /// A group icon: the covers of a playlist's first tracks, laid out the way the
 /// service composes one.
 pub fn mosaic_cover(
@@ -1906,11 +1921,14 @@ pub fn mosaic_cover(
             art.touch(url);
         }
         // Same pipeline as every other cover: the byte loader fills it, and a
-        // frame before it arrives simply draws the fill underneath.
+        // frame before it arrives simply draws the fill underneath. Cells meet
+        // without a gap; only the ones on the tile's edge are rounded, which is
+        // what makes it read as one icon rather than four pictures.
         egui::Image::new(crate::images::scaled_uri(url, pixels(cell)))
             .texture_options(crate::images::COVER_TEXTURE)
             .show_loading_spinner(false)
-            .paint_at(ui, cell.shrink(0.5));
+            .corner_radius(mosaic_corners(rect, cell, radius))
+            .paint_at(ui, cell);
     }
 }
 
@@ -2004,6 +2022,28 @@ mod mosaic_cells_tests {
             }
         }
         assert!(mosaic_cells(rect, 0).is_empty());
+    }
+
+    /// Only the cells on the tile's edge are rounded: the ones inside meet
+    /// flat, which is what makes four pictures read as one icon.
+    #[test]
+    fn only_the_outer_corners_follow_the_tile() {
+        use super::mosaic_corners;
+        let rect = tile();
+        let cells = super::mosaic_cells(rect, 4);
+        // Four cells, clockwise from top-left: NW is rounded, its inner
+        // corners are not.
+        let nw = mosaic_corners(rect, cells[0], 6.0);
+        assert_eq!((nw.nw, nw.ne, nw.sw, nw.se), (6, 0, 0, 0));
+        let ne = mosaic_corners(rect, cells[1], 6.0);
+        assert_eq!((ne.nw, ne.ne, ne.sw, ne.se), (0, 6, 0, 0));
+        let sw = mosaic_corners(rect, cells[2], 6.0);
+        assert_eq!((sw.nw, sw.ne, sw.sw, sw.se), (0, 0, 6, 0));
+        let se = mosaic_corners(rect, cells[3], 6.0);
+        assert_eq!((se.nw, se.ne, se.sw, se.se), (0, 0, 0, 6));
+        // A single cover takes all four.
+        let all = mosaic_corners(rect, rect, 6.0);
+        assert_eq!((all.nw, all.ne, all.sw, all.se), (6, 6, 6, 6));
     }
 
     /// A single cover fills the tile rather than a quarter of it.
@@ -2108,7 +2148,7 @@ mod ordering_tests {
             .iter()
             .enumerate()
             .map(|(index, playlist)| {
-                playlist_entry(Locale::English, playlist, index, "", false, TEST_ART)
+                playlist_entry(Locale::English, playlist, index, "", false, TEST_ART, None)
             })
             .collect()
     }
@@ -2286,7 +2326,7 @@ mod ordering_tests {
             images: images.clone(),
             ..Default::default()
         };
-        let entry = playlist_entry(Locale::English, &playlist, 0, "", false, TEST_ART);
+        let entry = playlist_entry(Locale::English, &playlist, 0, "", false, TEST_ART, None);
         assert_eq!(entry.image.as_deref(), Some("64"));
         assert_eq!(entry.grid_image.as_deref(), Some("300"));
         assert_eq!(pick_image(&images, 640), Some("640"));
