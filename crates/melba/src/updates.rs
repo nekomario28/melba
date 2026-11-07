@@ -27,11 +27,13 @@ pub const CONFIG: UpdateConfig = UpdateConfig {
     // installed without signed binary assets. `None` here would trust GitHub's checksum file alone,
     // which only protects against corruption — never drop the key.
     publisher_key: Some(include_str!("../assets/update-public-key.hex")),
-    // Transitional trust: v0.3.2 can verify a release signed by the old key,
-    // but v0.3.1 and older do not know the new key and need a manual update.
-    additional_publisher_keys: &[
-        "e44c87b1550484c687947bd927ae333ff431cc7adc6cc33533c628f82016b554",
-    ],
+    // Empty on purpose. This field exists to carry the *next* key while a
+    // release signed with the current one teaches installs to trust it. It used
+    // to hold the key that the pinned one replaced, as transitional trust for
+    // v0.3.2. A retired key that can still sign an accepted update is not
+    // transitional trust, it is a second way in: anyone holding it could publish
+    // an update this build installs. Rotation is how a key comes back here.
+    additional_publisher_keys: &[],
     legacy_names: &[],
     ..UpdateConfig::new(
         "nekomario28/melba",
@@ -80,6 +82,21 @@ mod tests {
     fn update_config_is_valid() {
         CONFIG.validate().unwrap();
         assert_eq!(CONFIG.current_version, env!("CARGO_PKG_VERSION"));
+    }
+
+    /// Trust is the pinned key and nothing else. A retired key left in the
+    /// transitional slot accepts signatures this build has no reason to accept.
+    #[test]
+    fn only_the_pinned_key_is_trusted() {
+        assert!(
+            CONFIG.additional_publisher_keys.is_empty(),
+            "a second trusted key accepts updates signed without the pinned one"
+        );
+        assert_eq!(
+            CONFIG.publisher_key.map(str::trim),
+            Some(include_str!("../assets/update-public-key.hex").trim()),
+            "the pinned key is the trust anchor"
+        );
     }
 
     #[test]

@@ -218,48 +218,98 @@ fn get_in(store: &str, path: &str, query: &[(&str, &str)]) -> Result<Value, Stri
 }
 
 /// Summarize a catalog resource into {id, name, artistName?, artwork, audioVariants?}.
-fn summarize(item: &Value) -> Value {
-    let a = &item["attributes"];
-    let mut out = json!({
-        "id": item["id"],
-        "type": item["type"],
-        "name": a["name"],
-    });
-    if let Some(v) = a.get("artistName") {
-        out["artistName"] = v.clone();
+/// One catalogue item as `mk` reports it.
+///
+/// The CLI answers in JSON, so the wire format stays JSON. What changes is
+/// where the shape lives: the keys this function reads are named once, here,
+/// instead of being string-indexed at every use. Fields that are copied
+/// through untouched (audio variants, counts, artwork) stay `Value`, so a
+/// change in *their* shape cannot fail the parse of an item this build still
+/// understands; only the fields that are interpreted are typed.
+#[derive(Debug, Default, serde::Deserialize)]
+struct Item {
+    #[serde(default)]
+    id: String,
+    #[serde(default, rename = "type")]
+    kind: String,
+    #[serde(default)]
+    attributes: Attributes,
+}
+
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Attributes {
+    /// Absent and empty are different answers: the reference emitted `null`
+    /// for an item with no attributes, and this must not turn that into `""`.
+    #[serde(default)]
+    name: Option<String>,
+    #[serde(default)]
+    artist_name: Option<String>,
+    #[serde(default)]
+    album_name: Option<String>,
+    /// Playlists carry a curator instead of an artist.
+    #[serde(default)]
+    curator_name: Option<String>,
+    #[serde(default)]
+    audio_variants: Option<Value>,
+    #[serde(default)]
+    has_lyrics: Option<Value>,
+    #[serde(default)]
+    duration_in_millis: Option<Value>,
+    #[serde(default)]
+    release_date: Option<Value>,
+    #[serde(default)]
+    track_count: Option<Value>,
+    #[serde(default)]
+    genre_names: Option<Value>,
+    #[serde(default)]
+    artwork: Option<Artwork>,
+}
+
+#[derive(Debug, Default, serde::Deserialize)]
+struct Artwork {
+    #[serde(default)]
+    url: Option<String>,
+}
+
+impl Item {
+    fn from_value(value: &Value) -> Self {
+        serde_json::from_value(value.clone()).unwrap_or_default()
     }
-    if let Some(v) = a.get("albumName") {
-        out["albumName"] = v.clone();
-    }
-    // playlists carry a curator instead of an artist
-    if let Some(v) = a.get("curatorName") {
-        out["curatorName"] = v.clone();
-    }
-    if let Some(v) = a.get("audioVariants") {
-        out["audioVariants"] = v.clone();
-    }
-    if let Some(v) = a.get("hasLyrics") {
-        out["hasLyrics"] = v.clone();
-    }
-    if let Some(v) = a.get("durationInMillis") {
-        out["durationMs"] = v.clone();
-    }
-    if let Some(v) = a.get("releaseDate") {
-        out["releaseDate"] = v.clone();
-    }
-    if let Some(v) = a.get("trackCount") {
-        out["trackCount"] = v.clone();
-    }
-    if let Some(v) = a.get("genreNames") {
-        out["genreNames"] = v.clone();
-    }
-    if let Some(w) = a.get("artwork") {
-        // Apple artwork url template: {w}x{h}bb.jpg
-        if let Some(u) = w.get("url").and_then(|s| s.as_str()) {
-            out["artworkUrl"] = json!(u.replace("{w}", "512").replace("{h}", "512"));
+
+    /// The summary `mk` prints. Same keys and same values as before; the
+    /// difference is that none of them are string-indexed any more.
+    fn summarize(&self) -> Value {
+        let a = &self.attributes;
+        let mut out = json!({
+            "id": if self.id.is_empty() { Value::Null } else { json!(self.id) },
+            "type": if self.kind.is_empty() { Value::Null } else { json!(self.kind) },
+            "name": a.name.clone().map_or(Value::Null, Value::String),
+        });
+        let mut put = |key: &str, value: Option<Value>| {
+            if let Some(value) = value {
+                out[key] = value;
+            }
+        };
+        put("artistName", a.artist_name.clone().map(Value::String));
+        put("albumName", a.album_name.clone().map(Value::String));
+        put("curatorName", a.curator_name.clone().map(Value::String));
+        put("audioVariants", a.audio_variants.clone());
+        put("hasLyrics", a.has_lyrics.clone());
+        put("durationMs", a.duration_in_millis.clone());
+        put("releaseDate", a.release_date.clone());
+        put("trackCount", a.track_count.clone());
+        put("genreNames", a.genre_names.clone());
+        if let Some(url) = a.artwork.as_ref().and_then(|w| w.url.as_deref()) {
+            // Apple artwork url template: {w}x{h}bb.jpg
+            out["artworkUrl"] = json!(url.replace("{w}", "512").replace("{h}", "512"));
         }
+        out
     }
-    out
+}
+
+fn summarize(item: &Value) -> Value {
+    Item::from_value(item).summarize()
 }
 
 pub fn search(term: &str, types: &str, limit: usize) -> Result<Value, String> {
@@ -1045,6 +1095,104 @@ mod tests {
         );
         assert_eq!(preview_parts("file://x"), None);
         assert_eq!(preview_parts("preview:"), None);
+    }
+
+    /// The reference: how `summarize` read a `Value` before the shape moved
+    /// into `Item`. The typed version must produce exactly this, for every
+    /// shape the service sends — including the fields it omits.
+    fn summarize_reference(item: &Value) -> Value {
+        let a = &item["attributes"];
+        let mut out = json!({
+            "id": item["id"],
+            "type": item["type"],
+            "name": a["name"],
+        });
+        if let Some(v) = a.get("artistName") {
+            out["artistName"] = v.clone();
+        }
+        if let Some(v) = a.get("albumName") {
+            out["albumName"] = v.clone();
+        }
+        if let Some(v) = a.get("curatorName") {
+            out["curatorName"] = v.clone();
+        }
+        if let Some(v) = a.get("audioVariants") {
+            out["audioVariants"] = v.clone();
+        }
+        if let Some(v) = a.get("hasLyrics") {
+            out["hasLyrics"] = v.clone();
+        }
+        if let Some(v) = a.get("durationInMillis") {
+            out["durationMs"] = v.clone();
+        }
+        if let Some(v) = a.get("releaseDate") {
+            out["releaseDate"] = v.clone();
+        }
+        if let Some(v) = a.get("trackCount") {
+            out["trackCount"] = v.clone();
+        }
+        if let Some(v) = a.get("genreNames") {
+            out["genreNames"] = v.clone();
+        }
+        if let Some(w) = a.get("artwork") {
+            if let Some(u) = w.get("url").and_then(|s| s.as_str()) {
+                out["artworkUrl"] = json!(u.replace("{w}", "512").replace("{h}", "512"));
+            }
+        }
+        out
+    }
+
+    /// One deliberate difference: a field whose value is `null` is left out
+    /// instead of being emitted as `null`. Both mean "unknown"; repeating the
+    /// absence in the object made every consumer test for it twice.
+    #[test]
+    fn a_null_field_is_omitted_rather_than_repeated() {
+        let case = json!({"id": "7", "type": "songs", "attributes": {
+            "name": "n", "artistName": Value::Null, "albumName": "a"}});
+        assert_eq!(
+            summarize_reference(&case)["artistName"],
+            Value::Null,
+            "the reference repeated the absence"
+        );
+        let typed = summarize(&case);
+        assert!(
+            typed.get("artistName").is_none(),
+            "the typed summary leaves it out: {typed}"
+        );
+        assert_eq!(typed["albumName"], "a", "the rest is unchanged");
+    }
+
+    /// A song, a playlist, a bare item, and the awkward shapes in between.
+    #[test]
+    fn the_typed_summary_matches_the_reference() {
+        let cases = [
+            json!({"id": "1", "type": "songs", "attributes": {
+                "name": "n", "artistName": "a", "albumName": "al",
+                "durationInMillis": 1234, "hasLyrics": true,
+                "audioVariants": ["lossless", "hi-res-lossless"],
+                "genreNames": ["J-Pop"], "releaseDate": "2020-01-01",
+                "artwork": {"url": "https://x/{w}x{h}bb.jpg", "width": 10}}}),
+            // playlists carry a curator instead of an artist
+            json!({"id": "2", "type": "playlists", "attributes": {
+                "name": "p", "curatorName": "Apple Music", "trackCount": 12}}),
+            // the bare minimum
+            json!({"id": "3", "type": "albums", "attributes": {"name": "x"}}),
+            // no attributes at all
+            json!({"id": "4", "type": "stations"}),
+            // artwork without a url
+            json!({"id": "5", "type": "songs", "attributes": {
+                "name": "y", "artwork": {}}}),
+            // a field whose shape changed: still summarised, not dropped
+            json!({"id": "6", "type": "songs", "attributes": {
+                "name": "z", "trackCount": "12", "hasLyrics": "yes"}}),
+        ];
+        for case in cases {
+            assert_eq!(
+                summarize(&case),
+                summarize_reference(&case),
+                "typed summary differs for {case}"
+            );
+        }
     }
 
     #[test]

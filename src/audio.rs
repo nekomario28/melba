@@ -657,6 +657,16 @@ pub fn verdict_str(src: &SourceFormat, g: &Granted) -> &'static str {
 /// The verdict a shared path earns when the session graph itself is the
 /// evidence: one client, no converter node, the stream at the source's rate,
 /// and no more precision than a float mantissa carries. Measured 2026-11-06:
+/// Whether this device is the one PipeWire owns.
+///
+/// `default` is the ALSA plugin that hands the stream to the session; every
+/// other name is a device this process opened itself (`hw:`, `plughw:`,
+/// `null`, a path). `PASSTHROUGH` is a claim about the session's own chain, so
+/// it only applies here.
+pub fn is_shared_device(device: &str) -> bool {
+    matches!(device, "default" | "pipewire")
+}
+
 /// such a path delivered 88 768 frames bit-identical to the source.
 ///
 /// It is a separate word on purpose. `BITPERFECT` means an exclusive device
@@ -670,7 +680,12 @@ pub fn verdict_for(
 ) -> &'static str {
     let format_verdict = verdict_str(src, g);
     let modified = gain.is_nan() || gain < 0.999;
+    // The session graph describes the stream PipeWire carries. Any other device
+    // was opened here, directly, so the graph says nothing about it — a `null`
+    // sink or an explicit `plughw:` never appears in it, and reading the graph
+    // anyway reported another process's stream as this one's.
     let verified = format_verdict == "SHARED"
+        && is_shared_device(&g.device)
         && graph.is_some_and(|graph| {
             crate::pipewire::classify(src.rate, src.bits, graph) == Some("PASSTHROUGH")
         });
@@ -694,6 +709,51 @@ pub fn verdict_with_gain(src: &SourceFormat, g: &Granted, gain: f64) -> &'static
 
 #[cfg(test)]
 mod auto_tests {
+    /// `PASSTHROUGH` is a claim about the session's own chain, so a device this
+    /// process opened itself must never earn it — even when a Melba stream in
+    /// the session graph looks perfect. The `null` sink is the case that
+    /// exposed this: it is not in the graph at all.
+    #[test]
+    fn a_device_we_opened_ourselves_cannot_be_a_pass_through() {
+        let src = SourceFormat {
+            path: "fixture.m4a".into(),
+            codec: "alac".into(),
+            rate: 48_000,
+            channels: 2,
+            bits: 24,
+            dur_ms: 1_000,
+        };
+        let granted = |device: &str| Granted {
+            device: device.into(),
+            rate: 48_000,
+            format: "S24_3LE".into(),
+            msbits: 24,
+            channels: 2,
+            buffer_frames: 0,
+            period_frames: 0,
+        };
+        let perfect = crate::pipewire::Graph {
+            stream: "alsa_playback.melbaless".into(),
+            stream_format: Some("S24LE".into()),
+            hops: Vec::new(),
+            converters: Vec::new(),
+            other_clients: 0,
+            source_rate: 48_000,
+        };
+        assert_eq!(
+            verdict_for(&src, &granted("default"), 1.0, Some(&perfect)),
+            "PASSTHROUGH",
+            "the shared device with a clean graph is the documented case"
+        );
+        for device in ["null", "plughw:0,0", "sysdefault", "hw:0,0"] {
+            assert_ne!(
+                verdict_for(&src, &granted(device), 1.0, Some(&perfect)),
+                "PASSTHROUGH",
+                "{device} is not the session's stream"
+            );
+        }
+    }
+
     use super::*;
 
     fn cap(device: &str, card: &str, rmin: u32, rmax: u32, cmin: u32, cmax: u32) -> DeviceCap {
