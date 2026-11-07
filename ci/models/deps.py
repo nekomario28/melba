@@ -9,7 +9,7 @@ graph = d.ModuleGraph(
         "player", "stream", "musickit", "wrapper", "auth_gui", "auth_webview",
         "pipewire", "playlist_cache",
         "library",
-        "audio", "auth", "config", "frontend",
+        "audio", "auth", "config", "diag", "frontend",
     ],
     depends=[
         ("main", "audio"),
@@ -50,6 +50,13 @@ graph = d.ModuleGraph(
         ("auth_webview", "auth"),
         ("auth_webview", "config"),    # xdg_dir for webview profile dir
         ("auth_webview", "musickit"),  # validate_token probe
+        # diagnostics: every layer records events, so diag depends on
+        # nothing and anything may use it
+        ("stream", "diag"),
+        ("player", "diag"),
+        ("musickit", "diag"),
+        ("auth_webview", "diag"),
+        ("main", "diag"),
     ],
     roots=["main", "melba_shot"],
     layers=[
@@ -58,6 +65,6 @@ graph = d.ModuleGraph(
          "auth_gui", "auth_webview"],                      # services
         ["library"],                                       # contract layer
         ["auth"],                                          # token store: needs config paths only
-        ["audio", "config", "frontend"],                   # leaves: depend on nothing
+        ["audio", "config", "diag", "frontend"],           # leaves: depend on nothing
     ],
 )

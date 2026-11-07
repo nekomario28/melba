@@ -102,3 +102,7 @@ than retired.
 - Nothing in Melba reports anything automatically: no telemetry, no crash
   upload. Logs stay on the machine (`melba.log`, `panic.log`,
   `wrapper.log`/`wrapper.log.1`), which is why a report has to carry them.
+- `melbad` diagnostics are events (`MELBA_LOG=json` for machine-readable): they
+  carry outcomes, device names, song ids and titles — not credentials. A token
+  never reaches them, including on the path that reports an insecure token
+  file, which names the path and the mode.

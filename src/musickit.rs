@@ -401,20 +401,26 @@ pub fn enrich_collection(json_text: &str, limit: usize) -> Result<String, String
         let res = match res {
             Ok(r) => r,
             Err(e) => {
-                eprintln!("enrich: {q}: {e}");
+                crate::diag::warn(
+                    "enrich_failed",
+                    &[("query", &q), ("reason", &e.to_string())],
+                );
                 continue;
             }
         };
         let v: Value = match serde_json::from_str(&res.into_string().unwrap_or_default()) {
             Ok(v) => v,
             Err(e) => {
-                eprintln!("enrich: {q}: json {e}");
+                crate::diag::warn(
+                    "enrich_failed",
+                    &[("query", &q), ("reason", &format!("json {e}"))],
+                );
                 continue;
             }
         };
         let song = v["results"]["songs"]["data"][0].clone();
         if song.is_null() {
-            eprintln!("enrich: {q}: no catalog match");
+            crate::diag::warn("enrich_no_match", &[("query", &q)]);
             continue;
         }
         let s = summarize(&song);

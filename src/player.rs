@@ -121,9 +121,7 @@ impl Shared {
     fn note_xrun(&self) {
         let n = self.xruns.fetch_add(1, Ordering::SeqCst) + 1;
         if n == 1 {
-            eprintln!(
-                "[player] audio underrun recovered (xruns=1) — the output path did not keep up"
-            );
+            crate::diag::warn("audio_underrun", &[("recovered", "1")]);
         }
     }
 
@@ -201,11 +199,11 @@ fn finish_stream(pcm: &alsa::pcm::PCM) {
                     std::thread::sleep(Duration::from_millis(10));
                 }
                 Ok(_) => {
-                    eprintln!("[player] output tail timed out after 2s; dropping");
+                    crate::diag::warn("output_tail_timeout", &[("waited", "2s")]);
                     break;
                 }
                 Err(error) => {
-                    eprintln!("[player] cannot measure output tail: {error}");
+                    crate::diag::warn("output_tail_unmeasured", &[("reason", &error.to_string())]);
                     break;
                 }
             }
@@ -1411,7 +1409,7 @@ fn play_controlled(
         let packet = match probed.format.next_packet() {
             Ok(p) => p,
             Err(e) => {
-                eprintln!("[player] next_packet: {e}");
+                crate::diag::debug("next_packet_failed", &[("reason", &e.to_string())]);
                 break;
             }
         };
@@ -1421,7 +1419,7 @@ fn play_controlled(
         let decoded = match dec.decode(&packet) {
             Ok(d) => d,
             Err(e) => {
-                eprintln!("[player] decode err: {e}");
+                crate::diag::warn("decode_failed", &[("reason", &e.to_string())]);
                 continue;
             }
         };
