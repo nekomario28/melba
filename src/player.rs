@@ -343,6 +343,11 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
         cur_dev = dev.clone();
     }
     let _ = dev; // launch value consumed into shared.device above
+                 // A queue whose every track fails to open advanced forever: each failure
+                 // picked the next entry, and each pick rewrote the state file. One machine
+                 // logged 62 million of those writes in a night. Counting them lets the loop
+                 // stop with a reason instead of spinning.
+    let mut failed_opens: usize = 0;
     'outer: loop {
         if shared.bitperfect_blocked.load(Ordering::SeqCst) {
             if !wait_bitperfect(&shared, &rx) {
@@ -710,11 +715,33 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                     shared.stream_opens.fetch_add(1, Ordering::SeqCst);
                     cur_dev = want_dev;
                     stream = Some(ok);
+                    failed_opens = 0;
                 }
                 Err(e) => {
                     *shared.verdict.lock().unwrap_or_else(|e| e.into_inner()) =
                         format!("open: {:?}", e);
                     if require_block(&shared) {
+                        continue 'outer;
+                    }
+                    failed_opens += 1;
+                    let queued = shared
+                        .queue
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .len()
+                        .max(1);
+                    if failed_opens >= queued {
+                        // Every entry has been tried in this pass: stop, and
+                        // say why, rather than walking the queue again.
+                        *shared.verdict.lock().unwrap_or_else(|e| e.into_inner()) =
+                            format!("open: no track in the queue could be played ({e:?})");
+                        failed_opens = 0;
+                        if let Some((p, _)) = stream.take() {
+                            let _ = p.drop();
+                        }
+                        shared.set_state(PlayState::Stopped);
+                        // Wait for the next command, like an exhausted queue.
+                        let _ = rx.recv();
                         continue 'outer;
                     }
                     advance(&shared);
@@ -755,7 +782,7 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
         shared.set_state(PlayState::Playing);
         match play_controlled(pcm, granted, &src, pf, &shared, &rx) {
             Flow::Quit => {
-                persist_queue(&shared);
+                persist_queue_now(&shared);
                 return;
             }
             Flow::Ended => advance(&shared),
@@ -960,10 +987,47 @@ pub(crate) fn queue_state_path() -> Option<PathBuf> {
         .map(|b| b.join("melba").join("queue.json"))
 }
 
+/// How often the queue may be written to disk.
+///
+/// A queue whose tracks all fail to open advances in a tight loop, and each
+/// advance used to rewrite the file: measured on one machine, a night of that
+/// left 62 million provenance lines and 14 GB behind. The state is worth
+/// persisting, but not more than this often.
+pub(crate) const PERSIST_INTERVAL: std::time::Duration = std::time::Duration::from_secs(2);
+
+/// Whether a write is due, given when the last one happened.
+pub(crate) fn persist_due(
+    last: Option<std::time::Instant>,
+    now: std::time::Instant,
+    force: bool,
+) -> bool {
+    force || last.is_none_or(|last| now.duration_since(last) >= PERSIST_INTERVAL)
+}
+
 /// Snapshot queue+idx+titles atomically (tmp + rename). Runs on queue
-/// mutation, track advance and Quit — never per packet. Guards are taken
-/// sequentially and dropped before the next lock (never nested).
+/// mutation, track advance and Quit — never per packet, and never more often
+/// than [`PERSIST_INTERVAL`] unless the caller is finishing.
+/// Guards are taken sequentially and dropped before the next lock (never nested).
 fn persist_queue(shared: &Shared) {
+    persist_queue_with(shared, false)
+}
+
+/// Persist now, for the paths that end the process.
+fn persist_queue_now(shared: &Shared) {
+    persist_queue_with(shared, true)
+}
+
+fn persist_queue_with(shared: &Shared, force: bool) {
+    {
+        use std::sync::Mutex;
+        static LAST: Mutex<Option<std::time::Instant>> = Mutex::new(None);
+        let mut last = LAST.lock().unwrap_or_else(|e| e.into_inner());
+        let now = std::time::Instant::now();
+        if !persist_due(*last, now, force) {
+            return;
+        }
+        *last = Some(now);
+    }
     let Some(path) = queue_state_path() else {
         return;
     };
@@ -983,53 +1047,6 @@ fn persist_queue(shared: &Shared) {
     let tmp = path.with_extension("tmp");
     if std::fs::write(&tmp, serde_json::to_vec(&doc).unwrap_or_default()).is_ok() {
         let _ = std::fs::rename(&tmp, &path);
-        crate::player::note_queue_write(&path, &doc);
-    }
-}
-
-/// The parent process, where the platform reports one.
-///
-/// `libc::getppid` is Unix-only; a None must not stop the record, which is the
-/// evidence a future occurrence is judged on.
-#[cfg(unix)]
-fn parent_pid() -> Option<u32> {
-    Some(unsafe { libc::getppid() } as u32)
-}
-
-#[cfg(not(unix))]
-fn parent_pid() -> Option<u32> {
-    None
-}
-
-/// Append who wrote the queue, beside it.
-///
-/// The saved queue has been replaced by another process's fixtures twice, and
-/// each time the writer had to be guessed from a timestamp. One line per
-/// mutation (rare, not per packet) is what makes the next occurrence
-/// attributable instead of inferred. Best effort: a failure here never
-/// affects playback.
-fn note_queue_write(path: &std::path::Path, doc: &serde_json::Value) {
-    let Some(parent) = path.parent() else { return };
-    let record = serde_json::json!({
-        "pid": std::process::id(),
-        "ppid": parent_pid(),
-        "exe": std::env::current_exe().ok().map(|p| p.to_string_lossy().into_owned()),
-        "args": std::env::args().collect::<Vec<_>>(),
-        "state_home": std::env::var("XDG_STATE_HOME").ok(),
-        "home": std::env::var("HOME").ok(),
-        "idx": doc.get("idx"),
-        "len": doc.get("queue").and_then(|q| q.as_array()).map(|q| q.len()),
-        "first": doc.get("queue").and_then(|q| q.as_array()).and_then(|q| q.first()).cloned(),
-    });
-    let mut line = serde_json::to_vec(&record).unwrap_or_default();
-    line.push(b'\n');
-    use std::io::Write as _;
-    if let Ok(mut file) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(parent.join("queue-writes.jsonl"))
-    {
-        let _ = file.write_all(&line);
     }
 }
 
@@ -2348,42 +2365,28 @@ mod title_from_key_tests {
 mod tests {
     use super::reorder_idx;
 
-    /// The recorder is the evidence a future occurrence is judged on, so its
-    /// shape is pinned: without the process identity it cannot name a writer.
+    /// A failing queue advances in a tight loop; each advance used to rewrite
+    /// the state file. One machine ended up with 14 GB of it.
     #[test]
-    fn a_queue_write_records_who_wrote_it() {
-        let dir = std::env::temp_dir().join(format!("melba-queue-write-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("queue.json");
-        let doc = serde_json::json!({"idx": 2, "queue": ["stream:m0", "stream:new"], "titles": {}});
-        crate::player::note_queue_write(&path, &doc);
-        let text = std::fs::read_to_string(dir.join("queue-writes.jsonl")).unwrap();
-        let line: serde_json::Value = serde_json::from_str(text.lines().next().unwrap()).unwrap();
-        assert_eq!(line["pid"].as_u64().unwrap(), std::process::id() as u64);
-        #[cfg(unix)]
-        assert!(line["ppid"].as_u64().is_some(), "{line}");
+    fn the_queue_is_not_rewritten_on_every_advance() {
+        use std::time::{Duration, Instant};
+        let now = Instant::now();
         assert!(
-            line["exe"].as_str().is_some_and(|e| !e.is_empty()),
-            "{line}"
+            crate::player::persist_due(None, now, false),
+            "the first write is due"
         );
+        let just_now = now - Duration::from_millis(10);
         assert!(
-            line["args"].as_array().is_some_and(|a| !a.is_empty()),
-            "{line}"
+            !crate::player::persist_due(Some(just_now), now, false),
+            "a write moments ago is not repeated"
         );
-        assert_eq!(line["len"], 2);
-        assert_eq!(line["first"], "stream:m0");
-        assert_eq!(line["idx"], 2);
-        // Appending, not overwriting: a second write keeps the first.
-        crate::player::note_queue_write(&path, &doc);
-        assert_eq!(
-            std::fs::read_to_string(dir.join("queue-writes.jsonl"))
-                .unwrap()
-                .lines()
-                .count(),
-            2
+        let while_ago = now - crate::player::PERSIST_INTERVAL;
+        assert!(crate::player::persist_due(Some(while_ago), now, false));
+        let just_now = now - Duration::from_millis(10);
+        assert!(
+            crate::player::persist_due(Some(just_now), now, true),
+            "quitting writes whatever is pending"
         );
-        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
