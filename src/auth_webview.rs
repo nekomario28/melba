@@ -119,19 +119,21 @@ pub fn run() -> Result<(), String> {
                 if v.len() > 40 && !v.contains('\n') && !rejected.contains(&v) {
                     match crate::auth::set_verified(&v, crate::musickit::validate_token) {
                         Ok(true) => {
-                            eprintln!("melbad: session captured — you're signed in");
+                            crate::diag::info("session_captured", &[]);
                             code.set(0);
                             *cf = ControlFlow::Exit;
                             return;
                         }
-                        Ok(false) => { rejected.insert(v); }
-                        Err(e) => eprintln!("melbad: could not store token: {e}"),
+                        Ok(false) => {
+                            rejected.insert(v);
+                        }
+                        Err(e) => crate::diag::warn("token_store_failed", &[("reason", &e)]),
                     }
                 }
             }
         }
         if Instant::now() >= deadline {
-            eprintln!("melbad: sign-in timed out — run `melbad auth open` again");
+            crate::diag::warn("sign_in_timeout", &[]);
             *cf = ControlFlow::Exit;
             return;
         }
@@ -140,7 +142,10 @@ pub fn run() -> Result<(), String> {
             ..
         } = event
         {
-            eprintln!("melbad: sign-in window closed before a token was captured — `melbad auth open --browser` watches your normal browser instead");
+            crate::diag::warn(
+                "sign_in_window_closed",
+                &[("hint", "melbad auth open --browser")],
+            );
             *cf = ControlFlow::Exit;
         }
     });

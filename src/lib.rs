@@ -4,6 +4,7 @@ pub mod auth;
 pub mod auth_gui;
 pub mod auth_webview;
 pub mod config;
+pub mod diag;
 pub mod frontend;
 pub mod library;
 pub mod musickit;

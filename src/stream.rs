@@ -153,7 +153,7 @@ fn open_once(storefront: &str, id: &str) -> Result<Opened, String> {
             // plays this subscription track and the next open finds
             // the port listening
             Err(e) => {
-                eprintln!("alac unavailable ({e}); falling back to aac-256");
+                crate::diag::warn("alac_fallback", &[("reason", &e.to_string())]);
                 None
             }
         }
@@ -162,7 +162,7 @@ fn open_once(storefront: &str, id: &str) -> Result<Opened, String> {
             Some(u) => Some(u),
             None => {
                 if let Some(e) = crate::config::wrapper_url_rejection() {
-                    eprintln!("alac unavailable ({e}); falling back to aac-256");
+                    crate::diag::warn("alac_fallback", &[("reason", &e.to_string())]);
                 }
                 // A staged managed service is usable without a config key:
                 // the bootstrap writes the expected layout, so detect it and
@@ -171,7 +171,7 @@ fn open_once(storefront: &str, id: &str) -> Result<Opened, String> {
                     match crate::wrapper::try_ready() {
                         Ok(u) => Some(u),
                         Err(e) => {
-                            eprintln!("alac unavailable ({e}); falling back to aac-256");
+                            crate::diag::warn("alac_fallback", &[("reason", &e.to_string())]);
                             None
                         }
                     }
@@ -183,15 +183,15 @@ fn open_once(storefront: &str, id: &str) -> Result<Opened, String> {
     };
     if let Some(wurl) = wurl {
         if let Err(e) = melba_cdm::stream::vetted_wrapper_url(&wurl) {
-            eprintln!("alac unavailable ({e}); falling back to aac-256");
+            crate::diag::warn("alac_fallback", &[("reason", &e.to_string())]);
         } else {
             let h = http.clone();
             let idc = id.to_string();
             let r = std::panic::catch_unwind(move || ams::open_alac(h, &idc, &wurl));
             match r {
                 Ok(Ok(vm)) => return Ok(opened(vm)),
-                Ok(Err(e)) => eprintln!("alac unavailable ({e}); falling back to aac-256"),
-                Err(_) => eprintln!("alac open panicked; falling back to aac-256"),
+                Ok(Err(e)) => crate::diag::warn("alac_fallback", &[("reason", &e.to_string())]),
+                Err(_) => crate::diag::warn("alac_fallback", &[("reason", "open panicked")]),
             }
         }
     }
