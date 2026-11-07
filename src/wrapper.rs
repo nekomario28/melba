@@ -435,7 +435,7 @@ fn clear_password_env() {
     unsafe { libc::unsetenv(key.as_ptr()) };
 }
 
-const SCRUB_MARKER: &[u8] = b"melba-login-fd-v2";
+const SCRUB_MARKER: &[u8] = b"melba-login-fd-v3";
 /// Inherited across `run` → wrapper → bionic main. Not cloexec.
 const MELBA_LOGIN_FD: i32 = 250;
 /// Longer than this does not fit in the shim's buffer; refuse rather than
@@ -1014,7 +1014,7 @@ mod tests {
         assert!(!argv_scrub_ready(&lib64));
         std::fs::write(lib64.join("argv-scrub.so"), b"\x7fELF").unwrap();
         assert!(!argv_scrub_ready(&lib64));
-        std::fs::write(lib64.join("argv-scrub.so"), b"pre melba-login-fd-v2 post").unwrap();
+        std::fs::write(lib64.join("argv-scrub.so"), b"pre melba-login-fd-v3 post").unwrap();
         assert!(argv_scrub_ready(&lib64));
         let _ = std::fs::remove_dir_all(&root);
     }

@@ -428,7 +428,7 @@ fn login_aborts_when_the_shim_does_not_apply() {
     let _wrap = layout(
         &root,
         Some(
-            "static const char melba_login_fd_marker[] __attribute__((used)) = \"melba-login-fd-v2\";\n\
+            "static const char melba_login_fd_marker[] __attribute__((used)) = \"melba-login-fd-v3\";\n\
              __attribute__((visibility(\"default\"))) int melba_scrub_inert(void) { return 1; }\n",
         ),
         "4",
@@ -472,4 +472,171 @@ fn login_aborts_when_the_shim_does_not_apply() {
         elapsed < Duration::from_secs(5),
         "login was not aborted promptly: {elapsed:?}"
     );
+}
+
+/// The field index of `/proc/self/stat` field 28 is only meaningful for a
+/// complete line: a truncated one lands the count on a different field and
+/// hands back an arbitrary number, which `recover_args` then turns into an
+/// address. This compiles the shim's own parser (by including its source) and
+/// holds it to both halves of that: a complete line yields the address, a cut
+/// one yields nothing rather than a number to dereference.
+const STAT_PARSER_HARNESS: &str = r#"
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <string.h>
+#include "%SRC%"
+int main(void) {
+    static const char *full = %FULL%;
+    static const char *truncated = %TRUNC%;
+    static const char *shortline = "1 (x) S 1 2 3\n";
+    unsigned long v = 0;
+    int ok_full = parse_startstack(full, (long)strlen(full), &v);
+    int full_value = ok_full && v == %ADDR%UL;
+    int ok_trunc = parse_startstack(truncated, (long)strlen(truncated), &v);
+    int ok_short = parse_startstack(shortline, (long)strlen(shortline), &v);
+    printf("full=%d full_value=%d trunc=%d short=%d\n",
+           ok_full, full_value, ok_trunc, ok_short);
+    return 0;
+}
+"#;
+
+/// A `/proc/self/stat` line with the field count that matters, built rather
+/// than pasted: field 28 must land on the 8-byte-aligned address, and comm
+/// carries a space and parens so the count has to skip past the last `)`.
+fn stat_line(fields: usize, startstack: u64) -> String {
+    const ADDR_FIELD: usize = 28;
+    let mut parts = vec![
+        "1234".to_string(),
+        "(melba wr)apper (x)".to_string(),
+        "S".to_string(),
+    ];
+    for field in 4..=fields {
+        parts.push(if field == ADDR_FIELD {
+            startstack.to_string()
+        } else {
+            (field * 7).to_string()
+        });
+    }
+    parts.join(" ") + r"\n"
+}
+
+/// bionic can run a preloaded library's `.init_array` before its own
+/// argc/argv/envp are set, handing the shim garbage (observed: argc of
+/// 262984144). The shim must recover the real argument block from the
+/// kernel's initial stack, otherwise the `-L @` placeholder is never replaced
+/// and the wrapper silently exits without attempting a login.
+const BAD_INIT_ARGS_HARNESS: &str = r#"
+#define _GNU_SOURCE
+#include <dlfcn.h>
+#include <stdio.h>
+#include <string.h>
+static char placeholder[] = "@";
+int main(int argc, char **argv, char **envp) {
+    void (*init)(int, char **, char **);
+    char buf[4096];
+    size_t n;
+    FILE *f;
+    int applied = 0, leaked = 0;
+    char **e;
+    if (argc != 4) return 2;
+    void *h = dlopen(argv[1], RTLD_NOW);
+    if (!h) return 3;
+    init = (void (*)(int, char **, char **))dlsym(h, "argv_scrub_init");
+    if (!init) return 4;
+    /* dlopen already ran the shim with valid arguments: undo that so the
+     * call below is the only one under test. */
+    argv[3] = placeholder;
+    for (e = envp; *e; e++)
+        if (!strncmp(*e, "MELBA_LOGIN_APPLIED=", 20)) (*e)[20] = '0';
+    /* what a loader that has not set up argc/argv/envp yet would pass */
+    init(262984144, (char **)0x1000, (char **)0x2000);
+    for (e = envp; *e; e++)
+        if (!strcmp(*e, "MELBA_LOGIN_APPLIED=1")) applied = 1;
+    f = fopen("/proc/self/cmdline", "r");
+    if (!f) return 5;
+    n = fread(buf, 1, sizeof buf, f);
+    fclose(f);
+    leaked = memmem(buf, n, argv[3], strlen(argv[3])) != NULL;
+    printf("argv3=%s\napplied=%d\ncmdline_has_secret=%d\n", argv[3], applied, leaked);
+    return 0;
+}
+"#;
+
+#[test]
+fn the_stat_parser_refuses_a_truncated_line() {
+    let root = Sandbox::new();
+    let harness = root.path("stat-parser");
+    let shim_src = Path::new(env!("CARGO_MANIFEST_DIR")).join("packaging/argv-scrub.c");
+    let addr: u64 = 0x7ffd_1c66_4400;
+    let full = stat_line(60, addr);
+    // Cut before field 28: the index the parser counts to no longer names it.
+    let truncated = stat_line(24, addr);
+    let src = STAT_PARSER_HARNESS
+        .replace("%SRC%", &shim_src.display().to_string())
+        .replace("%ADDR%", &addr.to_string())
+        .replace("%FULL%", &format!("{q}{full}{q}", q = '"'))
+        .replace("%TRUNC%", &format!("{q}{truncated}{q}", q = '"'));
+    compile_c(&harness, &src);
+    let output = Command::new(&harness).output().unwrap();
+    let out = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        output.status.success(),
+        "harness failed: {:?} {out}",
+        output.status
+    );
+    assert!(
+        out.contains("full=1 full_value=1"),
+        "a complete line must yield the address: {out}"
+    );
+    assert!(
+        out.contains("trunc=0"),
+        "a truncated line must yield nothing: {out}"
+    );
+    assert!(
+        out.contains("short=0"),
+        "a line without field 28 must yield nothing: {out}"
+    );
+}
+
+#[test]
+fn shim_recovers_real_arguments_when_the_loader_passes_garbage() {
+    use std::os::unix::io::AsRawFd;
+    use std::os::unix::process::CommandExt;
+    extern "C" {
+        fn dup2(old: i32, new: i32) -> i32;
+    }
+    let root = Sandbox::new();
+    let shim = root.path("argv-scrub.so");
+    compile_scrub(&shim);
+    let harness = root.path("harness");
+    compile_c(&harness, BAD_INIT_ARGS_HARNESS);
+    let cred = "user@example.com:fixture-SECRET-bad-init-args";
+    let cred_file = root.path("cred");
+    fs::write(&cred_file, cred).unwrap();
+    let file = fs::File::open(&cred_file).unwrap();
+    let fd = file.as_raw_fd();
+    let mut cmd = Command::new(&harness);
+    cmd.arg(&shim)
+        .args(["-L", "@"])
+        .env("MELBA_LOGIN_APPLIED", "0")
+        .env_remove("LD_PRELOAD");
+    // SAFETY: dup2 is async-signal-safe; the descriptor outlives the spawn.
+    unsafe {
+        cmd.pre_exec(move || {
+            if dup2(fd, 250) < 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+            Ok(())
+        });
+    }
+    let output = cmd.output().unwrap();
+    let out = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        output.status.success(),
+        "harness failed: {:?} {out}",
+        output.status
+    );
+    assert!(out.contains(&format!("argv3={cred}\n")), "{out}");
+    assert!(out.contains("applied=1\n"), "{out}");
+    assert!(out.contains("cmdline_has_secret=0\n"), "{out}");
 }
