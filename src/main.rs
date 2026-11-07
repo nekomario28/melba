@@ -788,6 +788,11 @@ fn main() {
                 },
                 AuthOp::Status => match auth::get() {
                     Some(t) => {
+                        if let Some(problem) = auth::storage_problem() {
+                            println!(
+                                "storage: {problem} — readable by others; sign in again to rewrite it privately"
+                            );
+                        }
                         let exp = auth::exp_of(&t)
                             .map(|e| {
                                 let now = std::time::SystemTime::now()
