@@ -57,3 +57,19 @@ class NoRunawayState(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GateScriptIsolation(unittest.TestCase):
+    """`ci/check.sh` starts a real daemon; it must not start it on live state."""
+
+    def test_the_gate_script_isolates_xdg(self):
+        text = (ROOT / "ci" / "check.sh").read_text(encoding="utf-8")
+        self.assertIn("XDG_STATE_HOME", text, "the gates would write the live queue")
+        for var in ("XDG_CONFIG_HOME", "XDG_CACHE_HOME", "XDG_DATA_HOME"):
+            self.assertIn(var, text, f"{var} is not isolated either")
+        # The export must come before anything spawns a binary.
+        self.assertLess(
+            text.index("XDG_STATE_HOME"),
+            text.index("$BIN serve"),
+            "isolation has to be in place before the daemon starts",
+        )
