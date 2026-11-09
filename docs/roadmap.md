@@ -10,98 +10,12 @@ Current release: **v0.3.12** (signed x86_64 and aarch64). The entries below
 name the release each acceptance was measured on; an older version in an entry
 is a dated record, not the current one.
 
-- [ ] **Audio quality settings** — add AAC high-quality, lossless and hi-res
-  lossless preferences, plus an explicit policy for allowing AAC fallback or
-  requiring lossless. Select renditions using their verified format, not their
-  order in a playlist. The daemon owns these preferences; GUI and CLI use the
-  same API. Verify application, persistence and restoration after restart,
-  rather than only saving a control's displayed value.
-- [ ] **Track-selection and queue acceptance** — verify selection of a non-first
-  row in an album/playlist during playback on the installed app. Context
-  resolution must retain its offset, and a late older result must not undo a
-  newer play. Verify the resulting queue and Next/Previous order, not just the
-  selected title. Follow the [runtime verification policy](../crates/melba/AGENTS.md#runtime-verification).
-- [~] **Lossless (ALAC) availability** — playback can open ALAC through a
-  user-supplied decrypt service, but separate catalog probes and earlier playback have also
-  yielded AAC. Explain availability and fallback at the actual source-opening
-  boundary; neither one missing `enhancedHls` field nor one successful ALAC
-  stream establishes what every track or account can play. Cover failures in
-  probing/initial decoding as well as acquisition. A synthetic multi-run
-  regression now covers the `subsample overruns sample` failure in
-  `crates/melba-cdm/src/stream.rs`: sample runs sharing an encryption table
-  must retain sample order. Bounds remain strict; installed-runtime acceptance
-  of the affected track is still required.
-- [ ] **Quality details** — add the encoded bitrate and a user-facing fallback
-  reason when reliably known. Do not infer an exact bitrate or declare a
-  track permanently AAC-only from one missing catalog field.
-- [ ] **Desktop lifecycle and MPRIS acceptance** — validate the installed
-  close/Quit/startup path and daemon-owned window/search/context forwarding.
-  Explicit background mode may keep playback alive; ordinary close should
-  not. Source implementation and private fixtures are tracked in
-  [the desktop lifecycle plan](../specs/desktop-lifecycle-update/plan.md), not a
-  claim that the installed client has passed acceptance.
-- [x] **Paired signed self-update** — v0.3.6 ships the daemon inside the GUI
-  archive; the vendored fastframe helper replaces both and restores both when
-  the new GUI fails. Verified with a broken v0.3.7 test release: receipt
-  "Update failed; restored the previous app", both binaries back at v0.3.6 (test build).
-- [x] **Visible and automatic update flow** — a manual update check opens the
-  update dialog and starts the signed download; a verified download restarts
-  automatically when playback is idle. Active playback is never interrupted
-  by the automatic path.
-- [x] **GUI update button acceptance** — portable v0.3.2 → v0.3.3 was driven
-  through Settings → About and the update modal on 2026-10-26: signed download,
-  install, helper restart and `melba 0.3.3` startup succeeded. The marker
-  (`melba-portable.txt`) is required. The default installer now installs that
-  portable layout, and `packaging/package-portable.sh` checks the marker.
-- [x] **v0.3.6 signed-update acceptance** — a portable v0.3.5 installation
-  checked, downloaded and installed the signed v0.3.6 release on 2026-10-27;
-  both binaries report 0.3.6 and the receipt read “Updated to 0.3.6”. The
-  v0.3.6 archive carries the complete Spotifast/third-party notice set.
-- [x] **Paired update rollback** — the portable installer and the v0.3.6 GUI
-  helper both swap `melba` and `melbad` together and restore both on failure.
-  GUI rollback was exercised with a deliberately broken test release; the
-  installer path has a package-level rollback test.
-- [x] **arm64 build path** — aarch64 release archives are built on the
-  `ubuntu-24.04-arm` runner and published with the same signed manifest as
-  x86_64 (v0.3.4 onward, up to v0.3.12). The x86_64-only native auth bridge is
-  disabled on arm64 (browser sign-in).
-- [ ] **arm64 hardware run** — blocked, not deferred: no arm64 machine is
-  available here, so `melbad`/`melba` on aarch64 are build-verified only. Do
-  not describe an arm64 binary as run-verified until someone runs it on that
-  hardware and records the receipt.
-- [x] **Choose the output from the app, over PipeWire** — `audio_device` in
-  `~/.config/melba/config.json` selects `auto`, `default` or `hw:X,Y`;
-  `auto` prefers a USB/analog hw device over HDMI, the Settings page lists
-  outputs and saves the choice, and `--require-bitperfect` refuses `default`.
-  Still open: following the system default automatically and showing the
-  opened rate/verdict beside the picker.
-- [~] **First-run audio setup** — `melbad setup` and the Settings picker work;
-  a guided first-launch wizard remains.
-- [ ] **A paused daemon must not hold the output device** — `melbad serve
-  --paused` opens the exclusive `hw:` PCM and pauses it, so the card stays
-  away from every other client for as long as the desktop is open. Measured
-  2026-10-28 on `hw:0,7`: `fuser` showed the paused daemon holding the device.
-  Not implemented yet, and the reason is a contract, not effort:
-  `tests/transport.rs::desktop_startup_is_paused_and_mpris_actions_reach_the_frontend`
-  asserts `status == "Paused"` **and** `rate == 96000` at startup, and that
-  rate is published from the opened stream. Not opening the device therefore
-  needs `melba:sampleRate` to come from the decoded source instead of the
-  granted stream, which is a change to the startup contract and needs its own
-  verification (transport test, GUI acceptance, and a check that the device is
-  actually free with the app open). Do not ship it without those.
-  **Attempted and reverted, 2026-11-09.** Deferring the open until the first
-  Play works — measured on `hw:1,7` inside a private bus: paused leaves the PCM
-  `closed` while the metadata still reports `alac`/24-bit (probed from the
-  source), Play opens it, Stop closes it. But three transport tests then fail:
-  `previous_skips_sources_that_never_opened`,
-  `queue_load_preserves_the_context_selection_and_paused_skips` and
-  `shuffled_previous_and_next_retrace_the_played_occurrence`. Next and Previous
-  while paused depend on an *opened* occurrence: from a queue loaded paused,
-  Next must skip the unopenable entry and Previous must return past it, and with
-  nothing opened the history those two consult is empty, so Previous lands on
-  the entry it cannot open and the skip walks forward again. The fix therefore
-  has to rework how skipped entries are remembered, not just when the device is
-  opened.
+- [~] **Audio quality settings** — `melbad config audio-quality` sets `auto`,
+  `aac` or `lossless` in `config.json`, and `aac` is honoured by never asking the
+  decrypt service. A settings-page control and a `hi-res` choice are still open:
+  picking a hi-res ALAC variant apart from a lossless one needs per-variant
+  attributes from the master playlist that this build does not parse, and there
+  is no live master to check a guess against without an account.
 
 - [x] **Busy output takeover** — a busy `hw:` output remains in Settings as
   “in use”; selecting it requests the session audio server's device
