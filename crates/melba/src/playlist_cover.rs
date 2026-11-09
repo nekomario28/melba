@@ -89,7 +89,10 @@ pub fn prepare(bytes: &[u8]) -> Result<Cover, String> {
             let encoded = STANDARD.encode(&jpeg);
             if encoded.len() <= MAX_PAYLOAD {
                 use sha2::{Digest, Sha256};
-                let uri = format!("bytes://playlist-cover-{:x}.jpg", Sha256::digest(&jpeg));
+                // sha2 0.11 returns a generic array that no longer formats as `{:x}`.
+                let digest = Sha256::digest(&jpeg);
+                let hash: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
+                let uri = format!("bytes://playlist-cover-{hash}.jpg");
                 return Ok(Cover {
                     jpeg: jpeg.into(),
                     encoded: encoded.into(),
