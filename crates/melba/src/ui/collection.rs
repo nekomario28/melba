@@ -39,8 +39,9 @@ pub(super) struct Hero<'a> {
 #[derive(Default)]
 pub(super) struct HeroImages<'a> {
     pub image: Option<&'a str>,
-    /// Group art for a playlist the service drew nothing for.
-    pub mosaic: Option<&'a [String]>,
+    /// Group art for a playlist the service drew nothing for. Owned, because
+    /// it is read from the app in the middle of drawing the header.
+    pub mosaic: Option<Vec<String>>,
     pub previous: Option<&'a str>,
     pub thumbnail: Option<&'a str>,
     pub align_thumbnail: bool,
@@ -111,7 +112,7 @@ pub(super) fn hero(app: &mut App, ui: &mut egui::Ui, hero: Hero<'_>) {
         widgets::paint_shadow(ui, &palette, rect, radius);
         if hero.liked {
             super::sidebar::liked_cover(ui, rect, radius);
-        } else if let Some(covers) = hero.images.mosaic {
+        } else if let Some(covers) = hero.images.mosaic.as_deref() {
             // A playlist the service drew nothing for: the group icon it
             // composes from the first tracks, at header size.
             super::sidebar::mosaic_cover(ui, rect, radius, covers, Some(app.backend.art()));
@@ -1764,17 +1765,7 @@ pub fn album(app: &mut App, ui: &mut egui::Ui, id: &str) {
 }
 
 fn playlist_loading_hero(app: &mut App, ui: &mut egui::Ui, playlist: &Playlist) {
-    let mut images = hero_images(&playlist.images, None, false, HeroArt::of(app));
-    // No art of the service's own: the page header shows the group icon.
-    let group: Option<Vec<String>> = if images.image.is_none() {
-        if app.playlist_mosaic(&playlist.id).is_none() {
-            app.request_playlist_mosaic(&playlist.id.clone());
-        }
-        app.playlist_mosaic(&playlist.id).map(<[String]>::to_vec)
-    } else {
-        None
-    };
-    images.mosaic = group.as_deref();
+    let images = hero_images(&playlist.images, None, false, HeroArt::of(app));
     let mut byline = vec![(owner_name(playlist).to_string(), None)];
     let count = playlist.track_total();
     if count > 0 {
@@ -1783,15 +1774,40 @@ fn playlist_loading_hero(app: &mut App, ui: &mut egui::Ui, playlist: &Playlist) 
     playlist_hero(app, ui, playlist, images, byline);
 }
 
+/// The group art a playlist header should draw, asking for it once.
+///
+/// Both header paths call this through `playlist_hero`, because deciding it at
+/// each call site is how the loaded page kept a placeholder while the sidebar
+/// row beside it showed the group icon.
+#[cfg(test)]
+pub(crate) fn hero_group_art_for_test(
+    app: &mut App,
+    playlist: &crate::api::models::Playlist,
+    has_picture: bool,
+) -> Option<Vec<String>> {
+    hero_group_art(app, playlist, has_picture)
+}
+
+fn hero_group_art(app: &mut App, playlist: &Playlist, has_picture: bool) -> Option<Vec<String>> {
+    if has_picture {
+        return None;
+    }
+    if app.playlist_mosaic(&playlist.id).is_none() {
+        app.request_playlist_mosaic(&playlist.id.clone());
+    }
+    app.playlist_mosaic(&playlist.id).map(<[String]>::to_vec)
+}
+
 fn playlist_hero<'a>(
     app: &mut App,
     ui: &mut egui::Ui,
     playlist: &'a Playlist,
-    images: HeroImages<'a>,
+    mut images: HeroImages<'a>,
     byline: Vec<(String, Option<Page>)>,
 ) {
     // The slot always shows: the official app draws the placeholder circle
     // as soon as the page opens, before (and instead of) a picture.
+    images.mosaic = hero_group_art(app, playlist, images.image.is_some());
     let avatar = Some(
         match playlist
             .owner

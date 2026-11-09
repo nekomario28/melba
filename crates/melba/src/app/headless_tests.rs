@@ -936,6 +936,51 @@ fn loading_the_playlists_asks_which_one_is_favorites() {
     );
 }
 
+/// The playlist page header draws the same group art as the row beside it.
+///
+/// The first version decided this only on the loading path, so a loaded page
+/// kept a placeholder while the sidebar row showed the group icon.
+#[test]
+fn a_playlist_that_is_still_loading_does_not_cover_its_header() {
+    if isolated() {
+        return;
+    }
+    let mut ui = TestUi::new();
+    let playlist = crate::api::models::Playlist {
+        id: "p.header".into(),
+        uri: "melba:playlist:p.header".into(),
+        name: "Header".into(),
+        ..Default::default()
+    };
+    assert!(ui.app.playlist_mosaic(&playlist.id).is_none());
+    // The header's decision, independent of which path renders it.
+    let art = crate::ui::collection::hero_group_art_for_test(&mut ui.app, &playlist, false);
+    assert_eq!(art, None, "nothing to draw until the answer arrives");
+    let asked: Vec<String> = ui
+        .app
+        .backend
+        .take_sent_api()
+        .into_iter()
+        .filter_map(|r| match r {
+            ApiRequest::PlaylistMosaic { id } => Some(id),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(asked, vec!["p.header".to_string()], "asked once for the header");
+
+    ui.app.handle_api(ApiResponse::PlaylistMosaic {
+        id: playlist.id.clone(),
+        result: Ok(vec!["https://example.invalid/1.jpg".into()]),
+    });
+    let art = crate::ui::collection::hero_group_art_for_test(&mut ui.app, &playlist, false);
+    assert_eq!(art.map(|covers| covers.len()), Some(1), "the header gets it");
+    assert_eq!(
+        crate::ui::collection::hero_group_art_for_test(&mut ui.app, &playlist, true),
+        None,
+        "a playlist with its own picture keeps it"
+    );
+}
+
 /// The cover answer must be the same everywhere: the service's picture when it
 /// has one, the group icon when it does not. A page header that decides for
 /// itself is how one screen showed a group icon and the next an empty box.
