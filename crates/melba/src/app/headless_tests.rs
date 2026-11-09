@@ -936,6 +936,51 @@ fn loading_the_playlists_asks_which_one_is_favorites() {
     );
 }
 
+/// The cover answer must be the same everywhere: the service's picture when it
+/// has one, the group icon when it does not. A page header that decides for
+/// itself is how one screen showed a group icon and the next an empty box.
+#[test]
+fn a_playlist_cover_prefers_the_picture_then_the_group_icon() {
+    if isolated() {
+        return;
+    }
+    let mut ui = TestUi::new();
+    let mut playlist = crate::api::models::Playlist {
+        id: "p.mine".into(),
+        uri: "melba:playlist:p.mine".into(),
+        name: "Mine".into(),
+        ..Default::default()
+    };
+    assert!(matches!(
+        ui.app.playlist_cover(&playlist, 300),
+        crate::ui::widgets::PlaylistCover::Nothing
+    ));
+
+    ui.app.handle_api(ApiResponse::PlaylistMosaic {
+        id: playlist.id.clone(),
+        result: Ok(vec![
+            "https://example.invalid/1.jpg".into(),
+            "https://example.invalid/2.jpg".into(),
+        ]),
+    });
+    match ui.app.playlist_cover(&playlist, 300) {
+        crate::ui::widgets::PlaylistCover::Group(covers) => assert_eq!(covers.len(), 2),
+        _ => panic!("an undrawn playlist must show its group icon"),
+    }
+
+    playlist.images = vec![crate::api::models::Image {
+        url: "https://example.invalid/own.jpg".into(),
+        width: Some(300),
+        height: Some(300),
+    }];
+    match ui.app.playlist_cover(&playlist, 300) {
+        crate::ui::widgets::PlaylistCover::Image(url) => {
+            assert_eq!(url, "https://example.invalid/own.jpg")
+        }
+        _ => panic!("the service's own picture wins"),
+    }
+}
+
 /// A user-made playlist has no artwork of its own, so a group icon is composed
 /// from its first tracks — asked for once, and only for playlists without art.
 #[test]
