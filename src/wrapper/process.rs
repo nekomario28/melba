@@ -289,6 +289,27 @@ mod tests {
         }
     }
 
+    /// Wait until the fixture has reported `count` processes.
+    ///
+    /// `wait_for` only waits for the file to exist, which the supervisor creates
+    /// before its worker has written its own line. A CI run then read the file
+    /// while it held nothing and failed with `left: 0, right: 2` — the assertion
+    /// was right, the wait was not.
+    fn wait_for_pids(folder: &Path, count: usize) {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            if folder.join("pids").exists() && pids(folder).len() >= count {
+                return;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "fixture reported {} of {count} processes",
+                pids(folder).len()
+            );
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+
     fn pids(folder: &Path) -> Vec<libc::pid_t> {
         std::fs::read_to_string(folder.join("pids"))
             .unwrap()
@@ -336,7 +357,7 @@ mod tests {
         let folder = folder("escaped-stopped");
         let mut command = service(&folder, &["--escape"]);
         let group = ProcessGroup::spawn(&mut command).unwrap();
-        wait_for(&folder);
+        wait_for_pids(&folder, 2);
         assert_eq!(pids(&folder).len(), 2, "worker and its escaped child");
         unsafe { libc::kill(group.child.id() as libc::pid_t, libc::SIGSTOP) };
         assert_eq!(group.status().unwrap(), None);
