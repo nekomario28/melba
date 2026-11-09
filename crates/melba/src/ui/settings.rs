@@ -35,6 +35,81 @@ fn alac_service_configured(config_base: &std::path::Path, data_base: &std::path:
         .any(|binary| data_base.join("melba/wrapper").join(binary).is_file())
 }
 
+/// The stream preference stored in `config.json`, as this page shows it.
+///
+/// The file belongs to `melbad`; this reads one key out of it and writes the same
+/// key back with everything else preserved, so a preference set here is what the
+/// daemon asks for.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum StreamQuality {
+    Auto,
+    Aac,
+    Lossless,
+}
+
+impl StreamQuality {
+    fn from_config(value: Option<&serde_json::Value>) -> Self {
+        match value.and_then(|v| v["audio_quality"].as_str()) {
+            Some("aac") => Self::Aac,
+            Some("lossless") => Self::Lossless,
+            _ => Self::Auto,
+        }
+    }
+
+    fn key(self) -> Option<&'static str> {
+        match self {
+            Self::Auto => None,
+            Self::Aac => Some("aac"),
+            Self::Lossless => Some("lossless"),
+        }
+    }
+}
+
+fn config_file_for_user() -> Option<std::path::PathBuf> {
+    let base = std::env::var_os("XDG_CONFIG_HOME")
+        .map(std::path::PathBuf::from)
+        .filter(|path| path.is_absolute())
+        .or_else(|| {
+            std::env::var_os("HOME").map(|home| std::path::PathBuf::from(home).join(".config"))
+        })?;
+    Some(base.join("melba/config.json"))
+}
+
+fn read_stream_quality_for_user() -> StreamQuality {
+    let Some(path) = config_file_for_user() else {
+        return StreamQuality::Auto;
+    };
+    let parsed = std::fs::read(path)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok());
+    StreamQuality::from_config(parsed.as_ref())
+}
+
+/// Write the preference, keeping every other key in the file.
+fn write_stream_quality_for_user(quality: StreamQuality) -> Result<(), String> {
+    let path = config_file_for_user().ok_or("no XDG_CONFIG_HOME or HOME")?;
+    let mut doc = std::fs::read(&path)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+        .unwrap_or_else(|| serde_json::json!({}));
+    let object = doc.as_object_mut().ok_or("config.json is not an object")?;
+    match quality.key() {
+        Some(word) => {
+            object.insert("audio_quality".into(), serde_json::json!(word));
+        }
+        None => {
+            object.remove("audio_quality");
+        }
+    }
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    }
+    let body = serde_json::to_vec_pretty(&doc).map_err(|e| e.to_string())?;
+    let tmp = path.with_extension("json.tmp");
+    std::fs::write(&tmp, body).map_err(|e| e.to_string())?;
+    std::fs::rename(&tmp, &path).map_err(|e| e.to_string())
+}
+
 fn alac_service_configured_for_user() -> bool {
     let xdg_dir = |variable: &str, fallback: &str| {
         std::env::var_os(variable)
@@ -307,6 +382,37 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                 {
                     // No download or installation occurs without user action.
                     ui.ctx().open_url(egui::OpenUrl::new_tab(ALAC_SETUP_URL));
+                }
+            });
+        });
+    }
+
+    let quality_title = gettext(locale, "Stream quality");
+    let quality_rows = [RowText::new(
+        quality_title.clone(),
+        gettext(
+            locale,
+            "Auto asks for lossless when the ALAC service is configured, and AAC-256 otherwise.",
+        ),
+    )];
+    if section_matches(&needle, &quality_title, &quality_rows) {
+        any_visible = true;
+        let current = read_stream_quality_for_user();
+        section(ui, &palette, &quality_title, |ui| {
+            filtered_row(ui, &palette, &needle, &quality_title, &quality_rows[0], |ui| {
+                for (quality, label) in [
+                    (StreamQuality::Auto, gettext(locale, "Auto")),
+                    (StreamQuality::Aac, gettext(locale, "AAC 256")),
+                    (StreamQuality::Lossless, gettext(locale, "Lossless")),
+                ] {
+                    if theme::pill_button(ui, &palette, &label, quality == current).clicked()
+                        && quality != current
+                        && let Err(error) = write_stream_quality_for_user(quality)
+                    {
+                        ui.data_mut(|data| {
+                            data.insert_temp(egui::Id::new("quality-error"), error)
+                        });
+                    }
                 }
             });
         });
@@ -1119,5 +1225,48 @@ mod tests {
             "Playback on this computer",
             &rows
         ));
+    }
+}
+
+#[cfg(test)]
+mod stream_quality_tests {
+    use super::*;
+
+    /// The file belongs to `melbad`; writing one key must not drop the others,
+    /// and `auto` is the absence of the key rather than a value meaning default.
+    #[test]
+    fn writing_the_preference_keeps_the_other_keys() {
+        let dir = std::env::temp_dir().join(format!("melba-quality-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("melba")).unwrap();
+        std::fs::write(
+            dir.join("melba/config.json"),
+            r#"{"wrapper_url":"tcp://127.0.0.1:10020","crossfade_seconds":3}"#,
+        )
+        .unwrap();
+        // SAFETY: this module's tests run in one thread per test and the process
+        // has no other writer for this variable at this point.
+        unsafe { std::env::set_var("XDG_CONFIG_HOME", &dir) };
+
+        assert_eq!(read_stream_quality_for_user(), StreamQuality::Auto);
+        write_stream_quality_for_user(StreamQuality::Aac).unwrap();
+        assert_eq!(read_stream_quality_for_user(), StreamQuality::Aac);
+        let saved: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(dir.join("melba/config.json")).unwrap()).unwrap();
+        assert_eq!(saved["wrapper_url"], "tcp://127.0.0.1:10020");
+        assert_eq!(saved["crossfade_seconds"], 3);
+        assert_eq!(saved["audio_quality"], "aac");
+
+        write_stream_quality_for_user(StreamQuality::Auto).unwrap();
+        let saved: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(dir.join("melba/config.json")).unwrap()).unwrap();
+        assert!(saved.get("audio_quality").is_none(), "{saved}");
+
+        // A value this build does not know reads as Auto rather than breaking.
+        assert_eq!(
+            StreamQuality::from_config(Some(&serde_json::json!({"audio_quality": "hires"}))),
+            StreamQuality::Auto
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
