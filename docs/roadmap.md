@@ -177,11 +177,18 @@ or infer bit-perfect playback from an ALAC label.
   `null` and paths are opened here directly, so the graph says nothing about
   them. That distinction was learned the hard way — `play --device null`
   reported `PASSTHROUGH` by reading another melbad process's stream.
-- [ ] **Re-observe the five-second downgrade on a device** — the graph parser
-  covers the shapes, but the live downgrade (a second client joining mid-track)
-  has not been watched since the session audio server was wedged by repeated
-  abrupt kills. `melbad doctor` prints what the graph says, so this is a
-  five-minute check on an idle machine rather than an implementation.
+- [x] **The five-second downgrade was re-observed, both directions** — measured
+  2026-11-09 on a 90 s 44.1 kHz source played to `default` by an isolated
+  daemon, polling `melbad now`:
+  `PASSTHROUGH` alone; a second client (`pw-play`, same rate) started and the
+  verdict stayed `PASSTHROUGH` for 3.9 s, then read `SHARED` at +5.2 s — the
+  watcher's poll, not an immediate recompute; the second client stopped and the
+  next poll (1.3 s later) read `PASSTHROUGH` again, with the position advancing
+  through every reading.
+  Two earlier attempts were not evidence: with a 3 s fixture the stream ended
+  before the poll, and with a 96 kHz source the joining 48 kHz client made the
+  sink renegotiate and the stream closed. Same-rate sources are what the
+  downgrade question needs.
 
 ### Dead GUI-to-worker surface
 
