@@ -183,7 +183,30 @@ jobs:
           export MELBA_PORTABLE_DIR="$RUNNER_TEMP/signed-release-smoke/app"
           export XDG_BIN_HOME="$RUNNER_TEMP/signed-release-smoke/bin"
           export XDG_DATA_HOME="$RUNNER_TEMP/signed-release-smoke/data"
-          sh packaging/install-release.sh --no-alac
+          # A distro mirror that refuses every package is not a property of the
+          # release: fedora-43 failed this way on two consecutive releases while
+          # the release itself published fine. Retry, and if the mirror is still
+          # the reason, say so and stop claiming this distro was verified —
+          # loudly, so the gap is visible rather than silent.
+          attempt=1
+          while :; do
+            if log=$(sh packaging/install-release.sh --no-alac 2>&1); then
+              printf '%s\n' "$log"
+              break
+            fi
+            printf '%s\n' "$log" >&2
+            if printf '%s' "$log" | grep -qE 'All mirrors were tried|Cannot download|Failed to download packages|Could not resolve host'; then
+              if [ "$attempt" -ge 3 ]; then
+                echo "::warning title=mirror unavailable::this distro's package mirror refused every package; the release was NOT verified here"
+                echo "MELBA_SMOKE_SKIPPED=mirror" >> "$GITHUB_ENV"
+                exit 0
+              fi
+            else
+              exit 1
+            fi
+            attempt=$((attempt + 1))
+            sleep 20
+          done
           test -L "$XDG_BIN_HOME/melba"
           test -L "$XDG_BIN_HOME/melbad"
           test "$("$MELBA_PORTABLE_DIR/melba" --version)" = "melba $RELEASE_VERSION"
