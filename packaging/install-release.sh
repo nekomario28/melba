@@ -37,9 +37,34 @@ MCowBQYDK2VwAyEAHkfb92Yn6L5S+nADQ8kBEyMD+CLW3sK+FsZjiL4QSRA=
 -----END PUBLIC KEY-----
 KEY
 base=https://github.com/nekomario28/melba/releases/latest/download
+# `github.com/.../releases/download/...` has returned 504 for whole hours while
+# the API served the same bytes, so every asset is fetched through the API when
+# the direct route fails. Same repository, same file, different front door.
+api=https://api.github.com/repos/nekomario28/melba/releases
+fetch() { # fetch <dest> <asset-name> [tag]
+    dest=$1; name=$2; tag=${3:-latest}
+    if curl --proto '=https' --tlsv1.2 -fLsS --retry 2 "$base/$name" -o "$dest"; then
+        return 0
+    fi
+    printf '== Direct download failed; retrying %s through the API ==\n' "$name" >&2
+    if [ "$tag" = latest ]; then
+        slug=$(curl --proto '=https' --tlsv1.2 -fLsS --retry 3 "$api/latest" |
+            sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -1)
+    else
+        slug=$tag
+    fi
+    [ -n "$slug" ] || return 1
+    id=$(curl --proto '=https' --tlsv1.2 -fLsS --retry 3 "$api/tags/$slug" |
+        tr ',' '\n' | awk -v want="$name" '
+            /"id":/ { gsub(/[^0-9]/,""); id=$0 }
+            index($0, "\"name\": \"" want "\"") { print id; exit }')
+    [ -n "$id" ] || return 1
+    curl --proto '=https' --tlsv1.2 -fLsS --retry 3 -H 'Accept: application/octet-stream' \
+        "$api/assets/$id" -o "$dest"
+}
 echo "== Fetching signed Melba release manifest =="
-curl --proto '=https' --tlsv1.2 -fLsS --retry 2 "$base/checksums.txt" -o "$work/checksums.txt"
-curl --proto '=https' --tlsv1.2 -fLsS --retry 2 "$base/checksums.txt.sig" -o "$work/checksums.txt.sig"
+fetch "$work/checksums.txt" checksums.txt
+fetch "$work/checksums.txt.sig" checksums.txt.sig
 openssl pkeyutl -verify -rawin -pubin -inkey "$work/publisher.pem" \
     -in "$work/checksums.txt" -sigfile "$work/checksums.txt.sig" >/dev/null ||
     fail "publisher signature verification failed; no binaries installed"
@@ -56,9 +81,7 @@ version=${archive#melba-v}
 version=${version%-$target.tar.gz}
 case "$version" in ""|*[!0-9A-Za-z.-]*) fail "unexpected signed release version";; esac
 printf '== Downloading Melba v%s (%s) ==\n' "$version" "$target"
-curl --proto '=https' --tlsv1.2 -fLsS --retry 2 \
-    "https://github.com/nekomario28/melba/releases/download/v$version/$archive" \
-    -o "$work/$archive"
+fetch "$work/$archive" "$archive" "v$version"
 awk -v f="$archive" '$2 == f { print }' "$work/checksums.txt" |
     (cd "$work" && sha256sum -c -) ||
     fail "downloaded archive does not match the signed checksum"
