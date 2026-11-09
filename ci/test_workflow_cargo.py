@@ -29,6 +29,18 @@ class LockedBuilds(unittest.TestCase):
                         unlocked.append(f"{path.name}:{number}: {match.group(0).strip()}")
         self.assertEqual(unlocked, [], "these let cargo resolve past the lockfile")
 
+    def test_a_mirror_outage_is_reported_not_silently_passed(self):
+        """The published-installer job must not claim a distro was verified.
+
+        fedora-43 failed twice in a row on its own mirror while the release
+        published fine. Retrying is right; passing quietly is not, so the skip
+        has to be a warning with the reason in it.
+        """
+        text = (WORKFLOWS / "release-publish.yml").read_text(encoding="utf-8")
+        self.assertIn("All mirrors were tried", text, "mirror failures are not classified")
+        self.assertIn("::warning", text, "a skipped verification must be visible")
+        self.assertIn("attempt", text, "a transient mirror failure should be retried")
+
     def test_cargo_audit_fails_the_build(self):
         """The exemption existed for an advisory with no fixed release.
 
