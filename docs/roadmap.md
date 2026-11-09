@@ -10,11 +10,12 @@ Current release: **v0.3.12** (signed x86_64 and aarch64). The entries below
 name the release each acceptance was measured on; an older version in an entry
 is a dated record, not the current one.
 
-- [~] **Audio quality settings** — `melbad config audio-quality` sets `auto`,
-  `aac` or `lossless` in `config.json`, and `aac` is honoured by never asking the
-  decrypt service. A settings-page control and a `hi-res` choice are still open:
+- [~] **Audio quality settings** — `melbad config audio-quality` and a Settings
+  control both write `auto`, `aac` or `lossless` to `config.json`; `aac` is
+  honoured by never asking the decrypt service, and the page writes that one key
+  without disturbing the file's others. Still open: a `hi-res` choice, because
   picking a hi-res ALAC variant apart from a lossless one needs per-variant
-  attributes from the master playlist that this build does not parse, and there
+  attributes from the master playlist that `melba-cdm` does not parse, and there
   is no live master to check a guess against without an account.
 
 - [x] **Busy output takeover** — a busy `hw:` output remains in Settings as
