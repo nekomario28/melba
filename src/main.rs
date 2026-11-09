@@ -129,6 +129,11 @@ enum ConfigOp {
         /// Omit to print the current value.
         value: Option<String>,
     },
+    /// Get or set which stream to ask for (auto | aac | lossless).
+    AudioQuality {
+        /// Omit to print the current value.
+        value: Option<String>,
+    },
 }
 
 #[derive(Serialize)]
@@ -1121,6 +1126,34 @@ fn main() {
             }
         }
         Cmd::Config { op } => match op {
+            ConfigOp::AudioQuality { value } => match value {
+                Some(value) => {
+                    let quality = match value.trim().to_ascii_lowercase().as_str() {
+                        "auto" => melbad::config::AudioQuality::Auto,
+                        "aac" | "aac-256" => melbad::config::AudioQuality::Aac,
+                        "lossless" | "alac" => melbad::config::AudioQuality::Lossless,
+                        other => {
+                            eprintln!("config audio-quality: {other} is not auto, aac or lossless");
+                            std::process::exit(2);
+                        }
+                    };
+                    match melbad::config::set_audio_quality(quality) {
+                        Ok(()) => println!("audio_quality = {value}"),
+                        Err(e) => {
+                            eprintln!("config audio-quality: {e}");
+                            std::process::exit(2);
+                        }
+                    }
+                }
+                None => println!(
+                    "audio_quality = {}",
+                    match melbad::config::audio_quality() {
+                        melbad::config::AudioQuality::Auto => "auto",
+                        melbad::config::AudioQuality::Aac => "aac",
+                        melbad::config::AudioQuality::Lossless => "lossless",
+                    }
+                ),
+            },
             ConfigOp::AudioDevice { value } => match value {
                 Some(value) => match melbad::config::set_audio_device(&value) {
                     Ok(()) => println!("audio_device = {value}"),

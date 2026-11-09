@@ -169,3 +169,28 @@ What that does not establish:
   nodes, the negotiated format, converter nodes and how many clients share the
   sink — so the conditions above can be checked rather than assumed. It reports
   facts; the playback verdict is unchanged.
+
+## Choosing the stream
+
+The player asks for lossless when a decrypt service is configured and the track
+carries a lossless variant, and for AAC-256 otherwise. That preference is a
+setting rather than a fixed rule:
+
+```sh
+melbad config audio-quality            # what is in effect
+melbad config audio-quality aac        # never ask the decrypt service
+melbad config audio-quality lossless   # ask for lossless, fall back if it cannot
+melbad config audio-quality auto       # the default rule
+```
+
+`aac` is the one that does not start the service at all: someone who picked
+AAC-256 for its cost, or to keep the verdict simple, is not helped by a wrapper
+being started first. A fallback from `lossless` is reported as an
+`alac_fallback` diagnostic with the reason, and the receipt's `codec` says what
+actually played.
+
+There is no `hi-res` option yet, on purpose: telling a hi-res ALAC variant from
+a lossless one needs the master playlist's per-variant attributes, which this
+build does not parse. A hi-res track plays the ALAC variant the service lists
+first, and the receipt reports the rate and depth that actually arrived.
+
