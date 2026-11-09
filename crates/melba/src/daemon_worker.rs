@@ -437,6 +437,80 @@ impl DaemonWorker {
         });
     }
 
+    /// Does the cover the user picked already exist in the catalogue?
+    ///
+    /// A playlist keeps its own artwork, but the service may serve the same
+    /// picture as one of its own renditions. Fetching each candidate and
+    /// comparing pixels answers that without uploading anything.
+    fn spawn_cover_check(
+        &self,
+        id: String,
+        request: u64,
+        cover: crate::playlist_cover::Cover,
+        images: Vec<crate::api::models::Image>,
+    ) {
+        let events = self.events.clone();
+        let waker = self.waker.clone();
+        let mk = Arc::clone(&self.mk);
+        tokio::spawn(async move {
+            let mut result = Ok(false);
+            for image in &images {
+                match mk.artwork_bytes(&image.url).await {
+                    Ok(bytes) => match cover.matches_remote(&bytes) {
+                        Ok(true) => {
+                            result = Ok(true);
+                            break;
+                        }
+                        Ok(false) => {}
+                        Err(error) => {
+                            result = Err(error);
+                            break;
+                        }
+                    },
+                    Err(error) => {
+                        result = Err(error);
+                        break;
+                    }
+                }
+            }
+            let _ = events.send(Event::PlaylistCoverChecked {
+                id,
+                request,
+                images,
+                result,
+            });
+            waker.wake();
+        });
+    }
+
+    /// Run the desktop's file picker and read what it returned.
+    ///
+    /// The picker itself lives in the app process; the future it hands over is
+    /// awaited here so the selection is prepared once, off the UI thread.
+    fn spawn_cover_choice(
+        &self,
+        id: String,
+        request: u64,
+        selected: std::pin::Pin<
+            Box<dyn std::future::Future<Output = Option<rfd::FileHandle>> + Send>,
+        >,
+    ) {
+        let events = self.events.clone();
+        let waker = self.waker.clone();
+        tokio::spawn(async move {
+            let result = match selected.await {
+                None => Ok(None),
+                Some(handle) => crate::playlist_cover::read(handle.path()).map(Some),
+            };
+            let _ = events.send(Event::PlaylistCoverChosen {
+                id,
+                request,
+                result,
+            });
+            waker.wake();
+        });
+    }
+
     /// The Themes folder button: the app owns the directory, the worker owns
     /// running the desktop's file manager.
     fn open_themes_folder(&self) {
@@ -1421,6 +1495,17 @@ impl DaemonWorker {
                             self.last_network = Some(reachable);
                             self.emit(Event::NetworkStatus(reachable));
                         }
+                        Command::CheckPlaylistCover {
+                            id,
+                            request,
+                            cover,
+                            images,
+                        } => self.spawn_cover_check(id, request, cover, images),
+                        Command::ChoosePlaylistCover {
+                            id,
+                            request,
+                            selected,
+                        } => self.spawn_cover_choice(id, request, selected),
                         Command::Accent { url } => self.spawn_accent(url),
                         Command::UpdateProxy(proxy) => self.update_proxy = proxy,
                         Command::CheckForUpdates { manual, source } => {
