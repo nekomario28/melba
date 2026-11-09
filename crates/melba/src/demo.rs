@@ -336,17 +336,6 @@ pub fn populate(app: &mut App) {
     app.artist_pages.insert("art0".into(), artist_page);
     app.saved.insert("melba:artist:art0".into(), true);
 
-    // Radio pages, for a song and for a playlist.
-    for (seed, first) in [("melba:track:trk0", 1), ("melba:playlist:pl1", 8)] {
-        app.radio_pages.insert(
-            seed.into(),
-            RadioPage {
-                songs: Loadable::Loaded(tracks.iter().skip(first).take(30).cloned().collect()),
-                ..RadioPage::default()
-            },
-        );
-    }
-
     // Library.
     app.library.liked.absorb(
         0,
@@ -4476,7 +4465,6 @@ mod tests {
                     "Add to queue",
                     "Save to Liked Songs",
                     "Add to playlist",
-                    "Go to song radio",
                     "Go to artist",
                     "Go to album",
                 ][..],
@@ -4776,7 +4764,7 @@ mod tests {
                 "Recently played".into(),
                 track(5).name,
                 track(5).uri,
-                vec!["Add to queue", "Add to playlist", "Go to song radio"],
+                vec!["Add to queue", "Add to playlist"],
             ),
             (
                 "Your top artists".into(),
@@ -5290,15 +5278,6 @@ mod tests {
 
         // The demo plays the second playlist.
         beside(&drawn(&mut app), "Late night focus");
-
-        // A song radio is named after its song.
-        if let Some(remote) = app.remote.as_mut() {
-            remote.state.context = Some(Context {
-                uri: "melba:station:track:trk0".into(),
-                kind: "station".into(),
-            });
-        }
-        beside(&drawn(&mut app), "Rosewood Radio");
 
         // Nothing reported, nothing named.
         if let Some(remote) = app.remote.as_mut() {
@@ -8486,121 +8465,4 @@ mod tests {
         }
     }
 
-    /// #644: Go to song radio from a list names the radio after the song
-    /// even when the song was never played or seen on a radio, instead of
-    /// opening a page titled just "Radio" with no cover.
-    #[test]
-    fn song_radio_from_liked_songs_is_named_after_the_song() {
-        let (ctx, mut app) = accessible_app("liked-song-radio");
-        let view = crate::ui::collection::liked;
-        let song = app
-            .library
-            .liked
-            .items
-            .last()
-            .expect("a liked song")
-            .track
-            .clone();
-        let seed = song.uri.clone();
-        // Only songs that played or came back from a radio are cached.
-        app.track_cache.clear();
-        view_frame(&ctx, &mut app, vec![], view);
-        let text = view_frame(&ctx, &mut app, vec![], view);
-        let row = text
-            .iter()
-            .rev()
-            .find(|(text, _)| text == &song.name)
-            .unwrap_or_else(|| panic!("{} in Liked Songs", song.name))
-            .1
-            .center();
-        view_frame(
-            &ctx,
-            &mut app,
-            pointer_click(row, egui::PointerButton::Secondary),
-            view,
-        );
-        let text = view_frame(&ctx, &mut app, vec![], view);
-        let radio = text
-            .iter()
-            .find(|(text, _)| text == "Go to song radio")
-            .expect("the song's menu")
-            .1
-            .center();
-        app.actions.clear();
-        view_frame(
-            &ctx,
-            &mut app,
-            pointer_click(radio, egui::PointerButton::Primary),
-            view,
-        );
-        let actions = std::mem::take(&mut app.actions);
-        assert!(
-            matches!(actions.as_slice(), [Action::OpenSongRadio { uri, .. }] if uri == &seed),
-            "the menu opens the song's radio: {actions:?}"
-        );
-        assert!(
-            app.track_cache.is_empty(),
-            "the menu leaves the cache to the action, applied after drawing"
-        );
-        for action in actions {
-            app.apply(action, &ctx);
-        }
-        assert_eq!(app.page(), &Page::Radio(seed.clone()));
-        assert_eq!(
-            app.radio_name(&seed),
-            Some(format!("{} Radio", song.name)),
-            "the radio is named after the song"
-        );
-        assert_eq!(
-            app.radio_pages[&seed].name,
-            Some(format!("{} Radio", song.name)),
-            "the page keeps the name"
-        );
-        app.backend.shutdown();
-    }
-
-    /// A song already cached from an album's song list, which comes without
-    /// the album, takes the row's album for the radio's cover, while what
-    /// the cache already knows is kept.
-    #[test]
-    fn song_radio_takes_the_rows_album_art_for_a_cached_song() {
-        let (ctx, mut app) = accessible_app("song-radio-album-art");
-        let song = app
-            .library
-            .liked
-            .items
-            .last()
-            .expect("a liked song")
-            .track
-            .clone();
-        assert!(
-            song.album.as_ref().is_some_and(|a| !a.images.is_empty()),
-            "the demo's liked song has album art"
-        );
-        let seed = song.uri.clone();
-        let id = crate::util::uri_id(&seed).expect("a track id").to_owned();
-        let mut cached = song.clone();
-        cached.album = None;
-        cached.name = "Cached name".into();
-        app.track_cache.clear();
-        app.track_cache.insert(id.clone(), cached);
-        app.apply(
-            Action::OpenSongRadio {
-                uri: seed.clone(),
-                track: Box::new(song.clone()),
-            },
-            &ctx,
-        );
-        assert_eq!(app.page(), &Page::Radio(seed.clone()));
-        assert_eq!(
-            app.radio_images(&seed),
-            song.album.as_ref().unwrap().images,
-            "the cover comes from the row's album"
-        );
-        assert_eq!(
-            app.track_cache[&id].name, "Cached name",
-            "the cached song is kept"
-        );
-        app.backend.shutdown();
-    }
 }

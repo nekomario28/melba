@@ -1080,17 +1080,6 @@ pub fn item_menu(
     menu_separator(ui, &palette);
     match item {
         PlayableItem::Track(track) => {
-            if menu_item(
-                ui,
-                &palette,
-                Some(Icon::Radio),
-                &gettext(locale, "Go to song radio"),
-            ) {
-                app.actions.push(Action::OpenSongRadio {
-                    uri: uri.clone(),
-                    track: Box::new(track.clone()),
-                });
-            }
             let artists: Vec<&ArtistRef> = track
                 .artists
                 .iter()
@@ -1240,18 +1229,6 @@ pub fn context_menu_items(
         }
     }
     menu_separator(ui, &palette);
-    let radio = match kind {
-        "playlist" => Some(gettext(locale, "Go to playlist radio")),
-        "album" => Some(gettext(locale, "Go to album radio")),
-        "artist" => Some(gettext(locale, "Go to artist radio")),
-        _ => None,
-    };
-    if let Some(label) = radio
-        && util::station_uri(uri).is_some()
-        && menu_item(ui, &palette, Some(Icon::Radio), &label)
-    {
-        app.actions.push(Action::Open(Page::Radio(uri.to_string())));
-    }
     if crate::util::open_apple_music_url(uri, &crate::mk::storefront()).is_some() {
         if menu_item(
             ui,
