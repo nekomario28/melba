@@ -213,9 +213,6 @@ pub struct Actions<'a> {
     /// A playlist page can be refreshed from its More menu.
     pub reload: Option<(Page, bool)>,
     pub name: &'a str,
-    /// A radio page offers to save its songs as a playlist, by the seed's
-    /// URI, in place of the service item's own menu.
-    pub save_radio: Option<String>,
 }
 
 /// The big play button and its neighbours; returns the filter text if a
@@ -237,7 +234,7 @@ pub fn actions_row(
             // A radio is mixed afresh each time the service is asked, so it
             // always plays the songs on screen.
             let play_view = actions.view.is_some()
-                && (!app.playing_context_shuffle() || is_filtered || actions.save_radio.is_some());
+                && (!app.playing_context_shuffle() || is_filtered);
             let can_start = actions.view.as_ref().is_none_or(|uris| !uris.is_empty());
             let icon = if now_playing_here {
                 Icon::PauseFilled
@@ -347,19 +344,6 @@ pub fn actions_row(
                 app.actions.push(Action::ToggleSaved(uri.clone()));
             }
         }
-        if let Some(seed) = &actions.save_radio
-            && theme::icon_button(
-                ui,
-                Icon::CirclePlus,
-                26.0,
-                palette.secondary,
-                palette.text,
-                &gettext(locale, "Save as playlist"),
-            )
-            .clicked()
-        {
-            app.actions.push(Action::SaveRadio(seed.clone()));
-        }
         if let Some(uri) = &actions.play_uri {
             let more = theme::icon_button(
                 ui,
@@ -372,19 +356,7 @@ pub fn actions_row(
             egui::Popup::menu(&more)
                 .frame(widgets::menu_frame(&palette))
                 .show(|ui| {
-                    if let Some(seed) = &actions.save_radio {
-                        // As narrow as every other item menu.
-                        ui.set_min_width(200.0);
-                        ui.set_max_width(300.0);
-                        if widgets::menu_item(
-                            ui,
-                            &palette,
-                            Some(Icon::CirclePlus),
-                            &gettext(locale, "Save as playlist"),
-                        ) {
-                            app.actions.push(Action::SaveRadio(seed.clone()));
-                        }
-                    } else {
+                    {
                         widgets::context_menu_items(
                             ui,
                             app,
@@ -1895,7 +1867,6 @@ fn playlist_actions<'a>(
         owned_playlist: owned.then(|| playlist.clone()),
         reload,
         name: &playlist.name,
-        save_radio: None,
     }
 }
 
@@ -1917,7 +1888,6 @@ fn album_actions<'a>(
         owned_playlist: None,
         reload: None,
         name: &album.name,
-        save_radio: None,
     }
 }
 
@@ -2089,7 +2059,6 @@ pub fn liked(app: &mut App, ui: &mut egui::Ui) {
         owned_playlist: None,
         reload: None,
         name: &liked_title,
-        save_radio: None,
     };
     if !app.network_reachable {
         disabled_actions_row(app, ui, actions, Some(&mut filter));
@@ -3585,9 +3554,8 @@ mod tests {
                             saved_icons: (Icon::CirclePlus, Icon::CircleCheck),
                             saved_tooltips: Default::default(),
                             owned_playlist: None,
-                            reload: Some((Page::Radio("melba:track:seed".into()), false)),
-                            name: "Seed Radio",
-                            save_radio: Some("melba:track:seed".into()),
+                            reload: Some((Page::Playlist("pl.seed".into()), false)),
+                            name: "Seed",
                         },
                         None,
                     )
@@ -3671,8 +3639,7 @@ mod tests {
                                     owned_playlist: None,
                                     reload: Some((Page::Playlist("test".into()), loading)),
                                     name: "Test",
-                                    save_radio: None,
-                                },
+                                                            },
                                 Some(&mut filter),
                             )
                         },
@@ -3795,8 +3762,7 @@ mod tests {
                         owned_playlist: None,
                         reload: None,
                         name: "Test",
-                        save_radio: None,
-                    },
+                                    },
                     None,
                 );
             });
@@ -3858,8 +3824,7 @@ mod tests {
                             owned_playlist: None,
                             reload: None,
                             name: "Test",
-                            save_radio: None,
-                        },
+                                            },
                         None,
                     );
                 },
@@ -3913,8 +3878,7 @@ mod tests {
                     owned_playlist: None,
                     reload: None,
                     name: "Test",
-                    save_radio: None,
-                },
+                            },
                 None,
             );
         });
@@ -3957,8 +3921,7 @@ mod tests {
                     owned_playlist: None,
                     reload: None,
                     name: "Test",
-                    save_radio: None,
-                },
+                            },
                 None,
             );
         });
@@ -4005,8 +3968,7 @@ mod tests {
                     owned_playlist: None,
                     reload: None,
                     name: "Test",
-                    save_radio: None,
-                },
+                            },
                 None,
             );
         });
@@ -4049,8 +4011,7 @@ mod tests {
                     owned_playlist: None,
                     reload: None,
                     name: "Test",
-                    save_radio: None,
-                },
+                            },
                 None,
             );
         });
@@ -4098,8 +4059,7 @@ mod tests {
                     owned_playlist: None,
                     reload: None,
                     name: "Test",
-                    save_radio: None,
-                },
+                            },
                 Some(&mut filter),
             );
         });
@@ -4142,8 +4102,7 @@ mod tests {
                     owned_playlist: None,
                     reload: None,
                     name: "Test",
-                    save_radio: None,
-                },
+                            },
                 Some(&mut filter),
             );
         });

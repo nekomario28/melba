@@ -114,9 +114,6 @@ pub enum Page {
     Playlist(String),
     Album(String),
     Artist(String),
-    /// A station seeded by a song, playlist, album, or artist, by the
-    /// seed's URI.
-    Radio(String),
     Queue,
     Settings,
 }
@@ -133,7 +130,6 @@ impl Page {
             Page::Playlist(id) => format!("playlist:{id}"),
             Page::Album(id) => format!("album:{id}"),
             Page::Artist(id) => format!("artist:{id}"),
-            Page::Radio(seed) => format!("radio:{seed}"),
             Page::Queue => "queue".into(),
             Page::Settings => "settings".into(),
         }
@@ -155,7 +151,6 @@ impl Page {
                     "playlist" => Page::Playlist(id.into()),
                     "album" => Page::Album(id.into()),
                     "artist" => Page::Artist(id.into()),
-                    "radio" if crate::util::station_uri(id).is_some() => Page::Radio(id.into()),
                     _ => return None,
                 }
             }
@@ -816,21 +811,6 @@ pub struct ArtistPage {
     pub show_all_top: bool,
 }
 
-/// A radio page: the songs the service mixed for its seed, which are the songs
-/// its Play button plays.
-#[derive(Default)]
-pub struct RadioPage {
-    pub songs: Loadable<Vec<Track>>,
-    /// The name and artwork known when the page opened, kept should the
-    /// seed's own details be let go while the page stays.
-    pub name: Option<String>,
-    pub images: Vec<crate::api::models::Image>,
-    /// Identifies the request whose answer may fill `songs`.
-    pub generation: u64,
-    /// A new mix is on its way; the songs shown stay until it arrives.
-    pub refreshing: bool,
-}
-
 /// A table's sort, chosen by clicking a column heading.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TableSort {
@@ -962,12 +942,6 @@ pub struct AuthForm {
 #[derive(Clone, Debug)]
 pub enum Action {
     Open(Page),
-    /// Opens the radio of a song shown in a list, after caching the row's
-    /// song so the page has its name and cover (#644).
-    OpenSongRadio {
-        uri: String,
-        track: Box<Track>,
-    },
     /// Extracts a page's tint while its library row is hovered.
     PrepareTint(String),
     OpenUri(String),
@@ -1111,8 +1085,6 @@ pub enum Action {
     ClearQueue,
     /// Save the current and upcoming queue as a playlist.
     SaveQueueAsPlaylist,
-    /// Save a radio page's songs to a new playlist, by the seed's URI.
-    SaveRadio(String),
     CopyLink(String),
     /// Copy picked songs' links, one per line, and remember the songs so a
     /// paste of the same links can show their rows at once.

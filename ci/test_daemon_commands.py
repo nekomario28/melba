@@ -23,9 +23,10 @@ REWRITTEN = {"SignIn": "Backend::send turns it into AuthStart"}
 
 # Sent by the app, not handled by the worker yet. Each entry says who loses
 # what, so the list cannot quietly grow.
-UNHANDLED = {
-    "Radio": "a radio page never resolves its songs",
-}
+# Empty, and meant to stay empty: every command the app sends is answered.
+# A variant that is sent and dropped must be recorded here, which is the point —
+# the gate then fails until someone decides what it should do.
+UNHANDLED = {}
 
 
 def command_variants():

@@ -196,11 +196,10 @@ or infer bit-perfect playback from an ALAC label.
   match whose `_ => {}` arm silently discards anything unnamed. Thirteen
   variants were sent by the app and never handled; ten are now implemented
   (both liked-songs cache commands, `OpenThemesFolder`, the artwork accent,
-  `NetworkStatus`, the playlist cache, and the library/home account caches) and
-  `ci/test_daemon_commands.py` fails when a new variant is added without a
-  decision, or when a recorded exception stops applying. Three are still
-  recorded there with what the user loses: the radio lookup and the two
-  playlist-cover commands.
+  `NetworkStatus`, the playlist cache, the library/home account caches, and the
+  two playlist-cover commands). The radios are gone rather than answered, so the
+  recorded exception list in `ci/test_daemon_commands.py` is now empty: a variant
+  sent and dropped fails that gate instead of joining a list.
 - [x] **Playlist and account caches** — `LoadPlaylistCache`,
   `StorePlaylistCache`, `LoadAccountCaches`, `StoreLibraryCache` and
   `StoreHomeCache` carry the account in the command and write per-account,
@@ -213,11 +212,12 @@ or infer bit-perfect playback from an ALAC label.
   marks it reachable), so a captive portal or a 500 is not reported as "offline".
   `Backend::network_status` publishes it and the app receives `NetworkStatus`
   only when the answer changes.
-- [ ] **Radio pages** — the page resolves through `Command::Radio`, which
-  nothing answers, so a station never lists its songs. Apple publishes no
-  station endpoint; decide between removing the page (it is a Spotify concept,
-  like the podcast surface already removed) and building a seed-based mix from
-  the existing context requests.
+- [x] **Radio pages removed** — Apple publishes no station endpoint, so
+  `Command::Radio` was answered by nothing and a station never listed its songs.
+  The surface is gone end to end (page, command, event, menu entries, station URI
+  helpers, view, fixtures, tests). A seed-based mix built from the existing
+  context requests remains possible if it is ever wanted; it would be a new
+  feature rather than a repair.
 - [ ] **EQ, crossfade and Sound Check** — not implemented, and they cannot be
   added as ordinary features: each one alters the samples that reach the
   device, so the `BITPERFECT` verdict would be a lie unless the DSP is opt-in
