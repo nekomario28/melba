@@ -12,7 +12,6 @@ pub mod login;
 mod lyrics;
 pub mod player_bar;
 pub mod queue;
-pub mod radio;
 pub mod search;
 pub mod settings;
 pub mod sidebar;
@@ -223,7 +222,6 @@ fn page_tint(app: &mut App) -> Option<Color32> {
             .or_else(|| app.known_artist(id))
             .and_then(|artist| pick_image(&artist.images, 64))
             .map(str::to_string),
-        Page::Radio(seed) => pick_image(&app.radio_images(seed), 64).map(str::to_string),
         Page::LikedSongs => {
             return app
                 .settings
@@ -295,7 +293,6 @@ fn central(app: &mut App, ui: &mut egui::Ui) {
                                 Page::Playlist(id) => collection::playlist(app, ui, &id),
                                 Page::Album(id) => collection::album(app, ui, &id),
                                 Page::Artist(id) => artist::show(app, ui, &id),
-                                Page::Radio(seed) => radio::radio(app, ui, &seed),
                                 Page::Queue => queue::page(app, ui),
                                 Page::Settings => settings::show(app, ui),
                             }

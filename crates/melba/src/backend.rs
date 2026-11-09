@@ -501,11 +501,6 @@ pub enum Command {
     },
     StoreLibraryCache(crate::account_cache::Cache<Vec<Playlist>>),
     StoreHomeCache(crate::account_cache::Cache<crate::model::HomeSnapshot>),
-    /// Resolve Spotify's radio seeded by `seed` through the streaming session.
-    Radio {
-        seed: String,
-        generation: u64,
-    },
 }
 
 pub struct LyricsRequest {
@@ -571,11 +566,6 @@ pub enum Event {
         success: bool,
     },
     /// The songs of the radio seeded by `seed`, for the request `generation`.
-    Radio {
-        seed: String,
-        generation: u64,
-        result: Result<Vec<crate::api::models::Track>, String>,
-    },
     LikedSongsCache {
         account_id: String,
         generation: u64,

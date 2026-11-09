@@ -175,25 +175,6 @@ pub fn uri_kind(uri: &str) -> Option<&str> {
     parts.next()
 }
 
-/// The radio station seeded by a song, playlist, album, or artist, on
-/// either the canonical `melba:` scheme or its `spotify:` form.
-pub fn station_uri(seed: &str) -> Option<String> {
-    let kind = uri_kind(seed)?;
-    let id = uri_id(seed)?;
-    ((seed == format!("melba:{kind}:{id}") || seed == format!("spotify:{kind}:{id}"))
-        && matches!(kind, "track" | "playlist" | "album" | "artist"))
-    .then(|| format!("melba:station:{kind}:{id}"))
-}
-
-/// The song, playlist, album, or artist a radio station is seeded by.
-pub fn station_seed(station: &str) -> Option<String> {
-    let seed = station
-        .strip_prefix("melba:station:")
-        .or_else(|| station.strip_prefix("spotify:station:"))
-        .map(|rest| format!("melba:{rest}"))?;
-    station_uri(&seed).is_some().then_some(seed)
-}
-
 /// The music.apple.com address behind an internal `melba:<kind>:<id>`
 /// URI, for copying or opening a resource in the browser. Library
 /// playlists (`p.*`) have no public address.
@@ -418,29 +399,6 @@ mod tests {
         let template = tray_template_rgba(44);
         assert_eq!(pixel(&template, 44, 24, 22)[3], 0);
         assert_eq!(pixel(&template, 44, 8, 22), [0, 0, 0, 255]);
-    }
-
-    #[test]
-    fn radio_stations_map_to_their_seeds_and_back() {
-        for kind in ["track", "playlist", "album", "artist"] {
-            let seed = format!("melba:{kind}:4uLU6hMCjMI75M1A2tKUQC");
-            let station = station_uri(&seed).expect("a station");
-            assert_eq!(
-                station,
-                format!("melba:station:{kind}:4uLU6hMCjMI75M1A2tKUQC")
-            );
-            assert_eq!(station_seed(&station).as_deref(), Some(seed.as_str()));
-        }
-        for seed in [
-            "melba:show:abc",
-            "melba:episode:abc",
-            "melba:user:me:collection",
-            "melba:track:",
-            "track:abc",
-        ] {
-            assert_eq!(station_uri(seed), None, "{seed}");
-        }
-        assert_eq!(station_seed("melba:playlist:abc"), None);
     }
 
     #[test]
