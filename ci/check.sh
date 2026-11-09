@@ -4,6 +4,23 @@
 # Usage: ci/check.sh [--hardware]   (hardware gates need an idle hw: device)
 set -u
 cd "$(dirname "$0")/.."
+
+# Nothing here may touch the developer's own state. The MPRIS gates start a
+# real daemon, and a daemon handed no XDG directories loads the live
+# `queue.json`, replaces it with the fixtures it was given and persists that —
+# which is how a run of these gates has overwritten a user's queue. Every
+# subprocess below therefore resolves into one throwaway root.
+if [ "${MELBA_CHECK_ISOLATED:-}" != "1" ]; then
+  export MELBA_CHECK_ISOLATED=1
+  root="${TMPDIR:-/tmp}/melba-check-$$"
+  rm -rf "$root"
+  mkdir -p "$root/config" "$root/state" "$root/cache" "$root/data"
+  export XDG_CONFIG_HOME="$root/config"
+  export XDG_STATE_HOME="$root/state"
+  export XDG_CACHE_HOME="$root/cache"
+  export XDG_DATA_HOME="$root/data"
+  trap 'rm -rf "$root"' EXIT INT TERM
+fi
 # A MELBA_BIN that names a path that does not exist must not fail every
 # binary gate: fall back to whichever built binary exists. Gates still
 # fail if no binary is found.
