@@ -18,6 +18,30 @@ pub enum WrapperMode {
     External,
 }
 
+/// Which stream to ask for.
+///
+/// `Auto` is what the player has always done: lossless when a decrypt service
+/// is configured and the track carries a lossless variant, AAC-256 otherwise.
+/// `Aac` exists for people who would rather not run the service, and `Lossless`
+/// says the preference out loud so a fallback is a visible event rather than a
+/// silent downgrade.
+///
+/// There is no `HiRes` yet, on purpose: distinguishing a hi-res ALAC variant
+/// from a lossless one needs the master playlist's per-variant attributes, which
+/// this build does not parse — and without an account there is no live master to
+/// check a guess against.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AudioQuality {
+    Aac,
+    Lossless,
+    /// Anything else, including the default. `serde(other)` has to be the last
+    /// variant and keeps a value this build does not know from failing the file.
+    #[default]
+    #[serde(other)]
+    Auto,
+}
+
 /// `config.json` as this build understands it.
 ///
 /// The file used to be read as free-form JSON, so every caller indexed it and
@@ -35,6 +59,9 @@ pub struct Config {
     /// `auto`, `default`, or `hw:X,Y`; validated on read.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub audio_device: Option<String>,
+    /// Which stream to ask the service for. See [`AudioQuality`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio_quality: Option<AudioQuality>,
     /// Widevine CDM shared object to prefer over the browser installs.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cdm_path: Option<String>,
@@ -73,6 +100,11 @@ impl Config {
         let tmp = dir.join(".config.json.tmp");
         std::fs::write(&tmp, &body).map_err(|e| e.to_string())?;
         std::fs::rename(&tmp, dir.join("config.json")).map_err(|e| e.to_string())
+    }
+
+    /// Which stream the player should ask for.
+    pub fn audio_quality(&self) -> AudioQuality {
+        self.audio_quality.unwrap_or_default()
     }
 
     /// The audio device to open, if the file names a valid one.
@@ -195,6 +227,21 @@ pub fn valid_audio_device(value: &str) -> bool {
         && dev.bytes().all(|b| b.is_ascii_digit())
 }
 
+/// The configured quality preference.
+pub fn audio_quality() -> AudioQuality {
+    config().audio_quality()
+}
+
+/// Persist the quality preference; `auto` removes the key.
+pub fn set_audio_quality(quality: AudioQuality) -> Result<(), String> {
+    let mut cfg = config();
+    cfg.audio_quality = match quality {
+        AudioQuality::Auto => None,
+        other => Some(other),
+    };
+    cfg.save()
+}
+
 pub fn audio_device() -> Option<String> {
     config().audio_device()
 }
@@ -309,6 +356,39 @@ mod tests {
             .expect("parses");
         assert_eq!(cfg.wrapper_mode, Some(WrapperMode::External));
         assert_eq!(cfg.audio_device(), Some("default".to_string()));
+    }
+
+    /// The quality preference is one of three words, and an unknown value in
+    /// the file reads as `auto` rather than failing the file.
+    #[test]
+    fn the_quality_preference_round_trips() {
+        let _g = lock();
+        let dir = std::env::temp_dir().join(format!("melbacfg-quality-{}", std::process::id()));
+        std::env::set_var("XDG_CONFIG_HOME", &dir);
+        assert_eq!(audio_quality(), AudioQuality::Auto, "unset means auto");
+        for (quality, word) in [
+            (AudioQuality::Aac, "aac"),
+            (AudioQuality::Lossless, "lossless"),
+            (AudioQuality::Auto, "auto"),
+        ] {
+            set_audio_quality(quality).unwrap();
+            assert_eq!(audio_quality(), quality, "{word}");
+        }
+        // `auto` removes the key rather than writing a value that means default
+        let saved: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(dir.join("melba/config.json")).unwrap()).unwrap();
+        assert!(saved.get("audio_quality").is_none(), "{saved}");
+        std::fs::write(
+            dir.join("melba/config.json"),
+            r#"{"audio_quality":"hires"}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            audio_quality(),
+            AudioQuality::Auto,
+            "a value this build does not know is auto, not a parse failure"
+        );
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     /// A malformed file is the default configuration, and writing over it is

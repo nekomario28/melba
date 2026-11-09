@@ -145,7 +145,14 @@ fn open_once(storefront: &str, id: &str) -> Result<Opened, String> {
         user_token: user,
         storefront: storefront.to_string(),
     };
-    let wurl = if crate::wrapper::managed() {
+    // The preference decides whether the decrypt service is asked at all. `aac`
+    // is the one that must not touch it: someone who picked AAC-256 for its
+    // cost or its verdict is not helped by a wrapper being started first.
+    let quality = crate::config::audio_quality();
+    let wurl = if quality == crate::config::AudioQuality::Aac {
+        crate::diag::info("quality_aac", &[("reason", "configured preference")]);
+        None
+    } else if crate::wrapper::managed() {
         match crate::wrapper::try_ready() {
             Ok(u) => Some(u),
             // a starting/missing service must not block the playback
@@ -190,8 +197,20 @@ fn open_once(storefront: &str, id: &str) -> Result<Opened, String> {
             let r = std::panic::catch_unwind(move || ams::open_alac(h, &idc, &wurl));
             match r {
                 Ok(Ok(vm)) => return Ok(opened(vm)),
-                Ok(Err(e)) => crate::diag::warn("alac_fallback", &[("reason", &e.to_string())]),
-                Err(_) => crate::diag::warn("alac_fallback", &[("reason", "open panicked")]),
+                Ok(Err(e)) => crate::diag::warn(
+                    "alac_fallback",
+                    &[
+                        ("reason", &e.to_string()),
+                        ("wanted", quality_name(quality)),
+                    ],
+                ),
+                Err(_) => crate::diag::warn(
+                    "alac_fallback",
+                    &[
+                        ("reason", "open panicked"),
+                        ("wanted", quality_name(quality)),
+                    ],
+                ),
             }
         }
     }
@@ -203,6 +222,14 @@ fn open_once(storefront: &str, id: &str) -> Result<Opened, String> {
         .map_err(|_| "aac open panicked".to_string())?
         .map_err(|e| e.to_string())?;
     Ok(opened(vm))
+}
+
+fn quality_name(quality: crate::config::AudioQuality) -> &'static str {
+    match quality {
+        crate::config::AudioQuality::Auto => "auto",
+        crate::config::AudioQuality::Aac => "aac",
+        crate::config::AudioQuality::Lossless => "lossless",
+    }
 }
 
 fn opened(vm: ams::VirtualMedia) -> Opened {
