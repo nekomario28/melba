@@ -36,7 +36,7 @@ cargo install cargo-about --version 0.8.4 --locked
 
 Firefox session import also needs the `sqlite3` CLI (`sqlite3` on Debian/Ubuntu; `sqlite` on Fedora/Arch). For AAC subscription playback, a usable Widevine CDM must already be installed; Melba does not download it.
 
-## Distro compatibility of the published v0.3.24 release
+## Distro compatibility of the published v0.3.25 release
 
 The signed portable archive needs **glibc 2.35** or newer; measured on the
 published x86_64 archives, `melba` requires at most `GLIBC_2.35` and `melbad`
