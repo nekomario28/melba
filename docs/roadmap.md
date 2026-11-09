@@ -137,6 +137,11 @@ or infer bit-perfect playback from an ALAC label.
   selectable style, EQ, loudness normalization/Sound Check-like behavior,
   crossfade and Atmos separately after the release-critical work. These are
   deferred candidates, not implemented capabilities or release prerequisites.
+  DSP is the one part that cannot be bolted on: each of EQ, crossfade and Sound
+  Check alters the samples that reach the device, so `BITPERFECT` would be a lie
+  unless the processing is opt-in and the verdict says `DSP`. Its own slice has
+  to settle where the processing sits (daemon, before ALSA), what the receipt
+  reports, and how the offline and preview paths behave.
 
 ### Product gaps
 
@@ -156,12 +161,12 @@ or infer bit-perfect playback from an ALAC label.
 
 ### Shared-output verification
 
-- [~] **PipeWire pass-through is observable, not assumed** — `melbad doctor`
-  now reports the session graph for this daemon's stream: the chain of nodes to
-  the sink, the format the stream negotiated, whether a converter sits in the
-  path, and how many clients share the sink (`src/pipewire.rs`, parsed from
-  `pw-dump`, with unit tests for each shape). It reports facts only; the
-  playback verdict is unchanged.
+- [x] **PipeWire pass-through is observable, not assumed** — `melbad doctor`
+  reports the session graph for this daemon's stream: the chain of nodes to the
+  sink, the format the stream negotiated, whether a converter sits in the path,
+  and how many clients share the sink (`src/pipewire.rs`, parsed from `pw-dump`,
+  with unit tests for each shape). The same reading decides `PASSTHROUGH`, so
+  doctor is how that verdict is checked rather than taken on trust.
 - [x] **A verified pass-through is called `PASSTHROUGH`**, not `BITPERFECT`:
   the daemon asks the graph at stream open and re-checks it every five seconds,
   so a second client or a converter drops the word back to `SHARED`. Measured
@@ -192,14 +197,14 @@ or infer bit-perfect playback from an ALAC label.
 
 ### Dead GUI-to-worker surface
 
-- [~] **Commands the worker drops** — `daemon_worker` receives commands in one
-  match whose `_ => {}` arm silently discards anything unnamed. Thirteen
-  variants were sent by the app and never handled; ten are now implemented
+- [x] **Commands the worker drops — none left** — `daemon_worker` receives
+  commands in one match whose `_ => {}` arm silently discards anything unnamed.
+  Thirteen variants were sent by the app and never handled: ten are implemented
   (both liked-songs cache commands, `OpenThemesFolder`, the artwork accent,
   `NetworkStatus`, the playlist cache, the library/home account caches, and the
-  two playlist-cover commands). The radios are gone rather than answered, so the
-  recorded exception list in `ci/test_daemon_commands.py` is now empty: a variant
-  sent and dropped fails that gate instead of joining a list.
+  two playlist-cover commands) and the radio surface is removed rather than
+  answered. `ci/test_daemon_commands.py` records an empty exception set, so a
+  variant that is sent and dropped fails the gate instead of joining a list.
 - [x] **Playlist and account caches** — `LoadPlaylistCache`,
   `StorePlaylistCache`, `LoadAccountCaches`, `StoreLibraryCache` and
   `StoreHomeCache` carry the account in the command and write per-account,
@@ -218,13 +223,6 @@ or infer bit-perfect playback from an ALAC label.
   helpers, view, fixtures, tests). A seed-based mix built from the existing
   context requests remains possible if it is ever wanted; it would be a new
   feature rather than a repair.
-- [ ] **EQ, crossfade and Sound Check** — not implemented, and they cannot be
-  added as ordinary features: each one alters the samples that reach the
-  device, so the `BITPERFECT` verdict would be a lie unless the DSP is opt-in
-  and the verdict says so (`SHARED`/`DSP`). That needs its own slice: where the
-  processing sits (daemon before ALSA), what the verdict reports, and how the
-  offline/preview paths behave.
-
 ### Engineering debt
 
 - [x] **librespot dead code removed** — the inherited Spotify engine
