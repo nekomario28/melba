@@ -24,8 +24,6 @@ REWRITTEN = {"SignIn": "Backend::send turns it into AuthStart"}
 # Sent by the app, not handled by the worker yet. Each entry says who loses
 # what, so the list cannot quietly grow.
 UNHANDLED = {
-    "CheckPlaylistCover": "a chosen cover is never checked against the playlist",
-    "ChoosePlaylistCover": "the native cover picker never opens",
     "Radio": "a radio page never resolves its songs",
 }
 
