@@ -89,6 +89,19 @@ is a dated record, not the current one.
   granted stream, which is a change to the startup contract and needs its own
   verification (transport test, GUI acceptance, and a check that the device is
   actually free with the app open). Do not ship it without those.
+  **Attempted and reverted, 2026-11-09.** Deferring the open until the first
+  Play works — measured on `hw:1,7` inside a private bus: paused leaves the PCM
+  `closed` while the metadata still reports `alac`/24-bit (probed from the
+  source), Play opens it, Stop closes it. But three transport tests then fail:
+  `previous_skips_sources_that_never_opened`,
+  `queue_load_preserves_the_context_selection_and_paused_skips` and
+  `shuffled_previous_and_next_retrace_the_played_occurrence`. Next and Previous
+  while paused depend on an *opened* occurrence: from a queue loaded paused,
+  Next must skip the unopenable entry and Previous must return past it, and with
+  nothing opened the history those two consult is empty, so Previous lands on
+  the entry it cannot open and the skip walks forward again. The fix therefore
+  has to rework how skipped entries are remembered, not just when the device is
+  opened.
 
 - [x] **Busy output takeover** — a busy `hw:` output remains in Settings as
   “in use”; selecting it requests the session audio server's device
