@@ -1,13 +1,13 @@
 { stdenv, fetchurl, autoPatchelfHook, makeWrapper, lib, alsa-lib, dbus, webkitgtk_4_1, gtk3, libxkbcommon, wayland, libGL, libpulseaudio, libX11, libXcursor, libXi, libXrandr }:
 let
-  version = "0.3.25";
+  version = "0.3.26";
   aarch64 = stdenv.hostPlatform.isAarch64;
   target = if aarch64 then "aarch64-unknown-linux-gnu" else "x86_64-unknown-linux-gnu";
   folder = "melba-v${version}-${target}";
   hash = if aarch64 then
-    "sha256-6KVTfPLnbQoGadQeEdQdpseDLHussZ4bsg2Sb7ZPq8k="
+    "sha256-9dEIvvd2iOWfpwiHKM34KHM+KW1yfemEwGKNo8F/R7c="
   else
-    "sha256-z5yu9zxFOxxgme14AbT7NDUYJBUY47kQ6WpMo6TF/z4=";
+    "sha256-r1H+jPMLwy+4EcXFzp2zVhugp5gGU9ORee59nA5+feQ=";
   runtimeLibraries = [
     alsa-lib dbus webkitgtk_4_1 gtk3 libxkbcommon wayland libGL libpulseaudio
     libX11 libXcursor libXi libXrandr stdenv.cc.cc.lib
