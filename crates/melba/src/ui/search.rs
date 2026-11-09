@@ -213,10 +213,19 @@ fn all(app: &mut App, ui: &mut egui::Ui, results: &SearchResults) {
                 .as_ref()
                 .and_then(|page| page.items.first())
             {
-                top_result(
+                // Same cover answer as every other playlist surface.
+                let group: Option<Vec<String>> =
+                    app.playlist_mosaic(&playlist.id).map(<[String]>::to_vec);
+                let url: Option<String> = pick_image(&playlist.images, top_art).map(str::to_string);
+                let art = match (url.as_deref(), group.as_deref()) {
+                    (Some(url), _) => widgets::PlaylistCover::Image(url),
+                    (None, Some(covers)) => widgets::PlaylistCover::Group(covers),
+                    (None, None) => widgets::PlaylistCover::Nothing,
+                };
+                top_result_cover(
                     app,
                     ui,
-                    pick_image(&playlist.images, top_art),
+                    art,
                     &playlist.name,
                     TopResultSubtitle::Text(
                         // Translators: {owner} is the name of the playlist's owner.
@@ -276,6 +285,25 @@ fn top_result(
     page: Page,
     menu: impl FnOnce(&mut egui::Ui, &mut App),
 ) {
+    let art = match image {
+        Some(url) => widgets::PlaylistCover::Image(url),
+        None => widgets::PlaylistCover::Nothing,
+    };
+    top_result_cover(app, ui, art, title, subtitle, round, play_uri, page, menu);
+}
+
+#[allow(clippy::too_many_arguments)]
+fn top_result_cover(
+    app: &mut App,
+    ui: &mut egui::Ui,
+    art: widgets::PlaylistCover<'_>,
+    title: &str,
+    subtitle: TopResultSubtitle<'_>,
+    round: bool,
+    play_uri: Option<String>,
+    page: Page,
+    menu: impl FnOnce(&mut egui::Ui, &mut App),
+) {
     let palette = app.palette;
     let mut subtitle_clicked = false;
     let (rect, response) =
@@ -292,10 +320,10 @@ fn top_result(
         let image_rect =
             Rect::from_min_size(rect.min + vec2(20.0, 20.0), Vec2::splat(TOP_RESULT_ART));
         widgets::paint_shadow(ui, &palette, image_rect, if round { 48.0 } else { 6.0 });
-        widgets::paint_cover(
+        widgets::paint_playlist_cover(
             ui,
             &palette,
-            image,
+            art,
             image_rect,
             if round { 48.0 } else { 6.0 },
             if round { Icon::User } else { Icon::Music },

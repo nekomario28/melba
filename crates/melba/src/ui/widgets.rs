@@ -41,6 +41,43 @@ pub(super) struct CoverSources<'a> {
     pub align_thumbnail: bool,
 }
 
+/// What to draw for a playlist cover.
+///
+/// The service draws a picture for some playlists and nothing for the ones you
+/// made, where it composes a group icon from the first tracks instead. Every
+/// place that shows a playlist cover asks for this rather than deciding for
+/// itself, so a playlist looks the same in a row, a card, a tile and a page
+/// header.
+#[derive(Clone, Copy)]
+pub enum PlaylistCover<'a> {
+    Image(&'a str),
+    Group(&'a [String]),
+    Nothing,
+}
+
+/// Paint a playlist cover from [`PlaylistCover`].
+pub fn paint_playlist_cover(
+    ui: &Ui,
+    palette: &Palette,
+    cover: PlaylistCover<'_>,
+    rect: Rect,
+    radius: f32,
+    fallback: Icon,
+    art: Option<&crate::images::ArtLoader>,
+) {
+    match cover {
+        PlaylistCover::Image(url) => {
+            paint_cover(ui, palette, Some(url), rect, radius, fallback, art);
+        }
+        PlaylistCover::Group(covers) => {
+            crate::ui::sidebar::mosaic_cover(ui, rect, radius, covers, art);
+        }
+        PlaylistCover::Nothing => {
+            paint_cover(ui, palette, None, rect, radius, fallback, art);
+        }
+    }
+}
+
 pub fn paint_cover(
     ui: &Ui,
     palette: &Palette,
@@ -2406,6 +2443,23 @@ pub fn card(
     subtitle: &str,
     cover: CardCover,
 ) -> CardResponse {
+    let art = match image {
+        Some(url) => PlaylistCover::Image(url),
+        None => PlaylistCover::Nothing,
+    };
+    card_cover(ui, app, art, title, subtitle, cover)
+}
+
+/// A card whose cover is decided by [`PlaylistCover`], so a playlist the
+/// service drew nothing for shows its group icon here as it does elsewhere.
+pub fn card_cover(
+    ui: &mut Ui,
+    app: &mut App,
+    art: PlaylistCover<'_>,
+    title: &str,
+    subtitle: &str,
+    cover: CardCover,
+) -> CardResponse {
     let CardCover {
         circular,
         playable,
@@ -2458,10 +2512,10 @@ pub fn card(
         let image_rect = Rect::from_min_size(rect.min + vec2(PAD, PAD), Vec2::splat(image_size));
         let radius = if circular { image_size / 2.0 } else { 6.0 };
         paint_shadow(ui, &palette, image_rect, radius);
-        paint_cover(
+        paint_playlist_cover(
             ui,
             &palette,
-            image,
+            art,
             image_rect,
             radius,
             if circular { Icon::User } else { Icon::Music },

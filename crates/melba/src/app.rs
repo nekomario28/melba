@@ -2809,6 +2809,19 @@ impl App {
                             .collect();
                         self.request_contains(uris);
                         self.remember_search(&query);
+                        // Playlists in the results show a cover immediately;
+                        // the ones the service drew nothing for need their
+                        // group icon asked for.
+                        for id in results
+                            .playlists
+                            .iter()
+                            .flat_map(|page| page.items.iter())
+                            .filter(|playlist| playlist.images.is_empty())
+                            .map(|playlist| playlist.id.clone())
+                            .take(4)
+                        {
+                            self.request_playlist_mosaic(&id);
+                        }
                         self.search.results = Loadable::Loaded(results);
                         self.search.results_serial = serial;
                     }
@@ -6418,6 +6431,34 @@ impl App {
         for id in wanted {
             self.playlist_mosaic_asked.insert(id.clone());
             self.backend.api(ApiRequest::PlaylistMosaic { id });
+        }
+    }
+
+    /// What to draw for this playlist's cover: the service's own picture when
+    /// it has one, the group icon composed from its songs when it does not.
+    ///
+    /// One answer for every renderer, so a playlist cannot look like a
+    /// playlist in one place and like an empty box in another.
+    pub fn playlist_cover<'a>(
+        &'a self,
+        playlist: &'a crate::api::models::Playlist,
+        px: u32,
+    ) -> crate::ui::widgets::PlaylistCover<'a> {
+        if let Some(url) = crate::api::models::pick_image(&playlist.images, px) {
+            return crate::ui::widgets::PlaylistCover::Image(url);
+        }
+        match self.playlist_mosaic(&playlist.id) {
+            Some(covers) if !covers.is_empty() => crate::ui::widgets::PlaylistCover::Group(covers),
+            _ => crate::ui::widgets::PlaylistCover::Nothing,
+        }
+    }
+
+    /// Ask for one playlist's group icon, once.
+    pub fn request_playlist_mosaic(&mut self, id: &str) {
+        if self.playlist_mosaic_asked.insert(id.to_string()) {
+            self.backend.api(ApiRequest::PlaylistMosaic {
+                id: id.to_string(),
+            });
         }
     }
 
