@@ -5,6 +5,14 @@
 //! shell script that execs a small `mid` (fork + execve, same shape as
 //! upstream's launcher) which execs `final`.
 
+/// A per-call serial number, so two sandboxes created in the same instant on
+/// two test threads cannot pick the same path.
+fn unique() -> u64 {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    NEXT.fetch_add(1, Ordering::Relaxed)
+}
+
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
@@ -16,14 +24,15 @@ struct Sandbox(PathBuf);
 impl Sandbox {
     fn new() -> Self {
         let path = std::env::temp_dir().join(format!(
-            "melbad-cmdline-{}-{}",
+            "melbad-cmdline-{}-{}-{}",
             std::process::id(),
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
-                .as_nanos()
+                .as_nanos(),
+            unique()
         ));
-        fs::create_dir(&path).unwrap();
+        fs::create_dir_all(&path).unwrap();
         Self(path)
     }
 
