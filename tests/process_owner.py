@@ -12,9 +12,16 @@ import time
 
 
 def alive(pid):
+    """Whether a pid exists and is not a zombie.
+
+    The process can disappear between opening the file and reading it, which
+    Python reports as `ProcessLookupError` rather than `FileNotFoundError` — one
+    CI run failed the whole gate on exactly that race. Both mean "not alive", and
+    so does any other reason the entry vanished mid-read.
+    """
     try:
         return Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[0] != "Z"
-    except FileNotFoundError:
+    except OSError:
         return False
 
 
