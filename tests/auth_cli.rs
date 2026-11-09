@@ -3,19 +3,36 @@ use std::path::PathBuf;
 use std::process::{Command, Output};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+/// The directory one sandbox uses, from the three things that make it unique.
+///
+/// `pid` and the clock are not enough: the clock's resolution on a fast machine
+/// is coarser than a test run, so two threads can read the same nanosecond. One
+/// CI run failed exactly that way — `create_dir` returned `AlreadyExists`.
+fn sandbox_path(pid: u32, nanos: u128, serial: u64) -> PathBuf {
+    std::env::temp_dir().join(format!("melbad-auth-cli-{pid}-{nanos}-{serial}"))
+}
+
+/// A per-call serial number, so two sandboxes created in the same instant on
+/// two test threads cannot pick the same path.
+fn unique() -> u64 {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    NEXT.fetch_add(1, Ordering::Relaxed)
+}
+
 struct Sandbox(PathBuf);
 
 impl Sandbox {
     fn new() -> Self {
-        let path = std::env::temp_dir().join(format!(
-            "melbad-auth-cli-{}-{}",
+        let path = sandbox_path(
             std::process::id(),
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
-                .as_nanos()
-        ));
-        fs::create_dir(&path).unwrap();
+                .as_nanos(),
+            unique(),
+        );
+        fs::create_dir_all(&path).unwrap();
         Self(path)
     }
 
@@ -161,4 +178,13 @@ fn clearing_sign_in_forgets_a_failed_binding() {
         !String::from_utf8_lossy(&released.stderr).contains("complete GUI sign-in"),
         "the cleared binding still blocks the managed wrapper"
     );
+}
+
+/// The defect this guards: `pid` and the clock alone can name the same
+/// directory twice, which is how one CI run failed with `AlreadyExists`.
+#[test]
+fn a_sandbox_name_survives_the_same_instant() {
+    let a = sandbox_path(1, 42, unique());
+    let b = sandbox_path(1, 42, unique());
+    assert_ne!(a, b, "the clock is not a serial number");
 }
