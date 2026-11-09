@@ -109,7 +109,7 @@ http = "1"
 # there and nowhere else. `net` is the local HTTP-proxy tests.
 tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros", "fs", "net", "io-util"] }
 sha1 = "0.10"
-sha2 = "0.10"
+sha2 = "0.11"
 base64 = "0.22"
 # Native asynchronous file selection on macOS, Windows and Linux desktop portals.
 rfd = "0.17.2"
