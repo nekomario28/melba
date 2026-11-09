@@ -7,19 +7,28 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+/// A per-call serial number, so two sandboxes created in the same instant on
+/// two test threads cannot pick the same path.
+fn unique() -> u64 {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    NEXT.fetch_add(1, Ordering::Relaxed)
+}
+
 struct Sandbox(PathBuf);
 
 impl Sandbox {
     fn new() -> Self {
         let path = std::env::temp_dir().join(format!(
-            "melbad-wrapper-login-{}-{}",
+            "melbad-wrapper-login-{}-{}-{}",
             std::process::id(),
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
-                .as_nanos()
+                .as_nanos(),
+            unique()
         ));
-        fs::create_dir(&path).unwrap();
+        fs::create_dir_all(&path).unwrap();
         Self(path)
     }
 
