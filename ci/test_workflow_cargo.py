@@ -29,6 +29,32 @@ class LockedBuilds(unittest.TestCase):
                         unlocked.append(f"{path.name}:{number}: {match.group(0).strip()}")
         self.assertEqual(unlocked, [], "these let cargo resolve past the lockfile")
 
+    def test_pinned_tools_are_fetched_through_the_helper(self):
+        """A release-asset outage must not fail unrelated pull requests.
+
+        github.com/.../releases/download returned 504 for over an hour while the
+        API served the same bytes, which failed gitleaks, cargo-audit and every
+        installer smoke. The helper tries the direct route and falls back to the
+        API, and it verifies the pinned sha256 either way.
+        """
+        ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
+        helper = (ROOT / "ci" / "fetch-release-asset.sh").read_text(encoding="utf-8")
+        bare = [
+            line.strip()
+            for line in ci.splitlines()
+            if "releases/download/" in line and "fetch-release-asset.sh" not in line
+        ]
+        self.assertEqual(bare, [], "these download assets without the fallback")
+        self.assertIn("api.github.com", helper, "no API fallback")
+        self.assertIn("sha256sum -c", helper, "the download is not verified")
+        # Both pinned tools must go through it.
+        self.assertGreaterEqual(ci.count("ci/fetch-release-asset.sh"), 2)
+
+    def test_the_installer_can_reach_release_assets_when_github_504s(self):
+        text = (ROOT / "packaging" / "install-release.sh").read_text(encoding="utf-8")
+        self.assertIn("api.github.com/repos/nekomario28/melba/releases", text)
+        self.assertIn("application/octet-stream", text, "the API asset route is unused")
+
     def test_a_mirror_outage_is_reported_not_silently_passed(self):
         """The published-installer job must not claim a distro was verified.
 
