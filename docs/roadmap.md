@@ -169,35 +169,43 @@ or infer bit-perfect playback from an ALAC label.
   downgrade has unit coverage through the graph parser but was not re-observed
   on a device, because the test harness wedged the session audio server after
   repeated abrupt kills.
-- [ ] **Decide what a verified pass-through may be called** — the measurement
-  now exists: with one client, a 48 kHz/24-bit source and a 48 kHz graph, 88 768
-  frames reached the sink bit-identical, so the float link alone is not an
-  alteration for 24-bit sources (see [Audio and playback](audio.md#shared-output-and-bit-perfect-samples-measured-2026-11-06)).
-  The graph conditions that had to hold are checked by `src/pipewire.rs`. What
-  is still open is the product decision: whether a `SHARED` stream whose graph
-  verifies should carry a distinct label, and what happens to that label when
-  another client joins mid-track. The first capture attempt ran with two Melba
-  streams on the same sink and is not evidence of anything; `melbad play`
-  also turned out to refuse a shared path outright, which is what made it
-  silent — that defect is fixed.
+- [x] **A `SHARED` stream whose graph verifies carries its own word** —
+  `PASSTHROUGH`, separate from `BITPERFECT`, so the exclusive-device claim keeps
+  its meaning. The conditions are the measured ones (no converters, this stream
+  is the only client, stream rate equal to the source rate, at most 24 bits) and
+  they only apply to the device the session actually carries: `hw:`, `plughw:`,
+  `null` and paths are opened here directly, so the graph says nothing about
+  them. That distinction was learned the hard way — `play --device null`
+  reported `PASSTHROUGH` by reading another melbad process's stream.
+- [ ] **Re-observe the five-second downgrade on a device** — the graph parser
+  covers the shapes, but the live downgrade (a second client joining mid-track)
+  has not been watched since the session audio server was wedged by repeated
+  abrupt kills. `melbad doctor` prints what the graph says, so this is a
+  five-minute check on an idle machine rather than an implementation.
 
 ### Dead GUI-to-worker surface
 
 - [~] **Commands the worker drops** — `daemon_worker` receives commands in one
   match whose `_ => {}` arm silently discards anything unnamed. Thirteen
-  variants were sent by the app and never handled. Three are now implemented
-  (`LoadLikedSongsCache`, `StoreLikedSongsCache`, `OpenThemesFolder`) and
+  variants were sent by the app and never handled; ten are now implemented
+  (both liked-songs cache commands, `OpenThemesFolder`, the artwork accent,
+  `NetworkStatus`, the playlist cache, and the library/home account caches) and
   `ci/test_daemon_commands.py` fails when a new variant is added without a
-  decision, or when a recorded exception stops applying. Still recorded there
-  with what the user loses: the playlist and account caches (5), the radio
-  lookup, the artwork accent, `NetworkStatus`, and the two playlist-cover
-  commands. `Backend::set_network` has no caller at all, so offline transitions
-  are never detected and `Event::NetworkStatus` is only ever injected by tests.
-- [ ] **Playlist and account caches** — `LoadPlaylistCache`, `StorePlaylistCache`,
-  `LoadAccountCaches`, `StoreLibraryCache` and `StoreHomeCache` carry no account
-  with them, so each needs the same treatment the liked cache got (account in
-  the command, per-account directory, format validation) before it can be
-  wired. The playlist cache also carries a snapshot the rows must still match.
+  decision, or when a recorded exception stops applying. Three are still
+  recorded there with what the user loses: the radio lookup and the two
+  playlist-cover commands.
+- [x] **Playlist and account caches** — `LoadPlaylistCache`,
+  `StorePlaylistCache`, `LoadAccountCaches`, `StoreLibraryCache` and
+  `StoreHomeCache` carry the account in the command and write per-account,
+  validated files; the playlist cache is versioned and keyed by account and
+  snapshot, and the app checks the snapshot before adopting it. The worker only
+  stores and reads: a worker-side snapshot table made the cache unreadable on
+  first open, so the judgement lives in `try_adopt_playlist_cache`.
+- [x] **Network status** — reachability is derived from what HTTP requests
+  actually did (a transport error marks the account unreachable, any response
+  marks it reachable), so a captive portal or a 500 is not reported as "offline".
+  `Backend::network_status` publishes it and the app receives `NetworkStatus`
+  only when the answer changes.
 - [ ] **Radio pages** — the page resolves through `Command::Radio`, which
   nothing answers, so a station never lists its songs. Apple publishes no
   station endpoint; decide between removing the page (it is a Spotify concept,
