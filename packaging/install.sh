@@ -204,9 +204,9 @@ if [ "$alac" = ask ]; then
         echo "ALAC requires a separately downloaded third-party runtime, including"
         echo "Apple/Android libraries governed by their own terms."
         echo "Details: https://github.com/nekomario28/melba-wrapper-bootstrap"
-        printf "Install ALAC lossless support? [y/N] " >/dev/tty
+        printf "Install ALAC lossless support? [Y/n] " >/dev/tty
         IFS= read -r reply </dev/tty || reply=
-        case "$reply" in y|Y|yes|Yes|YES) alac=yes;; *) alac=no;; esac
+        case "$reply" in n|N|no|No|NO) alac=no;; *) alac=yes;; esac
     else
         echo "Non-interactive: optional ALAC skipped (pass --with-alac to opt in)."
         alac=no
