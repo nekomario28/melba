@@ -88,117 +88,13 @@ jobs:
       # /proc/asound → probe, no session bus → mpris, no gx tools → gx.*).
       - run: MELBA_BIN=./target/debug/melbad ./ci/check.sh
 
-  # End-to-end smoke tests the real signed public Release (not fixture data).
-  release-install-smoke:
-    # The host path, not a container: the installer resolves the desktop file
-    # and the XDG links against a real system. Since v0.3.13 the published
-    # archives need glibc 2.35, so any current runner qualifies; this one is
-    # simply the newest Ubuntu host.
-    runs-on: ubuntu-26.04
-    # Installing the published release pulls in WebKitGTK and its dependency
-    # set (over 100 MB) from the runner's mirror. At 15 minutes that download
-    # has twice been cut off mid-transfer and reported as a cancelled job, so
-    # the budget covers a slow mirror rather than the work itself.
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Fail fast on a stalled package mirror
-        shell: bash
-        # A mirror that stops sending bytes is what burns the whole budget;
-        # retries plus a socket timeout turn that into an error we can see.
-        run: bash ci/apt-transfers.sh
-      - name: Verify signed release and install paired binaries
-        shell: bash
-        run: |
-          set -euo pipefail
-          export MELBA_PORTABLE_DIR="$RUNNER_TEMP/melba-install-smoke/app"
-          export XDG_BIN_HOME="$RUNNER_TEMP/melba-install-smoke/bin"
-          export XDG_DATA_HOME="$RUNNER_TEMP/melba-install-smoke/data"
-          sh packaging/install-release.sh --no-alac
-          test -f "$MELBA_PORTABLE_DIR/melba-portable.txt"
-          test -L "$XDG_BIN_HOME/melba"
-          test -L "$XDG_BIN_HOME/melbad"
-          test -f "$XDG_DATA_HOME/applications/melba.desktop"
-          "$MELBA_PORTABLE_DIR/melba" --version
-          "$MELBA_PORTABLE_DIR/melbad" --version
-          gui=$("$MELBA_PORTABLE_DIR/melba" --version)
-          daemon=$("$MELBA_PORTABLE_DIR/melbad" --version)
-          test "${gui#melba }" = "${daemon#melbad }"
-
-  # Exercise the real Arch package manager rather than just stubbing pacman.
-  # CachyOS inherits the same package ecosystem; its os-release values are
-  # supplied using the installer's existing test override.
-  arch-install-smoke:
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    container:
-      image: archlinux:latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Bootstrap tools required by the standalone release installer
-        shell: bash
-        run: |
-          set -euo pipefail
-          pacman -Syu --noconfirm --needed ca-certificates curl openssl
-          update-ca-trust || true
-      - name: Real pacman ALAC preflight using CachyOS distro metadata
-        shell: bash
-        run: |
-          set -euo pipefail
-          printf 'ID=cachyos\nID_LIKE=arch\n' > "$RUNNER_TEMP/melba-os-release"
-          export MELBA_INSTALL_OS_RELEASE="$RUNNER_TEMP/melba-os-release"
-          sh packaging/install-deps.sh --alac
-          command -v bash
-          command -v curl
-          command -v unzip
-          command -v file
-          command -v cc
-      - name: Real signed Release installation with dynamic library provisioning
-        shell: bash
-        run: |
-          set -euo pipefail
-          export MELBA_INSTALL_OS_RELEASE="$RUNNER_TEMP/melba-os-release"
-          export MELBA_PORTABLE_DIR="$RUNNER_TEMP/melba-portable"
-          export XDG_BIN_HOME="$RUNNER_TEMP/melba-bin"
-          export XDG_DATA_HOME="$RUNNER_TEMP/melba-data"
-          sh packaging/install-release.sh --no-alac
-          test -L "$XDG_BIN_HOME/melba"
-          test -L "$XDG_BIN_HOME/melbad"
-          "$MELBA_PORTABLE_DIR/melba" --version
-          "$MELBA_PORTABLE_DIR/melbad" --version
-
-
-  # Exercise real apt/dnf transactions and verify the glibc compatibility
-  # boundary against the actual signed published release (not mocked tools).
-  # Nix syntax and flake evaluation are separate from an actual NixOS image
-  # or a paired melba/melbad installation. Keep that distinction in docs.
-  nix-flake-smoke:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31
-      - name: Parse and evaluate native Nix flake
-        shell: bash
-        run: |
-          set -euo pipefail
-          nix --version
-          # Never update the checked-in flake.lock in CI: validate the
-          # reviewed, reproducible nixpkgs revision as delivered.
-          nix-instantiate --parse crates/melba/flake.nix >/dev/null
-          # Pinned nixpkgs 26.11 intentionally drops x86_64-darwin; evaluate
-          # the supported Linux package rather than every legacy output.
-          nix eval --raw ./crates/melba#packages.x86_64-linux.melba-paired.name
-      - name: Build a paired signed-release Nix package
-        shell: bash
-        run: |
-          set -euo pipefail
-          nix build --no-link ./crates/melba#melba-paired
-          out=$(nix eval --raw ./crates/melba#packages.x86_64-linux.melba-paired.outPath)
-          test -x "$out/bin/melba"
-          test -x "$out/bin/melbad"
-          "$out/bin/melba" --version
-          "$out/bin/melbad" --version
+  # Public Release installation is intentionally not done on every push/PR:
+  # - portable-baseline.yml tests newly built candidate artifacts across distros
+  # - distro-install.yml verifies the signed public Release on schedule and
+  #   when the release installer itself changes
+  # - nix-paired.yml validates the pinned Nix Release when its package changes
+  #   and on a weekly schedule
+  # - release-publish.yml checks the newly published signed Release end to end
 
   # The melba crate must keep compiling on the other desktop targets; a
   # cfg gate once swallowed eframe::run_native entirely. A check build
