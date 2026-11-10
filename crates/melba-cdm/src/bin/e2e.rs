@@ -67,7 +67,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     eprintln!("    {} bytes", cert.len());
 
     eprintln!("[3] playlist ...");
-    let pl_text = wp.get(&track.url_m3u8)?.into_string()?;
+    let mut pl_resp = wp.get(&track.url_m3u8)?;
+    let pl_text = pl_resp.body_mut().read_to_string()?;
     let pl = parse_playlist(&pl_text)?;
     eprintln!("    {} segments", pl.segments.len());
     let base = track.url_m3u8.rsplit_once('/').unwrap().0.to_string() + "/";
@@ -89,10 +90,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     eprintln!("[6] fetch media mp4 + decrypt {nfrags} fragments ...");
     let mut mp4 = Vec::new();
-    std::io::Read::read_to_end(
-        &mut wp.get(&format!("{}{}", base, pl.map_uri))?.into_reader(),
-        &mut mp4,
-    )?;
+    let mut media = wp.get(&format!("{}{}", base, pl.map_uri))?;
+    std::io::Read::read_to_end(&mut media.body_mut().as_reader(), &mut mp4)?;
     eprintln!("    media file {} bytes", mp4.len());
     let mut out = Vec::new();
     let mut frames = 0usize;

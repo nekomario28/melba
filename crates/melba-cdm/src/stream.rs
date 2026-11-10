@@ -520,15 +520,17 @@ pub fn open_media_playlist(http: &Http, playlist_url: &str) -> Res<MediaPlaylist
 /// CDN). Raw IPs are rejected so a redirect cannot retarget credentials
 /// at an address literal.
 pub(crate) fn credential_url_ok(url: &str) -> bool {
-    let Ok(request) = ureq::get(url).request_url() else {
+    let Ok(parsed) = url.parse::<ureq::http::Uri>() else {
         return false;
     };
-    let parsed = request.as_url();
-    parsed.scheme() == "https"
-        && parsed.username().is_empty()
-        && parsed.password().is_none()
-        && parsed.port() != Some(0)
-        && apple_media_host(request.host())
+    parsed.scheme_str() == Some("https")
+        && parsed.host().is_some_and(|h| !h.is_empty())
+        // userinfo has no place in a credential target
+        && !parsed
+            .authority()
+            .is_some_and(|a| a.as_str().contains('@'))
+        && parsed.port_u16() != Some(0)
+        && apple_media_host(parsed.host().unwrap_or_default())
 }
 
 fn apple_media_host(host: &str) -> bool {
@@ -559,37 +561,110 @@ fn resolve_credential_redirect(base: &str, loc: &str) -> Option<String> {
     if loc.trim().is_empty() {
         return None;
     }
-    let base = ureq::get(base).request_url().ok()?;
-    let next = base.as_url().join(loc.trim()).ok()?;
-    credential_url_ok(next.as_str()).then(|| next.to_string())
+    let base = ureq::http::Uri::try_from(base).ok()?;
+    let next = base
+        .to_string()
+        .parse::<ureq::http::Uri>()
+        .ok()
+        .and_then(|b| join_uri(&b, loc.trim()))?;
+    credential_url_ok(&next.to_string()).then(|| next.to_string())
+}
+
+/// Resolve a redirect target against the URL that produced it. A credentialed
+/// redirect is only ever followed to an absolute https URL or a path on the
+/// same host, so the join stays deliberately small.
+fn join_uri(base: &ureq::http::Uri, loc: &str) -> Option<ureq::http::Uri> {
+    let authority = base.authority()?.as_str();
+    let scheme = base.scheme_str()?;
+    let joined = if loc.starts_with("http://") || loc.starts_with("https://") {
+        loc.to_string()
+    } else if loc.starts_with("//") {
+        // network-path reference: it names a *different* host
+        format!("{scheme}:{loc}")
+    } else if loc.starts_with('/') {
+        format!("{scheme}://{authority}{loc}")
+    } else if loc.starts_with('?') {
+        format!("{scheme}://{authority}{}{loc}", base.path())
+    } else {
+        let path = base.path();
+        let dir = &path[..path.rfind('/').map_or(0, |i| i + 1)];
+        format!(
+            "{scheme}://{authority}{}",
+            normalize_path(&format!("{dir}{loc}"))
+        )
+    };
+    joined.parse().ok()
+}
+
+/// Resolve `.` and `..` in a path. The `http` crate keeps them verbatim, and a
+/// redirect target that walks up is exactly what an allowlist check must see in
+/// its resolved form rather than its written form.
+fn normalize_path(path: &str) -> String {
+    let (path, query) = match path.split_once('?') {
+        Some((p, q)) => (p, Some(q)),
+        None => (path, None),
+    };
+    let mut out: Vec<&str> = Vec::new();
+    for seg in path.split('/') {
+        match seg {
+            "" | "." => {}
+            ".." => {
+                out.pop();
+            }
+            other => out.push(other),
+        }
+    }
+    let mut resolved = format!("/{}", out.join("/"));
+    if path.ends_with('/') && !resolved.ends_with('/') {
+        resolved.push('/');
+    }
+    if let Some(q) = query {
+        resolved.push('?');
+        resolved.push_str(q);
+    }
+    resolved
+}
+
+/// Statuses the credentialed path refuses to follow itself (it resolves an
+/// allowlisted target and re-issues the request, so ureq must not).
+fn is_redirect(status: ureq::http::StatusCode) -> bool {
+    matches!(status.as_u16(), 301 | 302 | 303 | 307 | 308)
 }
 
 fn token_agent() -> ureq::Agent {
-    ureq::AgentBuilder::new()
-        .timeout_connect(std::time::Duration::from_secs(10))
-        .timeout_read(std::time::Duration::from_secs(30))
+    ureq::Agent::config_builder()
+        .timeout_connect(Some(std::time::Duration::from_secs(10)))
+        .timeout_global(Some(std::time::Duration::from_secs(30)))
         // Keep the daemon/GUI environment proxy policy on the credentialed path.
-        .try_proxy_from_env(true)
+        .proxy(ureq::Proxy::try_from_env())
         // ureq would follow redirects and keep custom headers such as
         // `media-user-token` (it only strips `authorization` / `cookie`).
         // Follow allowlisted https targets ourselves; anything else is an error.
-        .redirects(0)
+        .max_redirects(0)
         .build()
+        .into()
 }
 
-pub(crate) fn credentialed_get(url: &str, headers: &[(&str, &str)]) -> crate::Res<ureq::Response> {
+pub(crate) fn credentialed_get(
+    url: &str,
+    headers: &[(&str, &str)],
+) -> crate::Res<ureq::http::Response<ureq::Body>> {
     let mut current = url.to_string();
     for _ in 0..=5 {
         ensure_credential_url(&current)?;
         let mut req = token_agent().get(&current);
         for (k, v) in headers {
-            req = req.set(k, v);
+            req = req.header(*k, *v);
         }
         let resp = req.call().map_err(credential_request_error)?;
-        if !matches!(resp.status(), 301 | 302 | 303 | 307 | 308) {
+        if !is_redirect(resp.status()) {
             return Ok(resp);
         }
-        let loc = resp.header("location").unwrap_or("");
+        let loc = resp
+            .headers()
+            .get("location")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("");
         current = resolve_credential_redirect(&current, loc)
             .ok_or_else(|| crate::Error::Http("refusing untrusted credentialed redirect".into()))?;
     }
@@ -600,17 +675,17 @@ pub(crate) fn credentialed_post_json(
     url: &str,
     headers: &[(&str, &str)],
     body: &serde_json::Value,
-) -> crate::Res<ureq::Response> {
+) -> crate::Res<ureq::http::Response<ureq::Body>> {
     ensure_credential_url(url)?;
     let mut req = token_agent().post(url);
     for (k, v) in headers {
-        req = req.set(k, v);
+        req = req.header(*k, *v);
     }
     let resp = req
         .send_json(body.clone())
         .map_err(credential_request_error)?;
     // Do not replay a credentialed POST body onto a redirect target.
-    if matches!(resp.status(), 301 | 302 | 303 | 307 | 308) {
+    if is_redirect(resp.status()) {
         return Err(crate::Error::Http(
             "refusing credentialed POST redirect".into(),
         ));
@@ -621,8 +696,8 @@ pub(crate) fn credentialed_post_json(
 // A media URL may contain a private signature, so transport errors must not echo it.
 fn credential_request_error(error: ureq::Error) -> crate::Error {
     crate::Error::Http(match error {
-        ureq::Error::Status(status, _) => format!("credentialed request returned HTTP {status}"),
-        ureq::Error::Transport(_) => "credentialed request failed".into(),
+        ureq::Error::StatusCode(status) => format!("credentialed request returned HTTP {status}"),
+        _ => "credentialed request failed".into(),
     })
 }
 
@@ -652,7 +727,8 @@ impl Http {
                 ("Referer", "https://music.apple.com/"),
             ],
         )?
-        .into_string()
+        .body_mut()
+        .read_to_string()
         .map_err(|e| Error::Http(e.to_string()))
     }
     /// Exact range GET: anything but a 206 carrying precisely `len` bytes is
@@ -667,7 +743,7 @@ impl Http {
             .ok_or_else(|| Error::Http(format!("range {off}+{len}: overflow")))?;
         let (auth, user) = self.auth_headers();
         let range = format!("bytes={off}-{end}");
-        let resp = credentialed_get(
+        let mut resp = credentialed_get(
             url,
             &[
                 ("Authorization", auth.as_str()),
@@ -678,14 +754,15 @@ impl Http {
             ],
         )
         .map_err(|e| Error::Http(format!("range {off}+{len}: {e}")))?;
-        if resp.status() != 206 {
+        if resp.status() != ureq::http::StatusCode::PARTIAL_CONTENT {
             return Err(Error::Http(format!(
                 "range {off}+{len}: expected 206, got {}",
                 resp.status()
             )));
         }
         let mut buf = Vec::with_capacity(len as usize);
-        resp.into_reader()
+        resp.body_mut()
+            .as_reader()
             .take(len)
             .read_to_end(&mut buf)
             .map_err(|e| Error::Http(e.to_string()))?;
@@ -888,17 +965,22 @@ impl KeySource for WrapperKeySource {
             adam_id,
             urlenc(skd_uri)
         );
-        let resp = ureq::AgentBuilder::new()
-            .redirects(0)
+        let agent: ureq::Agent = ureq::Agent::config_builder()
+            .max_redirects(0)
+            .timeout_global(Some(std::time::Duration::from_secs(30)))
             .build()
+            .into();
+        let mut resp = agent
             .get(&url)
-            .timeout(std::time::Duration::from_secs(30))
             .call()
             .map_err(|e| Error::Http(format!("wrapper key: {e}")))?;
-        if matches!(resp.status(), 301 | 302 | 303 | 307 | 308) {
+        if is_redirect(resp.status()) {
             return Err(Error::Http("wrapper key redirect refused".into()));
         }
-        let j: serde_json::Value = resp.into_json().map_err(|e| Error::Parse(e.to_string()))?;
+        let j: serde_json::Value = resp
+            .body_mut()
+            .read_json()
+            .map_err(|e| Error::Parse(e.to_string()))?;
         // wrapper-v2 answers {"contentKey":…} flat; wrapper-lite wraps it
         // as {"code":0,"data":{"contentKey":…}} — take whichever is set.
         let raw = j["contentKey"]
@@ -2389,10 +2471,16 @@ mod tests {
 
     #[test]
     fn credential_checks_use_the_actual_http_url_parser() {
-        // The HTTP parser treats a backslash as a separator, not part of a DNS label.
+        // A backslash is where parsers disagree: whatever the HTTP parser makes
+        // of this, it must not read as an `*.apple.com` host. (ureq 3 parses
+        // with the `http` crate, which rejects it outright — also a refusal.)
         let bypass = "https://untrusted.example\\.apple.com/private?signature=private-marker";
-        let request = ureq::get(bypass).request_url().unwrap();
-        assert_eq!(request.host(), "untrusted.example");
+        if let Ok(request) = bypass.parse::<ureq::http::Uri>() {
+            assert!(
+                !request.host().is_some_and(|h| h.ends_with(".apple.com")),
+                "a backslash must not read as an apple host"
+            );
+        }
         assert!(!credential_url_ok(bypass));
         let error = credentialed_get(bypass, &[("media-user-token", "fixture-only")])
             .unwrap_err()

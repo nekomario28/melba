@@ -26,8 +26,8 @@ const API: &str = "https://api.music.apple.com/v1/catalog";
 const AMP_API: &str = "https://amp-api-edge.music.apple.com/v1/catalog";
 
 fn agent() -> ureq::Agent {
-    ureq::AgentBuilder::new()
-        .timeout(std::time::Duration::from_secs(30))
+    let config = ureq::Agent::config_builder()
+        .timeout_global(Some(std::time::Duration::from_secs(30)))
         .user_agent(concat!(
             "melba/",
             env!("CARGO_PKG_VERSION"),
@@ -36,8 +36,9 @@ fn agent() -> ureq::Agent {
         // HTTP_PROXY / HTTPS_PROXY / ALL_PROXY are the one place a proxy is
         // configured: the app never asks for it in its own interface, and the
         // daemon must honour the same environment the GUI does.
-        .try_proxy_from_env(true)
-        .build()
+        .proxy(ureq::Proxy::try_from_env())
+        .build();
+    config.into()
 }
 
 /// Fetch Apple's public MusicKit developer token. The storefront HTML links
@@ -95,7 +96,8 @@ fn dev_token_fetch() -> Result<String, String> {
         .get(TOKEN_PAGE)
         .call()
         .map_err(|e| format!("token page: {e}"))?
-        .into_string()
+        .body_mut()
+        .read_to_string()
         .map_err(|e| format!("token body: {e}"))?;
     // locate the app bundle
     let js_path = extract_js_path(&html).ok_or("no /assets/index~*.js on storefront")?;
@@ -103,7 +105,8 @@ fn dev_token_fetch() -> Result<String, String> {
         .get(&format!("https://music.apple.com{js_path}"))
         .call()
         .map_err(|e| format!("js bundle: {e}"))?
-        .into_string()
+        .body_mut()
+        .read_to_string()
         .map_err(|e| format!("js body: {e}"))?;
     let mut first_jwt = None;
     for m in js.match_indices("eyJ") {
@@ -150,9 +153,9 @@ pub fn validate_token(mtok: &str) -> Result<(), String> {
     let dev = dev_token()?;
     agent()
         .get("https://api.music.apple.com/v1/me/storefront")
-        .set("Authorization", &format!("Bearer {dev}"))
-        .set("Origin", "https://music.apple.com")
-        .set("media-user-token", mtok)
+        .header("Authorization", &format!("Bearer {dev}"))
+        .header("Origin", "https://music.apple.com")
+        .header("media-user-token", mtok)
         .call()
         .map(|_| ())
         .map_err(|e| format!("token rejected: {e}"))
@@ -206,13 +209,13 @@ fn get_in(store: &str, path: &str, query: &[(&str, &str)]) -> Result<Value, Stri
         let url = format!("{API}/{store}{path}");
         let mut req = agent()
             .get(&url)
-            .set("Authorization", &format!("Bearer {token}"))
-            .set("Origin", "https://music.apple.com");
+            .header("Authorization", &format!("Bearer {token}"))
+            .header("Origin", "https://music.apple.com");
         for (k, v) in query {
             req = req.query(k, v);
         }
-        let res = req.call().map_err(|e| format!("{path}: {e}"))?;
-        serde_json::from_str(&res.into_string().map_err(|e| e.to_string())?)
+        let mut res = req.call().map_err(|e| format!("{path}: {e}"))?;
+        serde_json::from_str(&res.body_mut().read_to_string().map_err(|e| e.to_string())?)
             .map_err(|e| format!("json: {e}"))
     })
 }
@@ -439,8 +442,8 @@ pub fn enrich_collection(json_text: &str, limit: usize) -> Result<String, String
         let res = with_dev_retry(|token| {
             agent()
                 .get(&url)
-                .set("Authorization", &format!("Bearer {token}"))
-                .set("Origin", "https://music.apple.com")
+                .header("Authorization", &format!("Bearer {token}"))
+                .header("Origin", "https://music.apple.com")
                 .query("term", &q)
                 .query("types", "songs")
                 .query("limit", "1")
@@ -448,7 +451,7 @@ pub fn enrich_collection(json_text: &str, limit: usize) -> Result<String, String
                 .call()
                 .map_err(|e| e.to_string())
         });
-        let res = match res {
+        let mut res = match res {
             Ok(r) => r,
             Err(e) => {
                 crate::diag::warn(
@@ -458,16 +461,17 @@ pub fn enrich_collection(json_text: &str, limit: usize) -> Result<String, String
                 continue;
             }
         };
-        let v: Value = match serde_json::from_str(&res.into_string().unwrap_or_default()) {
-            Ok(v) => v,
-            Err(e) => {
-                crate::diag::warn(
-                    "enrich_failed",
-                    &[("query", &q), ("reason", &format!("json {e}"))],
-                );
-                continue;
-            }
-        };
+        let v: Value =
+            match serde_json::from_str(&res.body_mut().read_to_string().unwrap_or_default()) {
+                Ok(v) => v,
+                Err(e) => {
+                    crate::diag::warn(
+                        "enrich_failed",
+                        &[("query", &q), ("reason", &format!("json {e}"))],
+                    );
+                    continue;
+                }
+            };
         let song = v["results"]["songs"]["data"][0].clone();
         if song.is_null() {
             crate::diag::warn("enrich_no_match", &[("query", &q)]);
@@ -512,14 +516,14 @@ fn me_get(path: &str, query: &[(&str, &str)]) -> Result<Value, String> {
         let url = format!("https://api.music.apple.com/v1/me{path}");
         let mut req = agent()
             .get(&url)
-            .set("Authorization", &format!("Bearer {dt}"))
-            .set("Music-User-Token", &ut)
-            .set("Origin", "https://music.apple.com");
+            .header("Authorization", &format!("Bearer {dt}"))
+            .header("Music-User-Token", &ut)
+            .header("Origin", "https://music.apple.com");
         for (k, v) in query {
             req = req.query(k, v);
         }
-        let res = req.call().map_err(|e| format!("{path}: {e}"))?;
-        serde_json::from_str(&res.into_string().map_err(|e| e.to_string())?)
+        let mut res = req.call().map_err(|e| format!("{path}: {e}"))?;
+        serde_json::from_str(&res.body_mut().read_to_string().map_err(|e| e.to_string())?)
             .map_err(|e| format!("json: {e}"))
     })
 }
@@ -530,13 +534,13 @@ fn me_post(path: &str, query: &[(&str, String)]) -> Result<(), String> {
         let url = format!("https://api.music.apple.com/v1/me{path}");
         let mut req = agent()
             .post(&url)
-            .set("Authorization", &format!("Bearer {dt}"))
-            .set("Music-User-Token", &ut)
-            .set("Origin", "https://music.apple.com");
+            .header("Authorization", &format!("Bearer {dt}"))
+            .header("Music-User-Token", &ut)
+            .header("Origin", "https://music.apple.com");
         for (k, v) in query {
             req = req.query(k, v);
         }
-        req.call().map_err(|e| format!("{path}: {e}"))?;
+        req.send_empty().map_err(|e| format!("{path}: {e}"))?;
         Ok(())
     })
 }
@@ -588,14 +592,15 @@ pub fn lyrics_in(store: &str, song_id: &str) -> Result<Value, String> {
         let url = format!("{AMP_API}/{store}/songs/{song_id}/lyrics");
         let mut req = agent()
             .get(&url)
-            .set("Authorization", &format!("Bearer {dt}"))
-            .set("Origin", "https://music.apple.com");
+            .header("Authorization", &format!("Bearer {dt}"))
+            .header("Origin", "https://music.apple.com");
         if let Some(ut) = crate::auth::get() {
-            req = req.set("Music-User-Token", &ut);
+            req = req.header("Music-User-Token", &ut);
         }
-        let res = req.call().map_err(|e| format!("lyrics: {e}"))?;
-        let v: Value = serde_json::from_str(&res.into_string().map_err(|e| e.to_string())?)
-            .map_err(|e| e.to_string())?;
+        let mut res = req.call().map_err(|e| format!("lyrics: {e}"))?;
+        let v: Value =
+            serde_json::from_str(&res.body_mut().read_to_string().map_err(|e| e.to_string())?)
+                .map_err(|e| e.to_string())?;
         let mut out = json!({"id": song_id});
         if let Some(d) = v["data"].as_array().and_then(|a| a.first()) {
             out["lyrics"] = d["attributes"]["ttml"].clone();
@@ -827,13 +832,13 @@ pub fn preview_url(song_id: &str) -> Result<(String, Value), String> {
 pub fn preview_url_in(store: &str, song_id: &str) -> Result<(String, Value), String> {
     let url = format!("{API}/{store}/songs/{song_id}");
     let v: Value = with_dev_retry(|dt| {
-        let res = agent()
+        let mut res = agent()
             .get(&url)
-            .set("Authorization", &format!("Bearer {dt}"))
-            .set("Origin", "https://music.apple.com")
+            .header("Authorization", &format!("Bearer {dt}"))
+            .header("Origin", "https://music.apple.com")
             .call()
             .map_err(|e| format!("song: {e}"))?;
-        serde_json::from_str(&res.into_string().map_err(|e| e.to_string())?)
+        serde_json::from_str(&res.body_mut().read_to_string().map_err(|e| e.to_string())?)
             .map_err(|e| e.to_string())
     })?;
     let a = &v["data"][0]["attributes"];
@@ -873,8 +878,8 @@ pub fn download_preview_in(store: &str, song_id: &str) -> Result<std::path::Path
     let mut resp = agent()
         .get(&url)
         .call()
-        .map_err(|e| format!("preview dl: {e}"))?
-        .into_reader();
+        .map_err(|e| format!("preview dl: {e}"))?;
+    let mut resp = resp.body_mut().as_reader();
     let mut f = std::fs::File::create(&out).map_err(|e| e.to_string())?;
     std::io::copy(&mut resp, &mut f).map_err(|e| e.to_string())?;
     Ok(out)
@@ -892,11 +897,8 @@ pub fn download(song_id: &str) -> Result<Value, String> {
 
     // preview audio
     let pv = dir.join("preview.m4a");
-    let mut resp = agent()
-        .get(&purl)
-        .call()
-        .map_err(|e| format!("dl: {e}"))?
-        .into_reader();
+    let mut resp = agent().get(&purl).call().map_err(|e| format!("dl: {e}"))?;
+    let mut resp = resp.body_mut().as_reader();
     std::io::copy(
         &mut resp,
         &mut std::fs::File::create(&pv).map_err(|e| e.to_string())?,
@@ -906,9 +908,9 @@ pub fn download(song_id: &str) -> Result<Value, String> {
     // artwork
     let mut art_path = None;
     if let Some(u) = meta.get("artworkUrl").and_then(|v| v.as_str()) {
-        if let Ok(r) = agent().get(u).call() {
+        if let Ok(mut r) = agent().get(u).call() {
             let ap = dir.join("artwork.jpg");
-            let mut rr = r.into_reader();
+            let mut rr = r.body_mut().as_reader();
             if std::io::copy(
                 &mut rr,
                 &mut std::fs::File::create(&ap).map_err(|e| e.to_string())?,
@@ -995,14 +997,14 @@ pub fn collection_of(kind: &str, id: &str) -> Result<String, String> {
 pub fn collection_of_in(store: &str, kind: &str, id: &str) -> Result<String, String> {
     let url = format!("{API}/{store}/{kind}/{id}");
     let v: Value = with_dev_retry(|dt| {
-        let res = agent()
+        let mut res = agent()
             .get(&url)
-            .set("Authorization", &format!("Bearer {dt}"))
-            .set("Origin", "https://music.apple.com")
+            .header("Authorization", &format!("Bearer {dt}"))
+            .header("Origin", "https://music.apple.com")
             .query("extend", "audioVariants")
             .call()
             .map_err(|e| format!("{kind}/{id}: {e}"))?;
-        serde_json::from_str(&res.into_string().map_err(|e| e.to_string())?)
+        serde_json::from_str(&res.body_mut().read_to_string().map_err(|e| e.to_string())?)
             .map_err(|e| e.to_string())
     })?;
     let head = &v["data"][0];
