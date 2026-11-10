@@ -64,7 +64,7 @@ enum Cmd {
     /// Send a transport verb to the daemon:
     /// play/pause/playpause/stop/next/previous/status
     /// seek <+/-sec|ms> · setpos <sec> · loop <none|playlist|track> · shuffle <on|off> · open <file://uri|path|stream:<song-id>> · enqueue <uri...> · load <index> <uri...>
-    /// volume <0..100> · device <hw:X,Y|auto> · reorder|move <from> <to> · goto <index> · clear (empties the queue but keeps the current song) · quit
+    /// volume <0..100> · device <hw:X,Y|auto> · reorder|move <from> <to> · goto <index> · clear (empties the queue but keeps the current song) · clear-all · quit
     Ctl { verb: Vec<String> },
     /// MusicKit catalog metadata (public developer token, no login).
     Mk {
@@ -614,6 +614,12 @@ fn send_mpris_verb(argv: &[String]) -> Result<(), String> {
         "clear" | "clear-queue" => {
             proxy
                 .method_call::<(), _, _, _>(iface, "MelbaQueueClear", ())
+                .map_err(|e| e.to_string())?;
+            return Ok(());
+        }
+        "clear-all" => {
+            proxy
+                .method_call::<(), _, _, _>(iface, "MelbaQueueEmpty", ())
                 .map_err(|e| e.to_string())?;
             return Ok(());
         }
@@ -1372,7 +1378,7 @@ fn about_manifest() -> serde_json::Value {
         },
         "machine_interfaces": {
             "mpris": "org.mpris.MediaPlayer2.melba",
-            "mpris_player": "Play Pause PlayPause Stop Next Previous Seek SetPosition OpenUri(file://,preview:[cc:]<id>,stream:<id>) + MelbaLoadQueue(as,u,u,b) + MelbaGoTo + MelbaQueueReorder(u,u) + MelbaQueueClear + MelbaEnqueue(as) + MelbaSetDevice(s); props incl. xesam:{title,artist,album,url} mpris:{trackid,length,artUrl} melba:{queue,idx,titles,artists,artUrls,verdict,sink,device,volume}; props Volume; signals: PropertiesChanged, Seeked",
+            "mpris_player": "Play Pause PlayPause Stop Next Previous Seek SetPosition OpenUri(file://,preview:[cc:]<id>,stream:<id>) + MelbaLoadQueue(as,u,u,b) + MelbaGoTo + MelbaQueueReorder(u,u) + MelbaQueueClear + MelbaQueueEmpty + MelbaEnqueue(as) + MelbaSetDevice(s); props incl. xesam:{title,artist,album,url} mpris:{trackid,length,artUrl} melba:{queue,idx,titles,artists,artUrls,verdict,sink,device,volume}; props Volume; signals: PropertiesChanged, Seeked",
             "stdout": "JSON everywhere it matters",
             "collection_contract": "sone.collection/v1 (contracts/sone.collection.v1.schema.json)",
         },

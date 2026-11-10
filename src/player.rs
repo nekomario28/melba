@@ -2050,6 +2050,28 @@ pub fn serve(
                 .ok();
             Ok(())
         });
+        // `MelbaQueueClear` keeps the track at the cursor, which is the "clear
+        // what is coming up" action. This one empties everything, for callers
+        // that mean exactly that: the queue is cleared here, the cursor reset,
+        // and `Cmd::Clear` is sent afterwards so the existing persistence path
+        // writes the empty queue rather than a second implementation doing it.
+        let txp = tx.clone();
+        b.method("MelbaQueueEmpty", (), (), move |_, s: &mut St, ()| {
+            {
+                let mut q = s.shared.queue.lock().unwrap_or_else(|e| e.into_inner());
+                q.clear();
+            }
+            *s.shared.idx.lock().unwrap_or_else(|e| e.into_inner()) = 0;
+            s.shared
+                .order
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .reset();
+            let sender = txp.lock().unwrap_or_else(|e| e.into_inner());
+            sender.send(Cmd::Stop).ok();
+            sender.send(Cmd::Clear).ok();
+            Ok(())
+        });
         let txp = tx.clone();
         // append without disturbing what is playing — the "add to queue"
         // half of OpenUri (same accepted URI schemes).
