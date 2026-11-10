@@ -1,0 +1,61 @@
+name: Bug report
+description: Report a reproducible problem with installation, sign-in, playback or the UI
+title: "bug: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing Melba. **Do not post Apple IDs, passwords, tokens, cookies, private logs, authentication files or signed stream URLs.**
+        For first-play checks, see [First play](https://github.com/nekomario28/melba/blob/main/docs/first-run.md).
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Installation / update
+        - Sign-in / session
+        - AAC full-track playback
+        - ALAC / lossless playback
+        - Audio device / output
+        - Library / queue / UI
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Melba version
+      description: Output of melba --version (version only)
+      placeholder: "0.3.26"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Linux distro, desktop and session
+      placeholder: "Ubuntu 24.04, KDE Plasma, Wayland, x86_64"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Do not share credentials or account identifiers.
+      placeholder: "1. Open Melba ... 2. ... 3. ..."
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Expected and actual behavior
+      placeholder: "Expected: ... Actual: ..."
+    validations:
+      required: true
+  - type: textarea
+    id: checks
+    attributes:
+      label: Diagnostics (sanitized)
+      description: "If relevant: which melbad doctor checks failed, and whether a track plays beyond 30 seconds. Do not paste raw private logs."
+    validations:
+      required: false
