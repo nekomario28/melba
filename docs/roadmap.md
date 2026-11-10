@@ -6,14 +6,14 @@ Prioritize a reliable native Melba release over recreating the official UI.
 The next release should make audio preferences effective, playback dependable,
 and the actual playback path understandable.
 
-Current release: **v0.3.12** (signed x86_64 and aarch64). The entries below
-name the release each acceptance was measured on; an older version in an entry
-is a dated record, not the current one.
+Current published release: see [GitHub Releases](https://github.com/nekomario28/melba/releases/latest).
+The entries below name the release each acceptance was measured on; older
+versions are dated records, not the current release.
 
-- [~] **Audio quality settings** — `melbad config audio-quality` and a Settings
+- [x] **Audio quality settings (v0.3.26)** — `melbad config audio-quality` and a Settings
   control both write `auto`, `aac` or `lossless` to `config.json`; `aac` is
   honoured by never asking the decrypt service, and the page writes that one key
-  without disturbing the file's others. Still open: a `hi-res` choice, because
+  without disturbing the file's others. Separately deferred: a `hi-res` choice, because
   picking a hi-res ALAC variant apart from a lossless one needs per-variant
   attributes from the master playlist that `melba-cdm` does not parse, and there
   is no live master to check a guess against without an account.
@@ -34,8 +34,8 @@ is a dated record, not the current one.
   `BITPERFECT` receipts in the ALSA digital path; see
   [the evidence](../evidence/hdmi-avr-bitperfect.md). Analog output, volume,
   room correction and other AVR DSP remain outside this claim.
-- [ ] **Authentication release gate** — verify first sign-in, saved-session
-  restore, rejected/expired sessions and sign-out. Keep diagnostic credentials
+- [ ] **Authentication and first-play release gate** — verify first sign-in, saved-session
+  restore, rejected/expired sessions, sign-out and full AAC playback past 30 seconds. Keep diagnostic credentials
   and SDK state isolated from the live account. Fake peers do not establish
   real SDK acceptance or SMS/voice delivery.
 - [x] **Binary release audit** — the gates run on every release input: the
