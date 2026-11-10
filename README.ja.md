@@ -22,7 +22,7 @@ Linux `x86_64` / `aarch64` 対応。**glibc 2.35 以降の環境（Debian 12+・
 curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/install-release.sh | sh
 ```
 
-Releaseの発行者署名とSHA-256チェックサムを検証し、`melba`と`melbad`をデスクトップエントリと`~/.local/bin`のリンク付きで導入します。Linuxの共有ライブラリが不足している場合は対応ディストリビューションのパッケージマネージャで導入します（必要時は`sudo`認証）。実行には`curl`・`openssl`・`tar`・`sha256sum`が必要で、ライブラリ導入は`apt-get`／`dnf`／`pacman`のある環境に限られます。購読再生に必要なCDMなど、[対応しない範囲](docs/installation.md#what-the-one-command-installer-does-not-cover)も参照してください。対話環境ではALAC導入を`[y/N]`で確認します（既定はスキップ）。後からでも[1コマンドで追加](docs/installation.md#enable-alac-lossless)でき、必要な準備ツールも不足時に導入します。非対話環境では`--with-alac`で明示的に指定できます。
+Releaseの発行者署名とSHA-256チェックサムを検証し、`melba`と`melbad`をデスクトップエントリと`~/.local/bin`のリンク付きで導入します。Linuxの共有ライブラリが不足している場合は対応ディストリビューションのパッケージマネージャで導入します（必要時は`sudo`認証）。実行には`curl`・`openssl`・`tar`・`sha256sum`が必要で、ライブラリ導入は`apt-get`／`dnf`／`pacman`のある環境に限られます。購読再生に必要なCDMなど、[対応しない範囲](docs/installation.md#what-the-one-command-installer-does-not-cover)も参照してください。対話環境ではALAC導入を`[Y/n]`で確認します（既定は導入）。後からでも[1コマンドで追加](docs/installation.md#enable-alac-lossless)でき、必要な準備ツールも不足時に導入します。非対話環境では`--with-alac`で明示的に指定できます。
 
 **開発者向けソースビルド**では不足する開発パッケージ・Rust・`cargo-about`を自動導入します（必要に応じて`sudo`を使用）。
 
