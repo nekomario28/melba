@@ -66,16 +66,13 @@ class ReadmeDocs(unittest.TestCase):
         self.assertIn('[English](first-run.md)', read('docs/first-run.ja.md'))
         for name in ('packaging/install.sh', 'packaging/install-release.sh'):
             installer = read(name)
-            self.assertIn('[y/N]', installer, name)
+            self.assertIn('[Y/n]', installer, name)
             self.assertIn(
-                'case "$reply" in y|Y|yes|Yes|YES) alac=yes;; *) alac=no;; esac',
+                'case "$reply" in n|N|no|No|NO) alac=no;; *) alac=yes;; esac',
                 installer, name,
             )
             self.assertIn('melbad', installer)
             self.assertIn('doctor', installer)
-        for name in ('README.md', 'README.ja.md', 'docs/installation.md',
-                     'docs/wrapper.md', 'docs/wrapper.ja.md'):
-            self.assertNotIn('[Y/n]', read(name), name)
 
     def test_wrapper_docs_have_both_languages(self):
         self.assertIn('[日本語](wrapper.ja.md)', (ROOT / 'docs/wrapper.md').read_text())
