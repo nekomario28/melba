@@ -78,6 +78,8 @@ curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/in
 
 The standalone installer selects the latest matching published release, verifies the Ed25519 signature on its checksum manifest against the embedded Melba publisher key, verifies the archive's SHA-256, then installs the paired `melba`/`melbad` portable layout to `~/.local/opt/melba`. It creates `~/.local/bin` links and a desktop entry (using the publisher-signed Melba icon in new archives, with a generic system-theme fallback for older ones). It works without Cargo or `cargo-about`. It uses `curl`, `openssl`, `tar`, `sha256sum` and standard Unix tools; if ALAC is selected, missing `bash`, `unzip`, `file`, `cc` and related helpers are provisioned as needed. On interactive installs, ALAC is optional with a default-yes `[Y/n]` question; non-interactive installs skip it unless `--with-alac` is explicitly passed. You can also use `--no-alac`. No external wrapper is bundled in the release.
 
+**First playback:** follow the [first-play checklist](first-run.md) after installation. Check a full catalog track past 30 seconds; `melbad doctor` reports the authentication, CDM and audio-output prerequisites.
+
 ### What the one-command installer does not cover
 
 - **Its own prerequisites.** It uses `curl`, `openssl`, `tar`, `sha256sum` and

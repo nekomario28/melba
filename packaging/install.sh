@@ -234,3 +234,9 @@ else
     echo "ALAC skipped. To add it later, run: '$final_bin/melbad' wrapper setup"
 fi
 echo "This installer does not bundle or automatically accept third-party terms."
+
+echo
+echo "First play: launch '$final_bin/melba', sign in and play a full track beyond 30 seconds."
+echo "AAC full tracks need a valid subscription and an existing Widevine CDM."
+echo "If playback fails, run: '$final_bin/melbad' doctor"
+echo "Guide: https://github.com/nekomario28/melba/blob/main/docs/first-run.md"

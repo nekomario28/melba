@@ -362,3 +362,10 @@ if [ "$alac" = yes ]; then
 else
     echo "ALAC skipped. Install later with: $root/melbad wrapper setup"
 fi
+
+# Keep the first-play path visible after the optional setup output.
+echo
+echo "Next: launch Melba, sign in, and play a full track beyond 30 seconds."
+echo "A valid subscription and an existing Widevine CDM are needed for AAC full tracks."
+echo "If playback fails, run: $root/melbad doctor"
+echo "First-play troubleshooting: https://github.com/nekomario28/melba/blob/main/docs/first-run.md"

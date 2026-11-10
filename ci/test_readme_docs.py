@@ -43,6 +43,7 @@ class ReadmeDocs(unittest.TestCase):
         documents = (
             'README.md', 'README.ja.md', 'PUBLICATION.md',
             'docs/installation.md', 'docs/audio.md',
+            'docs/first-run.md', 'docs/first-run.ja.md',
             'docs/authentication.md', 'docs/updates.md',
             'docs/integrations.md', 'docs/development.md',
             'docs/security.md', 'docs/environment.md', 'SECURITY.md',
@@ -57,6 +58,21 @@ class ReadmeDocs(unittest.TestCase):
                     ((ROOT / name).parent / target).exists(),
                     f'{name}: broken local link to {link}',
                 )
+
+    def test_first_play_guides_and_optional_runtime_consent(self):
+        self.assertIn('(docs/first-run.md)', read('README.md'))
+        self.assertIn('(docs/first-run.ja.md)', read('README.ja.md'))
+        self.assertIn('[日本語](first-run.ja.md)', read('docs/first-run.md'))
+        self.assertIn('[English](first-run.md)', read('docs/first-run.ja.md'))
+        for name in ('packaging/install.sh', 'packaging/install-release.sh'):
+            installer = read(name)
+            self.assertIn('[Y/n]', installer, name)
+            self.assertIn(
+                'case "$reply" in n|N|no|No|NO) alac=no;; *) alac=yes;; esac',
+                installer, name,
+            )
+            self.assertIn('melbad', installer)
+            self.assertIn('doctor', installer)
 
     def test_wrapper_docs_have_both_languages(self):
         self.assertIn('[日本語](wrapper.ja.md)', (ROOT / 'docs/wrapper.md').read_text())
