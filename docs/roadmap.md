@@ -39,7 +39,10 @@ versions are dated records, not the current release.
   *selection*, so controllers still see the current track change while paused;
   and re-loading an identical queue no longer resets the play history — a
   frontend re-sync was wiping it and Previous then landed on the wrong row
-  (`shuffled_previous_and_next_retrace_the_played_occurrence`). The earlier guess
+  (`shuffled_previous_and_next_retrace_the_played_occurrence`).
+  On a real DAC the difference is visible from outside: before, `fuser` listed
+  the paused daemon and the substream read `PREPARED`; now no substream exists
+  until `Play` (`evidence/paused-device-release.md`). The earlier guess
   here (skipped entries were not remembered) was wrong; `Order::next` already
   ignored entries whose stream never opened.
 - [x] **Busy output takeover** — a busy `hw:` output remains in Settings as
