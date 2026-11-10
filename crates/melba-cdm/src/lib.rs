@@ -297,7 +297,12 @@ pub struct MediaSegment {
 }
 
 impl WebPlayback {
-    fn post(&self, url: &str, body: &serde_json::Value, user_hdr: &str) -> Res<ureq::Response> {
+    fn post(
+        &self,
+        url: &str,
+        body: &serde_json::Value,
+        user_hdr: &str,
+    ) -> Res<ureq::http::Response<ureq::Body>> {
         let auth = format!("Bearer {}", self.dev_token);
         stream::credentialed_post_json(
             url,
@@ -322,7 +327,8 @@ impl WebPlayback {
                 &serde_json::json!({"salableAdamId": adam_id}),
                 "media-user-token",
             )?
-            .into_json()
+            .body_mut()
+            .read_json()
             .map_err(|e| Error::Parse(e.to_string()))?;
         let song = &resp["songList"][0];
         let license_url = song["hls-key-server-url"]
@@ -360,7 +366,8 @@ impl WebPlayback {
         // fetch the playlist, read EXT-X-KEY URI (data:;base64,<KID>)
         let pl = self
             .get(&m3u8_url)?
-            .into_string()
+            .body_mut()
+            .read_to_string()
             .map_err(|e| Error::Http(e.to_string()))?;
         let key_uri = pl
             .lines()
@@ -388,7 +395,7 @@ impl WebPlayback {
         })
     }
 
-    pub fn get(&self, url: &str) -> Res<ureq::Response> {
+    pub fn get(&self, url: &str) -> Res<ureq::http::Response<ureq::Body>> {
         let auth = format!("Bearer {}", self.dev_token);
         stream::credentialed_get(
             url,
@@ -402,7 +409,8 @@ impl WebPlayback {
     /// Fetch the Widevine service certificate.
     pub fn widevine_cert(&self, cert_url: &str) -> Res<Vec<u8>> {
         let mut buf = Vec::new();
-        std::io::Read::read_to_end(&mut self.get(cert_url)?.into_reader(), &mut buf)
+        let mut resp = self.get(cert_url)?;
+        std::io::Read::read_to_end(&mut resp.body_mut().as_reader(), &mut buf)
             .map_err(|e| Error::Http(e.to_string()))?;
         Ok(buf)
     }
@@ -439,7 +447,11 @@ impl WebPlayback {
             ],
             &body,
         )?;
-        let j: serde_json::Value = resp.into_json().map_err(|e| Error::Parse(e.to_string()))?;
+        let mut resp = resp;
+        let j: serde_json::Value = resp
+            .body_mut()
+            .read_json()
+            .map_err(|e| Error::Parse(e.to_string()))?;
         if j.get("status").and_then(|s| s.as_i64()).unwrap_or(0) != 0 || j.get("license").is_none()
         {
             return Err(Error::Http(format!("license error: {j}")));
