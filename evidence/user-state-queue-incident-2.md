@@ -103,3 +103,16 @@ is empty (the app rewrote it while restoring the synthetic queue), so the
 30-row partial recovery used in October does not exist this time.
 `history.json` still holds 105 real plays, which can rebuild a queue by
 replaying them; that is a new queue, not the old one.
+
+## Recurrence, 2026-11-10
+
+The same fixture shape (`["stream:b","stream:a"]`) was found in the live
+`queue.json` again, with an mtime of 01:39 on 2026-11-10 and the GUI closed. The
+writer is still not identified, but the current tree was measured clean: with a
+canary value in the file, the root suite (14 test binaries), the desktop suite
+(`--all-features`) and `ci/check.sh` (including the MPRIS gates) each left it
+byte-identical. `ci/check.sh` used to be a real writer before it isolated its XDG
+directories; that path no longer touches the file, which is why the remaining
+candidates are an older installed binary and the GUI's own session restore.
+The queue was cleared, and no diagnostic file was written beside it.
+
