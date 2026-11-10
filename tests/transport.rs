@@ -25,6 +25,8 @@ struct Snapshot {
     rate: u64,
     position: i64,
     track_id: String,
+    /// streams opened this session — 0 means no device has been taken
+    stream_opens: u64,
     next_indices: Option<Vec<u64>>,
 }
 fn snapshot(conn: &Connection) -> Result<Snapshot, dbus::Error> {
@@ -61,6 +63,10 @@ fn snapshot(conn: &Connection) -> Result<Snapshot, dbus::Error> {
             .and_then(|v| v.0.as_str())
             .unwrap_or_default()
             .into(),
+        stream_opens: meta
+            .get("melba:streamOpens")
+            .and_then(|v| v.0.as_u64())
+            .unwrap_or(0),
         next_indices: meta
             .get("melba:nextIndices")
             .and_then(|v| v.0.as_iter())
@@ -552,4 +558,54 @@ fn desktop_startup_is_paused_and_mpris_actions_reach_the_frontend() {
         .unwrap()
         .expect("Quit must stop the process, not only its bus facade")
         .success());
+}
+
+/// A desktop session starts paused. It must not take the output device to say
+/// so: opening an exclusive PCM and pausing it reserves the card for as long as
+/// the window is open (measured on hw:1,7 — `fuser` listed the daemon and
+/// nothing else could use the card).
+#[test]
+fn paused_startup_takes_no_output_device() {
+    if !private_case("paused_startup_takes_no_output_device") {
+        return;
+    }
+    let _daemon = Daemon(
+        Command::new(env!("CARGO_BIN_EXE_melbad"))
+            .args(["serve", "--device", "null"])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap(),
+    );
+    let conn = Connection::new_session().unwrap();
+    wait(&conn, |s| s.status == "Stopped");
+    let fixtures = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures");
+    let proxy = conn.with_proxy(BUS, "/org/mpris/MediaPlayer2", Duration::from_secs(2));
+    proxy
+        .method_call::<(), _, _, _>(
+            IFACE,
+            "MelbaLoadQueue",
+            (
+                vec![format!(
+                    "file://{}",
+                    fixtures.join("44k-16bit-art.m4a").display()
+                )],
+                0u32,
+                0u32,
+                false,
+            ),
+        )
+        .unwrap();
+    // The selection is known, and described, without a device.
+    let paused = wait(&conn, |s| {
+        s.status == "Paused" && s.index == 0 && s.rate == 44100
+    });
+    assert_eq!(
+        paused.stream_opens, 0,
+        "a paused player must not hold the output device"
+    );
+    proxy.method_call::<(), _, _, _>(IFACE, "Play", ()).unwrap();
+    let playing = wait(&conn, |s| s.status == "Playing" && s.stream_opens > 0);
+    assert_eq!(playing.index, 0, "Play resumes the selected entry");
 }
