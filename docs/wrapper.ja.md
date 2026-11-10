@@ -3,7 +3,7 @@
 [English](wrapper.md) | **日本語**
 
 Melba は wrapper を**同梱・再配布しません**。ただし、ソース版・Release版のインストーラで
-明示的に `[Y/n]` に同意した場合（または `--with-alac` を指定した場合）には、
+明示的に `[y/N]` に同意した場合（または `--with-alac` を指定した場合）には、
 外部のwrapperを取得して配置します。利用者が追加したサービスの制御について説明します。
 payload とその利用条件はこのリポジトリの外です（[NOTICE.md](../NOTICE.md)、
 [PUBLICATION.md](../PUBLICATION.md)）。
