@@ -17,7 +17,6 @@ on:
       - "packaging/install-wrapper.sh"
       - "ci/test_packaging.py"
       - "ci/apt-transfers.sh"
-      - "docs/installation.md"
       - ".github/workflows/distro-install.yml"
   push:
     branches: [main]
