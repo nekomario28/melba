@@ -76,7 +76,7 @@ On Linux `x86_64` or `aarch64` with **glibc 2.35 or newer** (Debian 12+, Ubuntu 
 curl -fsSL https://raw.githubusercontent.com/nekomario28/melba/main/packaging/install-release.sh | sh
 ```
 
-The standalone installer selects the latest matching published release, verifies the Ed25519 signature on its checksum manifest against the embedded Melba publisher key, verifies the archive's SHA-256, then installs the paired `melba`/`melbad` portable layout to `~/.local/opt/melba`. It creates `~/.local/bin` links and a desktop entry (using the publisher-signed Melba icon in new archives, with a generic system-theme fallback for older ones). It works without Cargo or `cargo-about`. It uses `curl`, `openssl`, `tar`, `sha256sum` and standard Unix tools; if ALAC is selected, missing `bash`, `unzip`, `file`, `cc` and related helpers are provisioned as needed. On interactive installs, ALAC is optional with a default-no `[y/N]` question; non-interactive installs skip it unless `--with-alac` is explicitly passed. You can also use `--no-alac`. No external wrapper is bundled in the release.
+The standalone installer selects the latest matching published release, verifies the Ed25519 signature on its checksum manifest against the embedded Melba publisher key, verifies the archive's SHA-256, then installs the paired `melba`/`melbad` portable layout to `~/.local/opt/melba`. It creates `~/.local/bin` links and a desktop entry (using the publisher-signed Melba icon in new archives, with a generic system-theme fallback for older ones). It works without Cargo or `cargo-about`. It uses `curl`, `openssl`, `tar`, `sha256sum` and standard Unix tools; if ALAC is selected, missing `bash`, `unzip`, `file`, `cc` and related helpers are provisioned as needed. On interactive installs, ALAC is optional with a default-yes `[Y/n]` question; non-interactive installs skip it unless `--with-alac` is explicitly passed. You can also use `--no-alac`. No external wrapper is bundled in the release.
 
 **First playback:** follow the [first-play checklist](first-run.md) after installation. Check a full catalog track past 30 seconds; `melbad doctor` reports the authentication, CDM and audio-output prerequisites.
 
@@ -99,7 +99,7 @@ The standalone installer selects the latest matching published release, verifies
   user supplies. Without the CDM, `stream:` tracks fall back to the 30-second
   catalog preview. Check both with `melbad doctor`.
 - **ALAC.** It is never bundled. The installer can stage a third-party service
-  (opt-in `[y/N]`, or `--with-alac` when non-interactive), and `melbad wrapper
+  (opt-in `[Y/n]`, or `--with-alac` when non-interactive), and `melbad wrapper
   setup` adds it later.
 
 To add ALAC at any time after installation:
@@ -125,7 +125,7 @@ sh packaging/install.sh
 melba
 ```
 
-By default, the installer builds `melba` and `melbad`, installs a portable copy under `~/.local/opt/melba`, creates stable links in `~/.local/bin`, and adds a desktop entry. Make sure `~/.local/bin` is on your `PATH`. When invoked from fish, the installer sets a persistent fish universal path automatically; otherwise use `fish_add_path ~/.local/bin` if needed. On supported distributions the installer provisions only missing OS build packages, initializes an existing `rustup` with `rustup default stable` when no working toolchain exists, bootstraps Rust via the official rustup-init HTTPS installer if absent, and installs `cargo-about` when missing. Set `MELBA_INSTALL_AUTO_DEPS=0` to disable this provisioning and fail with an actionable error instead. The source installer offers the optional ALAC service only after an explicit default-no `[y/N]` confirmation on a terminal; `--no-alac` skips it and `--with-alac` opts in non-interactively. A companion user unit may be installed, but is not enabled automatically; the desktop starts its own daemon when needed. The installation contains `melba-portable.txt`, required by the GUI updater, plus the project and third-party notices under `share/licenses/melba/`.
+By default, the installer builds `melba` and `melbad`, installs a portable copy under `~/.local/opt/melba`, creates stable links in `~/.local/bin`, and adds a desktop entry. Make sure `~/.local/bin` is on your `PATH`. When invoked from fish, the installer sets a persistent fish universal path automatically; otherwise use `fish_add_path ~/.local/bin` if needed. On supported distributions the installer provisions only missing OS build packages, initializes an existing `rustup` with `rustup default stable` when no working toolchain exists, bootstraps Rust via the official rustup-init HTTPS installer if absent, and installs `cargo-about` when missing. Set `MELBA_INSTALL_AUTO_DEPS=0` to disable this provisioning and fail with an actionable error instead. The source installer offers the optional ALAC service only after an explicit default-yes `[Y/n]` confirmation on a terminal; `--no-alac` skips it and `--with-alac` opts in non-interactively. A companion user unit may be installed, but is not enabled automatically; the desktop starts its own daemon when needed. The installation contains `melba-portable.txt`, required by the GUI updater, plus the project and third-party notices under `share/licenses/melba/`.
 
 Release archives carry `NOTICE.md`, `LICENSE-MIT`, `LICENSE-APACHE`, `SPOTIFAST-LICENSE`, the generated `melba-THIRD-PARTY.txt` / `melbad-THIRD-PARTY.txt` and `receipt.json`. `packaging/package-portable.sh` refuses to package without the generated notices.
 
@@ -144,7 +144,7 @@ Re-run the installer after `git pull` to update a source installation. The porta
 
 ## Enable ALAC (lossless)
 
-ALAC is optional and is **never bundled** with Melba. If explicitly selected during an interactive install (`[y/N]`) or using `--with-alac`, the installer stages a separately supplied decrypt service. You can also add it later **without rebuilding or cloning**:
+ALAC is optional and is **never bundled** with Melba. If explicitly selected during an interactive install (`[Y/n]`) or using `--with-alac`, the installer stages a separately supplied decrypt service. You can also add it later **without rebuilding or cloning**:
 
 ```sh
 melbad wrapper setup
