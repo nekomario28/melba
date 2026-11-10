@@ -3,7 +3,7 @@
 **English** | [日本語](wrapper.ja.md)
 
 Melba does **not bundle or redistribute** the optional wrapper. The source and
-Release installers offer explicit `[y/N]` opt-in; the external runtime is
+Release installers offer explicit `[Y/n]` opt-in; the external runtime is
 downloaded only after the user chooses yes (or passes `--with-alac`).
 This document covers control of a separately supplied service. The payload
 and its terms are outside this repository (see [NOTICE.md](../NOTICE.md) and
