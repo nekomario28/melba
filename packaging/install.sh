@@ -204,9 +204,9 @@ if [ "$alac" = ask ]; then
         echo "ALAC requires a separately downloaded third-party runtime, including"
         echo "Apple/Android libraries governed by their own terms."
         echo "Details: https://github.com/nekomario28/melba-wrapper-bootstrap"
-        printf "Install ALAC lossless support? [Y/n] " >/dev/tty
+        printf "Install ALAC lossless support? [y/N] " >/dev/tty
         IFS= read -r reply </dev/tty || reply=
-        case "$reply" in n|N|no|No|NO) alac=no;; *) alac=yes;; esac
+        case "$reply" in y|Y|yes|Yes|YES) alac=yes;; *) alac=no;; esac
     else
         echo "Non-interactive: optional ALAC skipped (pass --with-alac to opt in)."
         alac=no
@@ -234,3 +234,9 @@ else
     echo "ALAC skipped. To add it later, run: '$final_bin/melbad' wrapper setup"
 fi
 echo "This installer does not bundle or automatically accept third-party terms."
+
+echo
+echo "First play: launch '$final_bin/melba', sign in and play a full track beyond 30 seconds."
+echo "AAC full tracks need a valid subscription and an existing Widevine CDM."
+echo "If playback fails, run: '$final_bin/melbad' doctor"
+echo "Guide: https://github.com/nekomario28/melba/blob/main/docs/first-run.md"
