@@ -117,8 +117,9 @@ jobs:
       - run: cargo check --locked --target x86_64-pc-windows-gnu --all-targets
         working-directory: crates/melba
 
-  # Non-blocking on purpose. The 2026-10-27 lockfile bump cleared the
-  # quinn-proto, rustls, webpki-roots and webpki-root-certs advisories.
+  # Fails on any RustSec advisory in either lockfile. The 2026-10-27
+  # lockfile bump cleared the quinn-proto, rustls, webpki-roots and
+  # webpki-root-certs advisories.
   # rustls-webpki 0.103.16 carries the fix for RUSTSEC-2026-0382, so the
   # exemption that kept this job from failing the build is gone: an advisory
   # with no fix is not a reason to stop reading advisories.
