@@ -64,7 +64,7 @@ enum Cmd {
     /// Send a transport verb to the daemon:
     /// play/pause/playpause/stop/next/previous/status
     /// seek <+/-sec|ms> · setpos <sec> · loop <none|playlist|track> · shuffle <on|off> · open <file://uri|path|stream:<song-id>> · enqueue <uri...> · load <index> <uri...>
-    /// volume <0..100> · device <hw:X,Y|auto> · reorder|move <from> <to> · goto <index> · clear · quit
+    /// volume <0..100> · device <hw:X,Y|auto> · reorder|move <from> <to> · goto <index> · clear (empties the queue but keeps the current song) · quit
     Ctl { verb: Vec<String> },
     /// MusicKit catalog metadata (public developer token, no login).
     Mk {

@@ -953,6 +953,12 @@ fn reorder_queue(shared: &Shared, from: usize, to: usize) {
 
 /// Empty the queue but keep the playing entry, if any — like clearing
 /// the manual queue in spotifast: what is playing keeps playing.
+/// Empty the queue, keeping the track that is playing (or parked at `idx`).
+///
+/// This is the "clear what is coming up" action a player offers; the current
+/// song stays so the thing on screen keeps playing. `melbad ctl clear` therefore
+/// leaves one entry when the daemon is stopped on a track, which looks like
+/// nothing happened if you expected an empty queue — use `clear-all` for that.
 fn clear_queue(shared: &Shared) {
     {
         let mut idx = shared.idx.lock().unwrap_or_else(|e| e.into_inner());
