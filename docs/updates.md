@@ -68,12 +68,12 @@ The published-release compatibility table was refreshed only after both of
 its conditions held: v0.3.13 is publicly visible, and the workflow's
 `install-release.sh` jobs installed that signed release in real Debian, Ubuntu,
 Fedora and Arch containers. `crates/melba/nix/paired-release.nix` now pins the
-**v0.3.26** `melba` archive hashes; the fetch is a plain HTTPS fetch of the
+**v0.3.27** `melba` archive hashes; the fetch is a plain HTTPS fetch of the
 signed release asset, so a Nix build still depends on GitHub availability.
 
 ## Published releases and tested paths
 
-Signed **v0.3.26** release assets are the current ones for `x86_64` and `aarch64`, from the same source tag, with a detached signed checksum manifest. v0.3.13 through v0.3.26 are built against a **glibc 2.35** baseline (v0.3.12 and older required 2.43), so Debian 12/13, Ubuntu 22.04/24.04/26.04, Fedora 43/44 and current Arch/CachyOS can run the published binaries; see [Installation](installation.md#distro-compatibility-of-the-published-v0326-release) for what was actually executed on each. The arm64 binary is build-verified on a native arm64 GitHub runner but not run-verified on arm64 hardware. The native SDK presentation bridge is x86_64-only; arm64 uses browser sign-in. The optional decrypt wrapper/rootfs remains architecture-specific and user-supplied.
+Signed **v0.3.27** release assets are the current ones for `x86_64` and `aarch64`, from the same source tag, with a detached signed checksum manifest. v0.3.13 through v0.3.27 are built against a **glibc 2.35** baseline (v0.3.12 and older required 2.43), so Debian 12/13, Ubuntu 22.04/24.04/26.04, Fedora 43/44 and current Arch/CachyOS can run the published binaries; see [Installation](installation.md#distro-compatibility-of-the-published-v0327-release) for what was actually executed on each. The arm64 binary is build-verified on a native arm64 GitHub runner but not run-verified on arm64 hardware. The native SDK presentation bridge is x86_64-only; arm64 uses browser sign-in. The optional decrypt wrapper/rootfs remains architecture-specific and user-supplied.
 
 ## Commit authorship rewrite (2026-11-10)
 
