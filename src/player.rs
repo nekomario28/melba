@@ -348,6 +348,11 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                  // logged 62 million of those writes in a night. Counting them lets the loop
                  // stop with a reason instead of spinning.
     let mut failed_opens: usize = 0;
+    // Set when the user asked to go backwards. A source that cannot be probed is
+    // then skipped *backwards*; walking forward instead would land on the track
+    // the user just left (measured: Previous from index 2 on a queue whose entry
+    // 1 never opens ended up playing index 2 again).
+    let mut backwards = false;
     'outer: loop {
         if shared.bitperfect_blocked.load(Ordering::SeqCst) {
             if !wait_bitperfect(&shared, &rx) {
@@ -650,7 +655,7 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                                     if require_block(&shared) {
                                         continue 'outer;
                                     }
-                                    advance(&shared);
+                                    step(&shared, &mut backwards);
                                     continue 'outer;
                                 }
                             }
@@ -661,7 +666,7 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                             if require_block(&shared) {
                                 continue 'outer;
                             }
-                            advance(&shared);
+                            step(&shared, &mut backwards);
                             continue 'outer;
                         }
                     }
@@ -676,11 +681,122 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                     if require_block(&shared) {
                         continue 'outer;
                     }
-                    advance(&shared);
+                    step(&shared, &mut backwards);
                     continue 'outer;
                 }
             }
         };
+        // The source is known playable. While the player is paused before it ever
+        // opened, hold the position without taking the output device (the source
+        // is still described: its rate and length come from the probe, not the
+        // card, so a paused player can report what it *would* play): opening an
+        // exclusive PCM to sit in PREPARED reserves the card for as long as the
+        // desktop is open (measured on hw:1,7: `fuser` listed the daemon and
+        // nothing else could have the card).
+        if shared.start_paused.load(Ordering::SeqCst) {
+            shared.set_state(PlayState::Paused);
+            let mut paused_source = src.clone();
+            paused_source.path = orig.clone();
+            *shared.source.lock().unwrap_or_else(|e| e.into_inner()) = Some(paused_source);
+            shared.dur_ms.store(src.dur_ms, Ordering::SeqCst);
+            // A queue load parks its start position for the eventual open; a
+            // paused player still has to report where it would resume, so it
+            // reads that position now instead of claiming 0.
+            let here = *shared.idx.lock().unwrap_or_else(|e| e.into_inner());
+            let parked = shared
+                .pending_seek
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .as_ref()
+                .filter(|(i, _)| *i == here)
+                .map_or(0, |(_, ms)| *ms);
+            shared.pos_ms.store(parked, Ordering::SeqCst);
+        }
+        while shared.start_paused.load(Ordering::SeqCst) {
+            match rx.recv() {
+                Ok(Cmd::Play) | Ok(Cmd::Resume) => {
+                    shared.start_paused.store(false, Ordering::SeqCst);
+                    backwards = false;
+                }
+                Ok(Cmd::Stop) => {
+                    shared.set_state(PlayState::Stopped);
+                    shared.pos_ms.store(0, Ordering::SeqCst);
+                    persist_queue(&shared);
+                }
+                Ok(Cmd::Next) => {
+                    backwards = false;
+                    advance(&shared);
+                    shared.pos_ms.store(0, Ordering::SeqCst);
+                    shared.play_seq.fetch_add(1, Ordering::SeqCst);
+                    continue 'outer;
+                }
+                Ok(Cmd::Prev) => {
+                    backwards = true;
+                    previous_index(&shared);
+                    persist_queue(&shared);
+                    shared.pos_ms.store(0, Ordering::SeqCst);
+                    shared.play_seq.fetch_add(1, Ordering::SeqCst);
+                    continue 'outer;
+                }
+                Ok(Cmd::SetDevice(d)) => {
+                    *shared.device.lock().unwrap_or_else(|e| e.into_inner()) = d;
+                    continue 'outer;
+                }
+                Ok(Cmd::Enqueue(ps)) => {
+                    shared
+                        .queue
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .extend(ps);
+                    persist_queue(&shared);
+                }
+                Ok(Cmd::Reorder { from, to }) => {
+                    reorder_queue(&shared, from, to);
+                    persist_queue(&shared);
+                }
+                Ok(Cmd::Clear) => {
+                    clear_queue(&shared);
+                    persist_queue(&shared);
+                }
+                Ok(Cmd::Seek(ms)) => shared.pos_ms.store(ms, Ordering::SeqCst),
+                Ok(Cmd::Shuffle(on)) => shared.shuffle.store(on, Ordering::SeqCst),
+                Ok(Cmd::SetLoop(mode)) => shared.repeat.store(mode, Ordering::SeqCst),
+                Ok(Cmd::LoadTrack(i)) => {
+                    *shared.idx.lock().unwrap_or_else(|e| e.into_inner()) = i;
+                    shared.start_paused.store(false, Ordering::SeqCst);
+                    continue 'outer;
+                }
+                Ok(Cmd::Pause) => {
+                    // already paused, and nothing is open to pause
+                }
+                Ok(Cmd::LoadQueue(load)) => {
+                    // One owner for what a queue load means: the same helper the
+                    // playing loops use, so a repeated load of an unchanged queue
+                    // does not wipe the play history.
+                    apply_queue_load(&shared, load);
+                    continue 'outer;
+                }
+                Ok(Cmd::OpenUri(path)) => {
+                    let n = {
+                        let mut q = shared.queue.lock().unwrap_or_else(|e| e.into_inner());
+                        q.push(path);
+                        q.len() - 1
+                    };
+                    select_index(&shared, n);
+                    shared.start_paused.store(false, Ordering::SeqCst);
+                    persist_queue(&shared);
+                    continue 'outer;
+                }
+                Ok(Cmd::Quit) => {
+                    persist_queue_now(&shared);
+                    return;
+                }
+                Err(_) => {
+                    persist_queue_now(&shared);
+                    return;
+                }
+            }
+        }
         // Reuse the open stream when it still targets the requested device and
         // carries the new source unchanged (audio::stream_matches); otherwise
         // drain the old tail and reopen.
@@ -744,7 +860,7 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                         let _ = rx.recv();
                         continue 'outer;
                     }
-                    advance(&shared);
+                    step(&shared, &mut backwards);
                     continue 'outer;
                 }
             }
@@ -890,13 +1006,20 @@ fn apply_queue_load(shared: &Shared, load: QueueLoad) -> bool {
     {
         let mut idx = shared.idx.lock().unwrap_or_else(|e| e.into_inner());
         let mut queue = shared.queue.lock().unwrap_or_else(|e| e.into_inner());
+        // The play history belongs to the context. Re-loading the same queue is
+        // the same context (a frontend re-sync does this on every change it
+        // hears about), so it must not undo where the listener has been — doing
+        // that made Previous land on the wrong row after a re-sync.
+        let same = *queue == load.paths;
         *queue = load.paths;
         *idx = load.index;
-        shared
-            .order
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .reset();
+        if !same {
+            shared
+                .order
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .reset();
+        }
     }
     *shared.pending_idx.lock().unwrap_or_else(|e| e.into_inner()) = None;
     *shared
@@ -1141,6 +1264,22 @@ fn select_index(shared: &Shared, index: usize) {
         .unwrap_or_else(|e| e.into_inner())
         .jump(*idx, index, len);
     *idx = index;
+}
+
+/// Move to the next entry in the direction the user asked for. A source that
+/// cannot be probed or opened is skipped the same way, so a backwards step never
+/// turns into a forwards one.
+fn step(shared: &Arc<Shared>, backwards: &mut bool) {
+    if *backwards {
+        previous_index(shared);
+    } else {
+        advance(shared);
+    }
+    // The selected track is a different one now, so its identity is different
+    // too: `mpris:trackid` is what a controller watches to see the current track
+    // change, and a paused player whose cursor moves is still a player whose
+    // current track changed. (It records no playback — the status stays Paused.)
+    shared.play_seq.fetch_add(1, Ordering::SeqCst);
 }
 
 fn previous_index(shared: &Shared) {
@@ -1671,6 +1810,12 @@ fn metadata_map(shared: &Shared) -> dbus::arg::PropMap {
                 .unwrap_or_else(|e| e.into_inner())
                 .clone(),
         ),
+    );
+    // How many times a stream was opened in this session. A paused player that
+    // has opened none is a paused player that is not holding the device.
+    put(
+        "melba:streamOpens",
+        Box::new(shared.stream_opens.load(Ordering::SeqCst)),
     );
     put(
         "melba:sink",

@@ -24,23 +24,24 @@ versions are dated records, not the current release.
   add `hi_res` to `audio_quality`, pick the highest-bandwidth ALAC variant in
   `open_alac`, and check it against a live master before claiming it.
 
-- [ ] **A paused daemon must not hold the output device** — `melbad serve
-  --paused` opens the exclusive `hw:` PCM and pauses it, so the card is reserved
-  for as long as the desktop is open. Measured 2026-11-09 on `hw:1,7`: paused →
-  `/proc/asound/.../status` `PREPARED` and `fuser` lists the daemon; the fix
-  below was written, measured (`closed` while paused, `RUNNING` on Play,
-  `closed` on Stop, metadata still `alac`/24-bit from the source) and then
-  reverted, because three transport tests failed:
-  `previous_skips_sources_that_never_opened`,
-  `queue_load_preserves_the_context_selection_and_paused_skips` and
-  `shuffled_previous_and_next_retrace_the_played_occurrence`.
-  **The first explanation was wrong**: it blamed how skipped entries are
-  remembered, but `Order::next` already takes `opened` and only records the
-  current index when the stream really opened — which is exactly why today's
-  history returns past a skipped entry. So the cause is unestablished; the next
-  attempt should instrument the deferred path (which command the loop received,
-  what `previous_index` returned, whether that index's probe failed) before
-  changing anything.
+- [x] **A paused daemon must not hold the output device** — `melbad serve
+  --paused` opened the exclusive `hw:` PCM and paused it, so the card stayed
+  reserved for as long as the desktop was open (measured 2026-11-09 on `hw:1,7`:
+  `PREPARED` and `fuser` listed the daemon). The player now holds the *selection*
+  until a command actually plays: the source is still probed and described (rate,
+  length, resume position all come from the probe), and the device is opened on
+  Play, closed on Stop. Measured through the bus (`melba:streamOpens`, published
+  for this): 0 while paused, 1 after Play. Three things had to be right first,
+  and each was found by a failing test rather than by inspection:
+  a `Prev` that lands on an unopenable source now keeps going *backwards*
+  instead of walking forward onto the track the listener just left
+  (`previous_skips_sources_that_never_opened`); `mpris:trackid` follows the
+  *selection*, so controllers still see the current track change while paused;
+  and re-loading an identical queue no longer resets the play history — a
+  frontend re-sync was wiping it and Previous then landed on the wrong row
+  (`shuffled_previous_and_next_retrace_the_played_occurrence`). The earlier guess
+  here (skipped entries were not remembered) was wrong; `Order::next` already
+  ignored entries whose stream never opened.
 - [x] **Busy output takeover** — a busy `hw:` output remains in Settings as
   “in use”; selecting it requests the session audio server's device
   reservation release through D-Bus and then opens the direct device. The
