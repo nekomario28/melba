@@ -67,6 +67,32 @@ class LockedBuilds(unittest.TestCase):
         self.assertIn("::warning", text, "a skipped verification must be visible")
         self.assertIn("attempt", text, "a transient mirror failure should be retried")
 
+    def test_public_release_downloads_are_isolated_from_routine_ci(self):
+        """Public Release download counts must not grow for ordinary PRs.
+
+        PR candidate smokes use Actions artifacts, while actual signed Release
+        installs remain a release-time, installer-change or periodic check.
+        """
+        ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
+        baseline = (WORKFLOWS / "portable-baseline.yml").read_text(encoding="utf-8")
+        distro = (WORKFLOWS / "distro-install.yml").read_text(encoding="utf-8")
+        nix = (WORKFLOWS / "nix-paired.yml").read_text(encoding="utf-8")
+        publish = (WORKFLOWS / "release-publish.yml").read_text(encoding="utf-8")
+
+        self.assertNotIn("sh packaging/install-release.sh --no-alac", ci)
+        self.assertNotIn("nix build --no-link ./crates/melba#melba-paired", ci)
+        self.assertIn("actions/download-artifact@", baseline)
+        self.assertIn("candidate smoke", baseline)
+        self.assertIn("schedule:", distro)
+        self.assertIn("pull_request:", distro)
+        self.assertNotIn('"docs/installation.md"', distro)
+        self.assertIn("schedule:", nix)
+        self.assertIn("pull_request:", nix)
+        self.assertIn('"crates/melba/nix/**"', nix)
+        self.assertIn("nix build --no-link ./crates/melba#melba-paired", nix)
+        self.assertIn("published-release-smoke:", publish)
+        self.assertIn('gh release download "$TAG"', publish)
+
     def test_cargo_audit_fails_the_build(self):
         """The exemption existed for an advisory with no fixed release.
 

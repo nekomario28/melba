@@ -4,6 +4,23 @@
 
 The GUI's **Check for updates** action (Settings → About and the app menu) checks the latest GitHub release. A source tag being newer does not make it installable: installation needs suitable signed binary assets and a supported **portable** layout.
 
+## Release download counts and CI
+
+GitHub Release asset `download_count` reports requests, **not unique users**.
+It includes package installations, GUI updates, GitHub Actions and other
+automated clients. Melba does not transmit background installation or playback
+telemetry to distinguish them. Do not report the raw figure as active users.
+
+Routine PR/main CI builds and tests the source without downloading Melba's
+published Release. The portable ABI workflow builds candidate archives and
+passes them between jobs through GitHub Actions artifacts; these are not public
+Release asset downloads. Signed published-release installations remain in the
+manual release workflow, the installer-change/weekly distro smoke, and the
+Nix-package-change/weekly pinned Nix smoke. These still affect Release asset
+counts; the workflow logs allow estimating that known automated portion,
+but cannot recover an exact unique-human count. Use opt-in tester feedback and
+reported successful full-track playback instead for adoption evidence.
+
 ## Supported layout and update behaviour
 
 The GUI updater requires `melba-portable.txt` beside the executable. The default `packaging/install.sh` installation puts this marker with `melba` and `melbad` in `~/.local/opt/melba`; an ordinary `cargo install` under `~/.cargo` does not, and cannot update through the GUI. Distribution packages and source installations should use their own upgrade procedure.
