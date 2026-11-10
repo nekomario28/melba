@@ -276,6 +276,12 @@ pub struct Variant {
     pub uri: String,
     /// session-key ids this variant uses (from audioAssetMetadata)
     pub key_ids: Vec<String>,
+    /// Declared bitrate, when the master states one. A hi-res rendition and a
+    /// lossless one differ here, which is the only per-variant number an
+    /// `#EXT-X-STREAM-INF` reliably carries for audio.
+    pub bandwidth: Option<u64>,
+    /// Declared channel count (`CHANNELS`), used the same way.
+    pub channels: Option<u32>,
 }
 
 pub struct Master {
@@ -364,6 +370,11 @@ pub fn parse_master(text: &str, base_url: &str) -> Res<Master> {
                     codecs: attr_bare(&attrs, "CODECS").unwrap_or("").to_string(),
                     uri,
                     key_ids,
+                    bandwidth: attr_bare(&attrs, "BANDWIDTH")
+                        .or_else(|| attr_bare(&attrs, "AVERAGE-BANDWIDTH"))
+                        .and_then(|value| value.trim().parse().ok()),
+                    channels: attr_bare(&attrs, "CHANNELS")
+                        .and_then(|value| value.trim().parse().ok()),
                 });
             }
         }
@@ -2019,6 +2030,35 @@ mod tests {
         assert_eq!((segs[0].offset, segs[0].size), (829, 1500000));
         assert_eq!((segs[1].offset, segs[1].size), (1500829, 1600000));
         assert_eq!((segs[2].offset, segs[2].size), (3100829, 100));
+    }
+
+    /// A hi-res rendition and a lossless one are told apart by the numbers the
+    /// master states for each variant; without them the player can only take the
+    /// first ALAC variant and call whatever arrives "lossless".
+    #[test]
+    fn master_reports_the_numbers_that_separate_variants() {
+        let master = "#EXTM3U\n\
+             #EXT-X-STREAM-INF:BANDWIDTH=1000000,CODECS=\"alac\",CHANNELS=2\n\
+             lossless.m3u8\n\
+             #EXT-X-STREAM-INF:AVERAGE-BANDWIDTH=4000000,CODECS=\"alac\",CHANNELS=2\n\
+             hires.m3u8\n";
+        let m = parse_master(master, "https://ex.com/m.m3u8").unwrap();
+        assert_eq!(m.variants.len(), 2);
+        assert_eq!(m.variants[0].bandwidth, Some(1_000_000));
+        assert_eq!(
+            m.variants[1].bandwidth,
+            Some(4_000_000),
+            "AVERAGE-BANDWIDTH counts"
+        );
+        assert_eq!(m.variants[0].channels, Some(2));
+        // A variant that states nothing stays unknown rather than guessing.
+        let bare = parse_master(
+            "#EXTM3U\n#EXT-X-STREAM-INF:CODECS=\"alac\"\nx.m3u8\n",
+            "https://ex.com/m.m3u8",
+        )
+        .unwrap();
+        assert_eq!(bare.variants[0].bandwidth, None);
+        assert_eq!(bare.variants[0].channels, None);
     }
 
     #[test]
