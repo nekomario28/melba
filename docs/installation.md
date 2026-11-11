@@ -41,7 +41,7 @@ Firefox session import also needs the `sqlite3` CLI (`sqlite3` on Debian/Ubuntu;
 Every published release stays downloadable, and the installer accepts a tag:
 
 ```sh
-sh packaging/install-release.sh --version v0.3.27
+sh packaging/install-release.sh --version v0.3.27   # or any published tag
 ```
 
 It fetches that release's signed manifest, verifies it with the same pinned
@@ -53,7 +53,7 @@ Use it when an update regresses something: the binaries and the wrapper from the
 previous release are still on the Releases page, so going back is a reinstall,
 not a rebuild. `melba --version` reports what is installed.
 
-## Distro compatibility of the published v0.3.27 release
+## Distro compatibility of the published v0.3.28 release
 
 The signed portable archive needs **glibc 2.35** or newer; measured on the
 published x86_64 archives, `melba` requires at most `GLIBC_2.35` and `melbad`
