@@ -25,20 +25,27 @@ const API: &str = "https://api.music.apple.com/v1/catalog";
 /// `lyrics` where api.music.apple.com silently drops or 40012-denies them
 const AMP_API: &str = "https://amp-api-edge.music.apple.com/v1/catalog";
 
-fn agent() -> ureq::Agent {
-    let config = ureq::Agent::config_builder()
-        .timeout_global(Some(std::time::Duration::from_secs(30)))
-        .user_agent(concat!(
-            "melba/",
-            env!("CARGO_PKG_VERSION"),
-            " (musickit catalog metadata)"
-        ))
-        // HTTP_PROXY / HTTPS_PROXY / ALL_PROXY are the one place a proxy is
-        // configured: the app never asks for it in its own interface, and the
-        // daemon must honour the same environment the GUI does.
-        .proxy(ureq::Proxy::try_from_env())
-        .build();
-    config.into()
+/// One agent for the process, so requests reuse their connections. ureq pools
+/// connections per agent, and building one per request paid a fresh TCP + TLS
+/// handshake every time — the most frequent case being catalog lookups during
+/// playback.
+fn agent() -> &'static ureq::Agent {
+    static AGENT: std::sync::OnceLock<ureq::Agent> = std::sync::OnceLock::new();
+    AGENT.get_or_init(|| {
+        ureq::Agent::config_builder()
+            .timeout_global(Some(std::time::Duration::from_secs(30)))
+            .user_agent(concat!(
+                "melba/",
+                env!("CARGO_PKG_VERSION"),
+                " (musickit catalog metadata)"
+            ))
+            // HTTP_PROXY / HTTPS_PROXY / ALL_PROXY are the one place a proxy is
+            // configured: the app never asks for it in its own interface, and the
+            // daemon must honour the same environment the GUI does.
+            .proxy(ureq::Proxy::try_from_env())
+            .build()
+            .into()
+    })
 }
 
 /// Fetch Apple's public MusicKit developer token. The storefront HTML links
@@ -1062,6 +1069,14 @@ pub fn collection_of_in(store: &str, kind: &str, id: &str) -> Result<String, Str
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// ureq pools connections per agent, so "is the agent reused" is the whole
+    /// of the keep-alive fix. Returning a fresh agent from `agent()` would make
+    /// this fail while every other test still passed.
+    #[test]
+    fn the_catalog_agent_is_created_once() {
+        assert!(std::ptr::eq(agent(), agent()));
+    }
 
     #[test]
     fn b64url_roundtrip() {

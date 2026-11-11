@@ -631,18 +631,24 @@ fn is_redirect(status: ureq::http::StatusCode) -> bool {
     matches!(status.as_u16(), 301 | 302 | 303 | 307 | 308)
 }
 
-fn token_agent() -> ureq::Agent {
-    ureq::Agent::config_builder()
-        .timeout_connect(Some(std::time::Duration::from_secs(10)))
-        .timeout_global(Some(std::time::Duration::from_secs(30)))
-        // Keep the daemon/GUI environment proxy policy on the credentialed path.
-        .proxy(ureq::Proxy::try_from_env())
-        // ureq would follow redirects and keep custom headers such as
-        // `media-user-token` (it only strips `authorization` / `cookie`).
-        // Follow allowlisted https targets ourselves; anything else is an error.
-        .max_redirects(0)
-        .build()
-        .into()
+/// One agent for the process. Segment range fetches are the most frequent
+/// request this crate makes, and building an agent per request meant a fresh TCP
+/// + TLS handshake per segment; ureq pools connections per agent.
+fn token_agent() -> &'static ureq::Agent {
+    static AGENT: std::sync::OnceLock<ureq::Agent> = std::sync::OnceLock::new();
+    AGENT.get_or_init(|| {
+        ureq::Agent::config_builder()
+            .timeout_connect(Some(std::time::Duration::from_secs(10)))
+            .timeout_global(Some(std::time::Duration::from_secs(30)))
+            // Keep the daemon/GUI environment proxy policy on the credentialed path.
+            .proxy(ureq::Proxy::try_from_env())
+            // ureq would follow redirects and keep custom headers such as
+            // `media-user-token` (it only strips `authorization` / `cookie`).
+            // Follow allowlisted https targets ourselves; anything else is an error.
+            .max_redirects(0)
+            .build()
+            .into()
+    })
 }
 
 pub(crate) fn credentialed_get(
@@ -2548,5 +2554,13 @@ mod tests {
         assert!(accept_wrapper_url("tcp://127.0.0.1:10020/path", false).is_err());
         assert!(accept_wrapper_url("http://127.0.0.1:0/", false).is_err());
         assert!(WrapperTcp::connect("10.1.2.3:9").is_err());
+    }
+
+    /// Range fetches happen per segment during playback; a fresh agent per
+    /// request meant a fresh TCP + TLS handshake per segment. ureq pools per
+    /// agent, so identity is the guard.
+    #[test]
+    fn the_credentialed_agent_is_created_once() {
+        assert!(std::ptr::eq(token_agent(), token_agent()));
     }
 }
