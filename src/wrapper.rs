@@ -219,6 +219,47 @@ fn rotate_log(path: &Path) {
     let _ = std::fs::rename(path, path.with_extension("log.1"));
 }
 
+/// A wrapper that loops on an error can fill the disk before anyone looks:
+/// one machine logged 14 GB in a night (v0.3.22). The log is capped per session,
+/// and the cap says so in the file rather than silently dropping the tail.
+const WRAPPER_LOG_CAP: u64 = 16 * 1024 * 1024;
+
+/// Copy a child's output into the log, up to [`WRAPPER_LOG_CAP`] bytes in total.
+/// Past the cap the stream keeps being drained — a blocked pipe would stop the
+/// wrapper itself — but nothing more is written except one notice.
+fn pump(
+    mut from: impl std::io::Read,
+    log: std::sync::Arc<std::sync::Mutex<std::fs::File>>,
+    used: std::sync::Arc<std::sync::atomic::AtomicU64>,
+    noted: std::sync::Arc<std::sync::atomic::AtomicBool>,
+) {
+    use std::io::Write;
+    let mut buf = [0u8; 8192];
+    loop {
+        let n = match from.read(&mut buf) {
+            Ok(0) => return,
+            Ok(n) => n,
+            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(_) => return,
+        };
+        let prior = used.fetch_add(n as u64, std::sync::atomic::Ordering::SeqCst);
+        let room = WRAPPER_LOG_CAP.saturating_sub(prior) as usize;
+        let mut out = std::sync::Mutex::new(log.lock().unwrap_or_else(|e| e.into_inner()));
+        let f = out.get_mut().unwrap_or_else(|e| e.into_inner());
+        if room > 0 {
+            let _ = f.write_all(&buf[..n.min(room)]);
+        }
+        if n > room && !noted.swap(true, std::sync::atomic::Ordering::SeqCst) {
+            let _ = writeln!(
+                f,
+                "\n[melba] wrapper log reached its {} MiB cap; further output is dropped for this session",
+                WRAPPER_LOG_CAP / (1024 * 1024)
+            );
+            let _ = f.flush();
+        }
+    }
+}
+
 fn spawn_locked(guard: &mut Option<ProcessGroup>, detached: bool) -> Result<String, String> {
     let bin = binary().ok_or_else(|| {
         "ALAC needs the decrypt service — run `melbad wrapper setup` first \
@@ -233,6 +274,9 @@ fn spawn_locked(guard: &mut Option<ProcessGroup>, detached: bool) -> Result<Stri
     let log = d.join("wrapper.log");
     rotate_log(&log);
     let lf = std::fs::File::create(&log).map_err(|e| e.to_string())?;
+    let sink = std::sync::Arc::new(std::sync::Mutex::new(lf));
+    let used = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let noted = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     // `run` already supplies -H 127.0.0.1 — passing it again makes the
     // wrapper binary reject the duplicate and exit early
     let mut command = process::command(&d, &bin, detached)?;
@@ -244,14 +288,27 @@ fn spawn_locked(guard: &mut Option<ProcessGroup>, detached: bool) -> Result<Stri
             Ok(())
         });
     }
-    let child = ProcessGroup::spawn(
+    let mut group = ProcessGroup::spawn(
         command
             .current_dir(&d)
-            .stdout(Stdio::from(lf.try_clone().map_err(|e| e.to_string())?))
-            .stderr(Stdio::from(lf)),
-    )
-    .map_err(|e| format!("spawn {}: {e}", bin.display()))?;
-    *guard = Some(child);
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped()),
+    )?;
+    // The wrapper's output goes through a reader so the file can be bounded;
+    // the threads exit when the child closes its ends.
+    let (out, err) = group.take_output();
+    let readers: Vec<Box<dyn std::io::Read + Send>> = [
+        out.map(|p| Box::new(p) as Box<dyn std::io::Read + Send>),
+        err.map(|p| Box::new(p) as Box<dyn std::io::Read + Send>),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+    for reader in readers {
+        let (log, used, noted) = (sink.clone(), used.clone(), noted.clone());
+        std::thread::spawn(move || pump(reader, log, used, noted));
+    }
+    *guard = Some(group);
     EARLY_EXIT.store(false, Ordering::SeqCst);
     Ok(log.display().to_string())
 }
@@ -862,6 +919,45 @@ pub fn setup(apk: Option<&Path>) -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
+    /// A wrapper that loops on an error used to be able to fill the disk: the
+    /// log grew for as long as the session lasted (14 GB on one machine). The
+    /// pump stops writing at the cap, says so once, and keeps draining so the
+    /// wrapper itself never blocks on a full pipe.
+    #[test]
+    fn the_wrapper_log_stops_at_its_cap() {
+        let dir = std::env::temp_dir().join(format!("melba-wraplog-cap-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let log = dir.join("wrapper.log");
+        let file = std::fs::File::create(&log).unwrap();
+        let sink = std::sync::Arc::new(std::sync::Mutex::new(file));
+        let used = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+        let noted = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+        // 40 MiB of noise, far past the 16 MiB cap.
+        let chunk = vec![b'x'; 1024 * 1024];
+        let input: Vec<u8> = chunk.repeat(40);
+        pump(
+            std::io::Cursor::new(input),
+            sink.clone(),
+            used.clone(),
+            noted.clone(),
+        );
+
+        let size = std::fs::metadata(&log).unwrap().len();
+        assert!(
+            (WRAPPER_LOG_CAP..WRAPPER_LOG_CAP + 4096).contains(&size),
+            "the log is bounded by the cap, plus one notice (got {size})"
+        );
+        let text = std::fs::read_to_string(&log).unwrap();
+        assert!(
+            text.contains("reached its 16 MiB cap"),
+            "the file itself has to say it was truncated"
+        );
+        assert!(noted.load(std::sync::atomic::Ordering::SeqCst));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     /// The wrapper log is created fresh at every start and the failure message
     /// points at it, so the previous session has to survive a restart.
     #[test]

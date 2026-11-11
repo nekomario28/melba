@@ -78,6 +78,10 @@ wrapper databases.
   Melba will not kill a service it does not manage.
 - `complete GUI sign-in before using the managed wrapper` means the cached
   binding is a tombstone; finish the GUI sign-in or run `melbad auth clear`.
+- The managed `wrapper.log` holds one session and is capped at 16 MiB: a wrapper
+  that loops on an error used to grow it until the disk was full, so the reader
+  stops writing at the cap, records that it truncated, and keeps draining so the
+  wrapper itself never blocks. One previous session is kept as `wrapper.log.1`.
 - `wrapper exited early` is recorded in the managed `wrapper.log`; inspect
   lifecycle lines, never paste account identifiers, tokens or signed URLs.
 - If ALAC fails, playback reports the fallback and continues with AAC.
