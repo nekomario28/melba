@@ -58,6 +58,39 @@ position. `crates/melba-cdm/src/stream.rs::a_real_master_is_ordered_hi_res_first
 pins exactly this variant list, so the ordering cannot quietly become an
 assumption again.
 
+## What the two renditions actually are
+
+The init segment of each rendition is readable before decryption, so `ffprobe` on
+the cleaned init says what the numbers mean:
+
+| rendition | bandwidth | codec | rate | depth | channels |
+| --- | --- | --- | --- | --- | --- |
+| `gr2304_alac.m3u8` | 1,761,161 | alac | 48,000 | 24 | 2 |
+| `gr9216_alac.m3u8` | 4,995,600 | alac | 192,000 | 24 | 2 |
+
+Both are 24-bit; the difference is the sample rate. That matches Apple's own two
+tiers — *Lossless* up to 24-bit/48 kHz, *Hi-Res Lossless* above — so the mapping
+`lossless` → 24/48 and `hi-res` → 24/192 is the service's distinction, not an
+invented one.
+
+For reference, an album with a single ALAC rendition (Random Access Memories,
+`617154353`) serves one 24-bit/44.1 kHz variant, where the setting changes nothing.
+
+## Why `auto` still asks for the hi-res rendition
+
+Until v0.3.28 the player took the **first** ALAC variant, which is the hi-res one
+here. Choosing "the lowest bitrate" for every non-hi-res setting would therefore
+have quietly downgraded 24/192 to 24/48 for anyone who never opened Settings —
+a change nobody asked for, in a player whose claim is exactness. So:
+
+| setting | asks for | why |
+| --- | --- | --- |
+| `auto` | the best the master offers (here 24/192) | keeps the behaviour v0.3.28 had |
+| `lossless` | the base tier (here 24/48) | an explicit request, e.g. for less bandwidth |
+| `hi-res` | the best (here 24/192) | what the name says |
+
+`the_automatic_choice_keeps_asking_for_the_best_rendition` pins that mapping.
+
 ## What this does not establish
 
 * **No audio was decoded.** Both renditions need the user's decrypt service, which
