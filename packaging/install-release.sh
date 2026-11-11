@@ -4,17 +4,27 @@
 set -eu
 
 alac=ask
+tag=${MELBA_VERSION:-latest}
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --with-alac) alac=yes;;
         --no-alac) alac=no;;
+        --version) shift; tag=${1:?--version needs a tag such as v0.3.27};;
+        --version=*) tag=${1#--version=};;
         -h|--help)
-            echo "usage: sh install-release.sh [--with-alac|--no-alac]"
+            echo "usage: sh install-release.sh [--with-alac|--no-alac] [--version vX.Y.Z]"
+            echo "       --version installs a specific published release (go back after a"
+            echo "       regression); the publisher signature is checked either way."
             exit 0;;
         *) echo "Unknown option: $1" >&2; exit 2;;
     esac
     shift
 done
+case "$tag" in
+    latest) ;;
+    v[0-9]*) ;;
+    *) echo "Unsupported release tag: $tag (expected latest or vX.Y.Z)" >&2; exit 2;;
+esac
 
 fail() { echo "Melba release install: $*" >&2; exit 1; }
 for tool in curl openssl sha256sum tar awk uname install ln sed mktemp; do
@@ -36,7 +46,11 @@ cat >"$work/publisher.pem" <<'KEY'
 MCowBQYDK2VwAyEAHkfb92Yn6L5S+nADQ8kBEyMD+CLW3sK+FsZjiL4QSRA=
 -----END PUBLIC KEY-----
 KEY
-base=https://github.com/nekomario28/melba/releases/latest/download
+if [ "$tag" = latest ]; then
+    base=https://github.com/nekomario28/melba/releases/latest/download
+else
+    base=https://github.com/nekomario28/melba/releases/download/$tag
+fi
 # `github.com/.../releases/download/...` has returned 504 for whole hours while
 # the API served the same bytes, so every asset is fetched through the API when
 # the direct route fails. Same repository, same file, different front door.
@@ -62,9 +76,9 @@ fetch() { # fetch <dest> <asset-name> [tag]
     curl --proto '=https' --tlsv1.2 -fLsS --retry 3 -H 'Accept: application/octet-stream' \
         "$api/assets/$id" -o "$dest"
 }
-echo "== Fetching signed Melba release manifest =="
-fetch "$work/checksums.txt" checksums.txt
-fetch "$work/checksums.txt.sig" checksums.txt.sig
+echo "== Fetching signed Melba release manifest (${tag}) =="
+fetch "$work/checksums.txt" checksums.txt "$tag"
+fetch "$work/checksums.txt.sig" checksums.txt.sig "$tag"
 openssl pkeyutl -verify -rawin -pubin -inkey "$work/publisher.pem" \
     -in "$work/checksums.txt" -sigfile "$work/checksums.txt.sig" >/dev/null ||
     fail "publisher signature verification failed; no binaries installed"

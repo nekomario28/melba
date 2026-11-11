@@ -36,6 +36,23 @@ cargo install cargo-about --version 0.8.4 --locked
 
 Firefox session import also needs the `sqlite3` CLI (`sqlite3` on Debian/Ubuntu; `sqlite` on Fedora/Arch). For AAC subscription playback, a usable Widevine CDM must already be installed; Melba does not download it.
 
+## Installing a previous release
+
+Every published release stays downloadable, and the installer accepts a tag:
+
+```sh
+sh packaging/install-release.sh --version v0.3.27
+```
+
+It fetches that release's signed manifest, verifies it with the same pinned
+publisher key, checks the archive's checksum and installs it — the same
+verification as an install of the latest, only against an older tag. A tag that
+does not exist fails before anything is written to `~/.local/opt/melba`.
+
+Use it when an update regresses something: the binaries and the wrapper from the
+previous release are still on the Releases page, so going back is a reinstall,
+not a rebuild. `melba --version` reports what is installed.
+
 ## Distro compatibility of the published v0.3.27 release
 
 The signed portable archive needs **glibc 2.35** or newer; measured on the

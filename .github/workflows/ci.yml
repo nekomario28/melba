@@ -67,8 +67,11 @@ jobs:
           mkdir -p ~/.cache/melba-apt
           cp -a /var/cache/apt/archives/. ~/.cache/melba-apt/ 2>/dev/null || true
           du -sh ~/.cache/melba-apt || true
-      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
         with:
+          # Pinned, matching rust-toolchain.toml: a release rebuilt later must
+          # produce the same binaries, and a toolchain change has to be visible.
+          toolchain: "1.99.0"
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
       - run: cargo install cargo-about --version 0.8.4 --locked
@@ -103,8 +106,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
         with:
+          # Pinned, matching rust-toolchain.toml: a release rebuilt later must
+          # produce the same binaries, and a toolchain change has to be visible.
+          toolchain: "1.99.0"
           targets: x86_64-pc-windows-gnu
       - run: rustup target add x86_64-pc-windows-gnu
         working-directory: crates/melba

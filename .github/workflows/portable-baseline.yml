@@ -68,7 +68,11 @@ jobs:
             libsoup-3.0-dev libjavascriptcoregtk-4.1-dev
           ldd --version | head -1
           pkg-config --modversion webkit2gtk-4.1
-      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          # Pinned, matching rust-toolchain.toml: a release rebuilt later must
+          # produce the same binaries, and a toolchain change has to be visible.
+          toolchain: "1.99.0"
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
       - name: Build both binaries from controlled glibc 2.35
         run: |
