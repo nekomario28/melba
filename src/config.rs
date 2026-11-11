@@ -26,15 +26,17 @@ pub enum WrapperMode {
 /// says the preference out loud so a fallback is a visible event rather than a
 /// silent downgrade.
 ///
-/// There is no `HiRes` yet, on purpose: distinguishing a hi-res ALAC variant
-/// from a lossless one needs the master playlist's per-variant attributes, which
-/// this build does not parse — and without an account there is no live master to
-/// check a guess against.
+/// Distinguishing a hi-res ALAC rendition from a lossless one uses the master's
+/// per-variant `BANDWIDTH` / `AVERAGE-BANDWIDTH` (`melba-cdm::pick_alac_variant`).
+/// A live account's master has not been read against this choice yet, so treat
+/// the `HiRes` setting as untested against the service, not as a measured result.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AudioQuality {
     Aac,
     Lossless,
+    /// The highest-bitrate ALAC rendition the master offers.
+    HiRes,
     /// Anything else, including the default. `serde(other)` has to be the last
     /// variant and keeps a value this build does not know from failing the file.
     #[default]
@@ -358,7 +360,7 @@ mod tests {
         assert_eq!(cfg.audio_device(), Some("default".to_string()));
     }
 
-    /// The quality preference is one of three words, and an unknown value in
+    /// The quality preference is one of four words, and an unknown value in
     /// the file reads as `auto` rather than failing the file.
     #[test]
     fn the_quality_preference_round_trips() {
@@ -369,6 +371,7 @@ mod tests {
         for (quality, word) in [
             (AudioQuality::Aac, "aac"),
             (AudioQuality::Lossless, "lossless"),
+            (AudioQuality::HiRes, "hi-res"),
             (AudioQuality::Auto, "auto"),
         ] {
             set_audio_quality(quality).unwrap();

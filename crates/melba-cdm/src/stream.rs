@@ -1867,13 +1867,35 @@ impl std::io::Seek for VirtualMedia {
 /// Fails early when the master or backend is unavailable so the caller
 /// can fall back to AAC.
 pub fn open_alac(http: Http, adam_id: &str, wrapper: &str) -> Res<VirtualMedia> {
+    open_alac_with(http, adam_id, wrapper, false)
+}
+
+/// Choose the ALAC rendition to play. `hi_res` asks for the highest declared
+/// bitrate, which is the only per-variant number a master states for audio; a
+/// variant that declares nothing is a last resort rather than a winner, because
+/// an unknown bitrate cannot be compared to a known one.
+pub fn pick_alac_variant(variants: &[Variant], hi_res: bool) -> Option<&Variant> {
+    let mut alac = variants.iter().filter(|v| v.codecs.contains("alac"));
+    let first = alac.next()?;
+    if !hi_res {
+        return Some(first);
+    }
+    let mut best = first;
+    for variant in alac {
+        let better = variant.bandwidth.unwrap_or(0) > best.bandwidth.unwrap_or(0);
+        if better {
+            best = variant;
+        }
+    }
+    Some(best)
+}
+
+/// Same as [`open_alac`], with the rendition chosen by [`pick_alac_variant`].
+pub fn open_alac_with(http: Http, adam_id: &str, wrapper: &str, hi_res: bool) -> Res<VirtualMedia> {
     let master_url = http.enhanced_hls(adam_id)?;
     let text = http.get_string(&master_url)?;
     let master = parse_master(&text, &master_url)?;
-    let variant = master
-        .variants
-        .iter()
-        .find(|v| v.codecs.contains("alac"))
+    let variant = pick_alac_variant(&master.variants, hi_res)
         .ok_or_else(|| Error::Missing("no alac variant".into()))?;
     let m = open_media_playlist(&http, &variant.uri)?;
 
@@ -2118,6 +2140,49 @@ mod tests {
         assert_eq!((segs[0].offset, segs[0].size), (829, 1500000));
         assert_eq!((segs[1].offset, segs[1].size), (1500829, 1600000));
         assert_eq!((segs[2].offset, segs[2].size), (3100829, 100));
+    }
+
+    /// The player asks for a specific rendition; picking it is this function, not
+    /// the order the master happens to list variants in.
+    #[test]
+    fn the_rendition_is_chosen_by_what_the_master_states() {
+        let master = "#EXTM3U\n\
+             #EXT-X-STREAM-INF:BANDWIDTH=1000000,CODECS=\"alac\"\n\
+             lossless.m3u8\n\
+             #EXT-X-STREAM-INF:BANDWIDTH=4000000,CODECS=\"alac\"\n\
+             hires.m3u8\n\
+             #EXT-X-STREAM-INF:BANDWIDTH=9000000,CODECS=\"ec-3\"\n\
+             atmos.m3u8\n";
+        let m = parse_master(master, "https://ex.com/m.m3u8").unwrap();
+        assert_eq!(
+            pick_alac_variant(&m.variants, false).unwrap().bandwidth,
+            Some(1_000_000),
+            "lossless keeps the first ALAC rendition"
+        );
+        assert_eq!(
+            pick_alac_variant(&m.variants, true).unwrap().bandwidth,
+            Some(4_000_000),
+            "hi-res takes the highest ALAC bitrate, never a non-ALAC one"
+        );
+        // A variant that states no bitrate loses to one that does, and is still
+        // chosen when it is the only candidate.
+        let mixed = "#EXTM3U\n\
+             #EXT-X-STREAM-INF:CODECS=\"alac\"\n\
+             unknown.m3u8\n\
+             #EXT-X-STREAM-INF:BANDWIDTH=2000000,CODECS=\"alac\"\n\
+             known.m3u8\n";
+        let m = parse_master(mixed, "https://ex.com/m.m3u8").unwrap();
+        assert_eq!(
+            pick_alac_variant(&m.variants, true).unwrap().uri,
+            "https://ex.com/known.m3u8"
+        );
+        let only_unknown = "#EXTM3U\n#EXT-X-STREAM-INF:CODECS=\"alac\"\nx.m3u8\n";
+        let m = parse_master(only_unknown, "https://ex.com/m.m3u8").unwrap();
+        assert!(pick_alac_variant(&m.variants, true).is_some());
+        // No ALAC at all is a refusal, not a silent AAC fallback here.
+        let aac = "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=256000,CODECS=\"mp4a.40.2\"\na.m3u8\n";
+        let m = parse_master(aac, "https://ex.com/m.m3u8").unwrap();
+        assert!(pick_alac_variant(&m.variants, true).is_none());
     }
 
     /// A hi-res rendition and a lossless one are told apart by the numbers the

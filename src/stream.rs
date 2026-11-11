@@ -194,7 +194,8 @@ fn open_once(storefront: &str, id: &str) -> Result<Opened, String> {
         } else {
             let h = http.clone();
             let idc = id.to_string();
-            let r = std::panic::catch_unwind(move || ams::open_alac(h, &idc, &wurl));
+            let hi_res = quality == crate::config::AudioQuality::HiRes;
+            let r = std::panic::catch_unwind(move || ams::open_alac_with(h, &idc, &wurl, hi_res));
             match r {
                 Ok(Ok(vm)) => return Ok(opened(vm)),
                 Ok(Err(e)) => crate::diag::warn(
@@ -229,6 +230,7 @@ fn quality_name(quality: crate::config::AudioQuality) -> &'static str {
         crate::config::AudioQuality::Auto => "auto",
         crate::config::AudioQuality::Aac => "aac",
         crate::config::AudioQuality::Lossless => "lossless",
+        crate::config::AudioQuality::HiRes => "hi-res",
     }
 }
 

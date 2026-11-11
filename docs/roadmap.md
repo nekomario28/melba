@@ -17,12 +17,13 @@ versions are dated records, not the current release.
   picking a hi-res ALAC variant apart from a lossless one needs per-variant
   attributes from the master playlist that `melba-cdm` does not parse, and there
   is no live master to check a guess against without an account.
-  **Prerequisite landed 2026-11-10**: `melba-cdm` now keeps each variant's
+  **Prerequisite landed 2026-11-10**, choice landed 2026-11-11: `melba-cdm` now keeps each variant's
   `bandwidth` (BANDWIDTH or AVERAGE-BANDWIDTH) and `channels`, so a hi-res
   rendition is distinguishable from a lossless one and a variant that states
-  nothing stays `None` rather than being guessed. What remains is the choice:
-  add `hi_res` to `audio_quality`, pick the highest-bandwidth ALAC variant in
-  `open_alac`, and check it against a live master before claiming it.
+  nothing stays `None` rather than being guessed. The choice is now implemented —
+  `audio_quality = hi-res`, chosen by `melba-cdm::pick_alac_variant` — but it has
+  **not** been checked against a live account's master, which is what would make
+  it a measured result rather than a documented setting.
 
 - [x] **A paused daemon must not hold the output device** — `melbad serve
   --paused` opened the exclusive `hw:` PCM and paused it, so the card stayed
