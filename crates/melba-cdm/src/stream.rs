@@ -1870,24 +1870,34 @@ pub fn open_alac(http: Http, adam_id: &str, wrapper: &str) -> Res<VirtualMedia> 
     open_alac_with(http, adam_id, wrapper, false)
 }
 
-/// Choose the ALAC rendition to play. `hi_res` asks for the highest declared
-/// bitrate, which is the only per-variant number a master states for audio; a
-/// variant that declares nothing is a last resort rather than a winner, because
-/// an unknown bitrate cannot be compared to a known one.
+/// Choose the ALAC rendition to play.
+///
+/// A master states one bitrate per variant and that is the only number that
+/// separates a lossless rendition from a hi-res one; it does **not** list them in
+/// order. Measured on a real master (Kind of Blue, `268443097`) the first ALAC
+/// variant listed is the 4,995,600 bit/s one and the second is 1,761,161 — so
+/// "take the first" was in effect asking for the hi-res rendition under the
+/// `lossless` setting.
+///
+/// `hi_res` takes the highest declared bitrate, plain lossless the lowest. A
+/// variant that states nothing sorts with the unknowns rather than winning: with
+/// nothing declared there is nothing to compare, so all-unknown falls back to the
+/// master's own order.
 pub fn pick_alac_variant(variants: &[Variant], hi_res: bool) -> Option<&Variant> {
     let mut alac = variants.iter().filter(|v| v.codecs.contains("alac"));
     let first = alac.next()?;
-    if !hi_res {
+    let candidates: Vec<&Variant> = std::iter::once(first).chain(alac).collect();
+    if candidates.iter().all(|v| v.bandwidth.is_none()) {
         return Some(first);
     }
-    let mut best = first;
-    for variant in alac {
-        let better = variant.bandwidth.unwrap_or(0) > best.bandwidth.unwrap_or(0);
-        if better {
-            best = variant;
+    candidates.into_iter().reduce(|best, variant| {
+        let (a, b) = (variant.bandwidth.unwrap_or(0), best.bandwidth.unwrap_or(0));
+        if (hi_res && a > b) || (!hi_res && a < b) {
+            variant
+        } else {
+            best
         }
-    }
-    Some(best)
+    })
 }
 
 /// Same as [`open_alac`], with the rendition chosen by [`pick_alac_variant`].
@@ -2157,7 +2167,7 @@ mod tests {
         assert_eq!(
             pick_alac_variant(&m.variants, false).unwrap().bandwidth,
             Some(1_000_000),
-            "lossless keeps the first ALAC rendition"
+            "lossless takes the lowest declared ALAC bitrate"
         );
         assert_eq!(
             pick_alac_variant(&m.variants, true).unwrap().bandwidth,
@@ -2183,6 +2193,39 @@ mod tests {
         let aac = "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=256000,CODECS=\"mp4a.40.2\"\na.m3u8\n";
         let m = parse_master(aac, "https://ex.com/m.m3u8").unwrap();
         assert!(pick_alac_variant(&m.variants, true).is_none());
+    }
+
+    /// The real thing: this is the variant list a master actually served for
+    /// Kind of Blue / So What (`268443097`), read through `diag` on 2026-11-11.
+    /// Apple does **not** list the lossless rendition first — the first ALAC entry
+    /// is the hi-res one — so choosing by position asked for hi-res under the
+    /// `lossless` setting for as long as this has existed.
+    #[test]
+    fn a_real_master_is_ordered_hi_res_first() {
+        let master = "#EXTM3U\n\
+             #EXT-X-STREAM-INF:BANDWIDTH=268877,CODECS=\"mp4a.40.2\"\n\
+             a.m3u8\n\
+             #EXT-X-STREAM-INF:BANDWIDTH=4995600,CODECS=\"alac\"\n\
+             gr9216_alac.m3u8\n\
+             #EXT-X-STREAM-INF:BANDWIDTH=772666,CODECS=\"ec-3\"\n\
+             atmos.m3u8\n\
+             #EXT-X-STREAM-INF:BANDWIDTH=1761161,CODECS=\"alac\"\n\
+             gr2304_alac.m3u8\n";
+        let m = parse_master(master, "https://aod.itunes.apple.com/m.m3u8").unwrap();
+        assert_eq!(
+            pick_alac_variant(&m.variants, false).unwrap().bandwidth,
+            Some(1_761_161),
+            "lossless must not ask for the hi-res rendition"
+        );
+        assert_eq!(
+            pick_alac_variant(&m.variants, true).unwrap().bandwidth,
+            Some(4_995_600),
+            "hi-res takes the one the master lists first here"
+        );
+        // Both are ALAC; only the bitrate separates them.
+        let alac: Vec<_> = m.variants.iter().filter(|v| v.codecs == "alac").collect();
+        assert_eq!(alac.len(), 2);
+        assert_ne!(alac[0].bandwidth, alac[1].bandwidth);
     }
 
     /// A hi-res rendition and a lossless one are told apart by the numbers the
