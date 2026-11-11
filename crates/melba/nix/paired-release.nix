@@ -7,7 +7,7 @@ let
   hash = if aarch64 then
     "sha256-1wY9Z3V3OfmShRqyegaEIgZOWkrI59CJVGfJ2I49zmA="
   else
-    "sha256-mC4rpy+kTRhfrdsu1XKIjX+V6+5kIwHMwmiYlLbNgsU=";
+    "sha256-uGIVGdXDfgI4s2SKMk6U9cYrrp3i+rqSjE8Ju8yeUoE=";
   runtimeLibraries = [
     alsa-lib dbus webkitgtk_4_1 gtk3 libxkbcommon wayland libGL libpulseaudio
     libX11 libXcursor libXi libXrandr stdenv.cc.cc.lib

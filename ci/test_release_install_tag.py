@@ -130,3 +130,4 @@ class ReleaseVersionLock(unittest.TestCase):
                 f"{lock.name} does not name {package} {version}; run cargo update "
                 f"--manifest-path {manifest}",
             )
+
