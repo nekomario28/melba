@@ -58,6 +58,26 @@ class ReleaseInstallTag(unittest.TestCase):
         assert order == sorted(order), "the manifest is verified before it is trusted"
 
 
+    def test_no_step_declares_with_twice(self):
+        """A duplicate `with:` is accepted by YAML readers and rejected by GitHub.
+
+        It happened here: adding `toolchain:` above an existing `components:` left
+        two `with:` keys, the workflow failed to start with zero jobs, and the
+        required check simply never appeared.
+        """
+        for name in ("ci.yml", "portable-baseline.yml", "arm64-build.yml"):
+            lines = (ROOT / ".github" / "workflows" / name).read_text().splitlines()
+            seen: list[int] = []
+            for line in lines:
+                indent = len(line) - len(line.lstrip())
+                if line.lstrip().startswith("- "):
+                    # a new list item is a new mapping; the same indent is fine there
+                    seen = []
+                if line.strip() == "with:":
+                    assert indent not in seen, f"{name}: two `with:` blocks at one level"
+                    seen = [i for i in seen if i < indent]
+                    seen.append(indent)
+
     def test_the_release_toolchain_is_pinned(self):
         """A rebuilt tag must produce the same binaries, so the toolchain cannot float."""
         pinned = (ROOT / "rust-toolchain.toml").read_text()

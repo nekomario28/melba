@@ -72,7 +72,6 @@ jobs:
           # Pinned, matching rust-toolchain.toml: a release rebuilt later must
           # produce the same binaries, and a toolchain change has to be visible.
           toolchain: "1.99.0"
-        with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
       - run: cargo install cargo-about --version 0.8.4 --locked
@@ -112,7 +111,6 @@ jobs:
           # Pinned, matching rust-toolchain.toml: a release rebuilt later must
           # produce the same binaries, and a toolchain change has to be visible.
           toolchain: "1.99.0"
-        with:
           targets: x86_64-pc-windows-gnu
       - run: rustup target add x86_64-pc-windows-gnu
         working-directory: crates/melba
