@@ -155,6 +155,17 @@ impl ProcessGroup {
             lost: AtomicBool::new(false),
         })
     }
+    /// Hand over the child's stdout and stderr so a caller can bound what they
+    /// write. Taken once, right after spawn, before anything else touches them.
+    pub(crate) fn take_output(
+        &mut self,
+    ) -> (
+        Option<std::process::ChildStdout>,
+        Option<std::process::ChildStderr>,
+    ) {
+        (self.child.stdout.take(), self.child.stderr.take())
+    }
+
     /// Reap without blocking. Used when the child could not be signalled, so
     /// the caller must not wait on a process that may outlive it.
     fn reap_bounded(&self, window: Duration) {
