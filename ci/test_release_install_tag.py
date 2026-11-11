@@ -95,3 +95,38 @@ class ReleaseInstallTag(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ReleaseVersionLock(unittest.TestCase):
+    """A version bump has to reach every lock file the build uses.
+
+    `crates/melba` is its own workspace with its own `Cargo.lock`; bumping only the
+    outer one left that lock naming 0.3.27, and `cargo fetch --locked` failed in
+    CI — on every job that fetches, which read as four unrelated failures.
+    """
+
+    def test_every_lock_file_names_the_manifest_version(self):
+        root = ROOT
+        pairs = [
+            (root / "Cargo.toml", root / "Cargo.lock", "melbad"),
+            (
+                root / "crates" / "melba" / "Cargo.toml",
+                root / "crates" / "melba" / "Cargo.lock",
+                "melba",
+            ),
+        ]
+        for manifest, lock, package in pairs:
+            version = None
+            for line in manifest.read_text().splitlines():
+                if line.startswith("version = "):
+                    version = line.split('"')[1]
+                    break
+            self.assertIsNotNone(version, f"{manifest}: no version")
+            text = lock.read_text()
+            marker = f'name = "{package}"\nversion = "{version}"'
+            self.assertIn(
+                marker,
+                text,
+                f"{lock.name} does not name {package} {version}; run cargo update "
+                f"--manifest-path {manifest}",
+            )
