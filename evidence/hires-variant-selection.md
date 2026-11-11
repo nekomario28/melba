@@ -30,6 +30,22 @@ Two things follow, and the second is a defect:
    while it was written that way — therefore asked for the **hi-res** rendition
    under the `lossless` setting.
 
+## Other masters, to see what varies
+
+The same read on two more albums, one advertising `lossless` and one
+`hi-res-lossless`:
+
+| album | catalog entry says | ALAC variants in the master | both settings ask for |
+| --- | --- | --- | --- |
+| Random Access Memories (`617154241`) | `lossless, lossy-stereo` | one, 1,717,091 (`gr2116`) | that one |
+| Blue Train (`1468202477`) | `hi-res-lossless, lossless` | one, 1,969,779 (`gr2304`) | that one |
+| Kind of Blue (`268443092`) | `hi-res-lossless, lossless` | two, 4,995,600 (`gr9216`) and 1,761,161 (`gr2304`) | different ones |
+
+So the number of ALAC renditions is not fixed: with one rendition the setting
+changes nothing (as it should — there is nothing higher to ask for), and the album
+that advertises hi-res does not always serve two renditions for a given song.
+This is why the choice reads `BANDWIDTH` per master instead of assuming a shape.
+
 ## What each setting asks for now
 
 | setting | variant | bitrate |
