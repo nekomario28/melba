@@ -1138,8 +1138,11 @@ fn main() {
                         "auto" => melbad::config::AudioQuality::Auto,
                         "aac" | "aac-256" => melbad::config::AudioQuality::Aac,
                         "lossless" | "alac" => melbad::config::AudioQuality::Lossless,
+                        "hi-res" | "hires" | "hi_res" => melbad::config::AudioQuality::HiRes,
                         other => {
-                            eprintln!("config audio-quality: {other} is not auto, aac or lossless");
+                            eprintln!(
+                                "config audio-quality: {other} is not auto, aac, lossless or hi-res"
+                            );
                             std::process::exit(2);
                         }
                     };
@@ -1157,6 +1160,7 @@ fn main() {
                         melbad::config::AudioQuality::Auto => "auto",
                         melbad::config::AudioQuality::Aac => "aac",
                         melbad::config::AudioQuality::Lossless => "lossless",
+                        melbad::config::AudioQuality::HiRes => "hi-res",
                     }
                 ),
             },

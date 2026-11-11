@@ -189,8 +189,14 @@ being started first. A fallback from `lossless` is reported as an
 `alac_fallback` diagnostic with the reason, and the receipt's `codec` says what
 actually played.
 
-There is no `hi-res` option yet, on purpose: telling a hi-res ALAC variant from
-a lossless one needs the master playlist's per-variant attributes, which this
-build does not parse. A hi-res track plays the ALAC variant the service lists
-first, and the receipt reports the rate and depth that actually arrived.
+`melbad config audio-quality hi-res` (or Settings → Stream quality → Hi-res
+lossless) asks for the **highest-bitrate ALAC rendition** the master lists. The
+choice is made from each variant's `BANDWIDTH`/`AVERAGE-BANDWIDTH`; a variant that
+states no bitrate is a last resort rather than a winner, and a master with no ALAC
+variant at all falls back to AAC as before.
+
+That choice has not been checked against a live account's master: without one
+there is no ground truth for "which rendition is hi-res". What the receipt
+reports is always what actually arrived (rate and depth), so a `hi-res` setting
+that fell back is visible as AAC, not silently claimed.
 

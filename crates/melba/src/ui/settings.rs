@@ -45,6 +45,7 @@ enum StreamQuality {
     Auto,
     Aac,
     Lossless,
+    HiRes,
 }
 
 impl StreamQuality {
@@ -52,6 +53,7 @@ impl StreamQuality {
         match value.and_then(|v| v["audio_quality"].as_str()) {
             Some("aac") => Self::Aac,
             Some("lossless") => Self::Lossless,
+            Some("hi-res") => Self::HiRes,
             _ => Self::Auto,
         }
     }
@@ -61,6 +63,7 @@ impl StreamQuality {
             Self::Auto => None,
             Self::Aac => Some("aac"),
             Self::Lossless => Some("lossless"),
+            Self::HiRes => Some("hi-res"),
         }
     }
 }
@@ -404,6 +407,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                     (StreamQuality::Auto, gettext(locale, "Auto")),
                     (StreamQuality::Aac, gettext(locale, "AAC 256")),
                     (StreamQuality::Lossless, gettext(locale, "Lossless")),
+                    (StreamQuality::HiRes, gettext(locale, "Hi-res lossless")),
                 ] {
                     if theme::pill_button(ui, &palette, &label, quality == current).clicked()
                         && quality != current
