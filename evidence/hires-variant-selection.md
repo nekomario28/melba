@@ -1,0 +1,56 @@
+# Which ALAC rendition a master actually offers (2026-11-11)
+
+Measured read-only against the catalog with the account's own stored token, using
+`cargo run --manifest-path crates/melba-cdm/Cargo.toml --bin diag 268443097`
+("So What", Kind of Blue — an album whose catalog entry lists
+`hi-res-lossless`).
+
+## The master, as served
+
+`enhancedHls` → `https://aod.itunes.apple.com/itunes-assets/HLSMusic221/…/P1305215351_default.m3u8`
+
+```
+variant codecs=mp4a.40.2 bandwidth=268877
+variant codecs=mp4a.40.2 bandwidth=268869
+variant codecs=mp4a.40.2 bandwidth=267935
+variant codecs=alac      bandwidth=4995600   ← gr9216_alac.m3u8
+variant codecs=ec-3      bandwidth=772666
+variant codecs=ec-3      bandwidth=452062
+variant codecs=alac      bandwidth=1761161   ← gr2304_alac.m3u8
+variant codecs=mp4a.40.2 … (five more, all under 300 kbit/s)
+```
+
+Two things follow, and the second is a defect:
+
+1. A master does state the number that separates the renditions — `BANDWIDTH` per
+   variant — so `hi-res` can be a real choice rather than a wish.
+2. **Apple does not list the lossless rendition first.** The first ALAC variant in
+   this master is the 4,995,600 bit/s one. Choosing "the first ALAC" — what the
+   player did before this change, and what `pick_alac_variant(.., false)` did
+   while it was written that way — therefore asked for the **hi-res** rendition
+   under the `lossless` setting.
+
+## What each setting asks for now
+
+| setting | variant | bitrate |
+| --- | --- | --- |
+| `lossless` | `gr2304_alac.m3u8` | 1,761,161 |
+| `hi-res` | `gr9216_alac.m3u8` | 4,995,600 |
+
+Same two values the master states, now chosen by the numbers instead of by
+position. `crates/melba-cdm/src/stream.rs::a_real_master_is_ordered_hi_res_first`
+pins exactly this variant list, so the ordering cannot quietly become an
+assumption again.
+
+## What this does not establish
+
+* **No audio was decoded.** Both renditions need the user's decrypt service, which
+  was not started for this measurement; what is verified is which playlist the
+  player requests, not what the samples contain.
+* The parsed init header of the hi-res rendition reads `rate=1`, `bits=16`; that
+  is the QuickTime sample-entry rate field (1.0 as a 16.16 fixed-point number),
+  not the real rate. The authoritative rate lives in the ALAC magic cookie, which
+  the decoder reads. Recorded here so the number in a future diagnostic is not
+  mistaken for a regression.
+* One song from one album. The ordering seen here is not proven to be a rule
+  Apple follows everywhere, which is exactly why the choice reads `BANDWIDTH`.

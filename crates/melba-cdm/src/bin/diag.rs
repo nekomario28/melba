@@ -64,11 +64,23 @@ fn main() {
     println!("session keys: {:?}", master.keys.keys().collect::<Vec<_>>());
     for v in &master.variants {
         println!(
-            "variant codecs={} keys={:?} uri={}",
+            "variant codecs={} bandwidth={:?} channels={:?} keys={:?} uri={}",
             v.codecs,
+            v.bandwidth,
+            v.channels,
             v.key_ids,
             &v.uri[v.uri.len().saturating_sub(60)..]
         );
+    }
+    // What the player would ask for under each setting.
+    for (label, hi_res) in [("lossless", false), ("hi-res", true)] {
+        match ams::pick_alac_variant(&master.variants, hi_res) {
+            Some(v) => println!(
+                "  ask({label}) -> codecs={} bandwidth={:?}",
+                v.codecs, v.bandwidth
+            ),
+            None => println!("  ask({label}) -> no alac variant"),
+        }
     }
     let alac = master
         .variants
@@ -81,6 +93,24 @@ fn main() {
         "ALAC init: scheme={} iv_size={} codec={} rate={} ch={} bits={} const_iv={:?} kid={:02x?}",
         i2.scheme, i2.iv_size, i2.codec, i2.rate, i2.channels, i2.bits, i2.const_iv, i2.kid
     );
+    // Both renditions, so the difference the setting is supposed to buy is visible.
+    for (label, hi_res) in [("lossless", false), ("hi-res", true)] {
+        let Some(v) = ams::pick_alac_variant(&master.variants, hi_res) else {
+            continue;
+        };
+        match ams::open_media_playlist(&http, &v.uri) {
+            Ok(p) => println!(
+                "  {label}: bw={:?} codec={} rate={} ch={} bits={} segs={}",
+                v.bandwidth,
+                p.init_info.codec,
+                p.init_info.rate,
+                p.init_info.channels,
+                p.init_info.bits,
+                p.segs.len()
+            ),
+            Err(e) => println!("  {label}: bw={:?} playlist error {e}", v.bandwidth),
+        }
+    }
     println!(
         "ALAC segs={} dur_ms={} keys_used={:?}",
         m2.segs.len(),

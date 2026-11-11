@@ -195,8 +195,11 @@ choice is made from each variant's `BANDWIDTH`/`AVERAGE-BANDWIDTH`; a variant th
 states no bitrate is a last resort rather than a winner, and a master with no ALAC
 variant at all falls back to AAC as before.
 
-That choice has not been checked against a live account's master: without one
-there is no ground truth for "which rendition is hi-res". What the receipt
-reports is always what actually arrived (rate and depth), so a `hi-res` setting
-that fell back is visible as AAC, not silently claimed.
+Measured against a real master (`evidence/hires-variant-selection.md`): the
+master for "So What" states 1,761,161 bit/s for one ALAC rendition and 4,995,600
+for another, and lists the **hi-res one first** — so the old "take the first ALAC"
+rule was asking for hi-res under the `lossless` setting. `lossless` now takes the
+lowest declared bitrate and `hi-res` the highest. What is verified is which
+playlist is requested; no audio was decoded, and the receipt keeps reporting the
+rate and depth that actually arrived.
 

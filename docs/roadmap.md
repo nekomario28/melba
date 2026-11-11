@@ -21,9 +21,12 @@ versions are dated records, not the current release.
   `bandwidth` (BANDWIDTH or AVERAGE-BANDWIDTH) and `channels`, so a hi-res
   rendition is distinguishable from a lossless one and a variant that states
   nothing stays `None` rather than being guessed. The choice is now implemented —
-  `audio_quality = hi-res`, chosen by `melba-cdm::pick_alac_variant` — but it has
-  **not** been checked against a live account's master, which is what would make
-  it a measured result rather than a documented setting.
+  `audio_quality = hi-res`, chosen by `melba-cdm::pick_alac_variant` — measured
+  against a real master on 2026-11-11, which showed the master listing the
+  **hi-res rendition first** and therefore that `lossless` had been asking for
+  hi-res all along; the choice now reads the declared bitrates
+  (`evidence/hires-variant-selection.md`). Decoding the two renditions was not
+  measured: that needs the user's decrypt service.
 
 - [x] **A paused daemon must not hold the output device** — `melbad serve
   --paused` opened the exclusive `hw:` PCM and paused it, so the card stayed
