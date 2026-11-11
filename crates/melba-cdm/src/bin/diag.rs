@@ -99,15 +99,18 @@ fn main() {
             continue;
         };
         match ams::open_media_playlist(&http, &v.uri) {
-            Ok(p) => println!(
-                "  {label}: bw={:?} codec={} rate={} ch={} bits={} segs={}",
-                v.bandwidth,
-                p.init_info.codec,
-                p.init_info.rate,
-                p.init_info.channels,
-                p.init_info.bits,
-                p.segs.len()
-            ),
+            Ok(p) => {
+                std::fs::write(format!("/tmp/alac_init_{label}.m4a"), &p.init).unwrap();
+                println!(
+                    "  {label}: bw={:?} codec={} rate={} ch={} bits={} segs={}",
+                    v.bandwidth,
+                    p.init_info.codec,
+                    p.init_info.rate,
+                    p.init_info.channels,
+                    p.init_info.bits,
+                    p.segs.len()
+                )
+            }
             Err(e) => println!("  {label}: bw={:?} playlist error {e}", v.bandwidth),
         }
     }

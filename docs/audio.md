@@ -189,8 +189,12 @@ being started first. A fallback from `lossless` is reported as an
 `alac_fallback` diagnostic with the reason, and the receipt's `codec` says what
 actually played.
 
-`melbad config audio-quality hi-res` (or Settings → Stream quality → Hi-res
-lossless) asks for the **highest-bitrate ALAC rendition** the master lists. The
+`auto` asks for the best rendition the master offers — the same thing the player
+did before the rendition was chosen by anything — and `lossless` asks for Apple's
+base lossless tier, which on a measured track is 24-bit/48 kHz against the hi-res
+24-bit/192 kHz. `melbad config audio-quality hi-res` (or Settings → Stream quality
+→ Hi-res lossless) asks for the **highest-bitrate ALAC rendition** the master
+lists. The
 choice is made from each variant's `BANDWIDTH`/`AVERAGE-BANDWIDTH`; a variant that
 states no bitrate is a last resort rather than a winner, and a master with no ALAC
 variant at all falls back to AAC as before.

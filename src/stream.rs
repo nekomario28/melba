@@ -194,7 +194,7 @@ fn open_once(storefront: &str, id: &str) -> Result<Opened, String> {
         } else {
             let h = http.clone();
             let idc = id.to_string();
-            let hi_res = quality == crate::config::AudioQuality::HiRes;
+            let hi_res = wants_highest_alac(quality);
             let r = std::panic::catch_unwind(move || ams::open_alac_with(h, &idc, &wurl, hi_res));
             match r {
                 Ok(Ok(vm)) => return Ok(opened(vm)),
@@ -225,6 +225,21 @@ fn open_once(storefront: &str, id: &str) -> Result<Opened, String> {
     Ok(opened(vm))
 }
 
+/// Which ALAC rendition a setting asks for.
+///
+/// `auto` asks for the best the master offers, which is what the player did before
+/// the rendition was chosen by anything: v0.3.26–v0.3.28 took the first ALAC
+/// variant listed, and on a real master that is the hi-res one (measured: 24-bit /
+/// 192 kHz at 4,995,600 bit/s, against 24-bit / 48 kHz at 1,761,161 bit/s). Making
+/// `auto` pick the lower rendition would have quietly downgraded everyone who never
+/// touched the setting, so only an explicit `lossless` asks for the base tier.
+fn wants_highest_alac(quality: crate::config::AudioQuality) -> bool {
+    matches!(
+        quality,
+        crate::config::AudioQuality::Auto | crate::config::AudioQuality::HiRes
+    )
+}
+
 fn quality_name(quality: crate::config::AudioQuality) -> &'static str {
     match quality {
         crate::config::AudioQuality::Auto => "auto",
@@ -245,6 +260,21 @@ fn opened(vm: ams::VirtualMedia) -> Opened {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `auto` must not change what the player asked for before the rendition was
+    /// chosen by anything: it took the first ALAC variant, which on a real master
+    /// is the hi-res one. An explicit `lossless` is the only thing that asks for
+    /// the base tier, so nobody is downgraded without saying so.
+    #[test]
+    fn the_automatic_choice_keeps_asking_for_the_best_rendition() {
+        use crate::config::AudioQuality;
+        assert!(wants_highest_alac(AudioQuality::Auto));
+        assert!(wants_highest_alac(AudioQuality::HiRes));
+        assert!(!wants_highest_alac(AudioQuality::Lossless));
+        // AAC never reaches the ALAC path at all; the mapping still has to be
+        // defined for it rather than picking a side by accident.
+        assert!(!wants_highest_alac(AudioQuality::Aac));
+    }
 
     #[test]
     fn stream_parts_handles_edge_uris() {
