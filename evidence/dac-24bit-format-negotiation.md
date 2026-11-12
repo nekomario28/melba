@@ -55,6 +55,29 @@ Linux has three 24-bit formats: `S32_LE` (32-bit container, 24 significant bits)
 `S24_LE` (same idea, different name depending on the driver) and `S24_3LE`
 (3 bytes packed). A device may offer only one of them.
 
+### Fixed: the packed format is now a candidate, with a write path
+
+`fmt_for_depth(24)` is `[S32LE, S24LE, S243LE]`, `fmt_msbits` reports 24 bits for it,
+and both writers (`audio::play_into` and `player::play_controlled`) have a
+packed branch: three bytes per sample taken from the source's top 24 bits, written
+through `pcm.io_bytes()` with a frame of `3 × channels` bytes.
+
+Measured on the device that refused before (`hw:0,2`, `lossless`, "So What"):
+
+```
+/proc/asound/card0/pcm2p/sub0/hw_params
+format: S24_3LE   channels: 2   rate: 48000 (48000/1)
+```
+
+and playback progressed, 12.07 s of position after eight samples two seconds apart,
+with `verdict: BITPERFECT` and `xruns: 0`.
+
+The trap that made the first attempt fail: `Granted::format` is built with `{:?}`,
+which for `alsa::pcm::Format` prints the **variant** name `S243LE` while ALSA prints
+`S24_3LE`. A branch matching only `"S24_3LE"` never ran, so the stream took the i32
+path and answered `io_xx: Operation not supported`. `audio::is_packed_24` accepts
+both spellings and is unit-tested.
+
 ### Why the fix is not just adding the format
 
 Adding `S24_3LE` to the candidate list was tried and measured: the device then

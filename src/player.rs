@@ -1385,10 +1385,12 @@ fn play_controlled(
     use std::sync::mpsc::TryRecvError;
     let track_id = probed.track_id;
     let mut dec = probed.decoder;
-    let io_err = if g.format == "S16LE" {
-        pcm.io_i16().err()
-    } else {
-        pcm.io_i32().err()
+    let io_err = match g.format.as_str() {
+        "S16LE" => pcm.io_i16().err(),
+        // a packed 24-bit stream rejects io_i32 with -EINVAL, which would look
+        // like a broken stream instead of the format it is
+        f if audio::is_packed_24(f) => None,
+        _ => pcm.io_i32().err(),
     };
     if let Some(e) = io_err {
         *shared.verdict.lock().unwrap_or_else(|e| e.into_inner()) = format!("io: {e}");
@@ -1613,6 +1615,12 @@ fn play_controlled(
             if write_all_i16(&io, pcm, &out, g.channels as usize, shared).is_err() {
                 return Flow::Ended;
             }
+        } else if audio::is_packed_24(&g.format) {
+            let io = pcm.io_bytes();
+            let packed = audio::pack_s24_3le(&samples);
+            if write_all_bytes(&io, pcm, &packed, g.channels as usize * 3, shared).is_err() {
+                return Flow::Ended;
+            }
         } else {
             let io = match pcm.io_i32() {
                 Ok(i) => i,
@@ -1658,6 +1666,31 @@ fn write_all_i16(
     }
     Ok(())
 }
+/// `write_all_i32` for a byte stream: `ch` here is bytes per frame (3 × channels
+/// for packed 24-bit), because the sample type is a byte, not a sample.
+fn write_all_bytes(
+    io: &alsa::pcm::IO<'_, u8>,
+    pcm: &alsa::pcm::PCM,
+    bytes: &[u8],
+    per_frame: usize,
+    shared: &Shared,
+) -> Result<(), ()> {
+    let mut done = 0usize;
+    while done * per_frame < bytes.len() {
+        match io.writei(&bytes[done * per_frame..]) {
+            Ok(0) => return Err(()),
+            Ok(n) => done += n,
+            Err(e) => {
+                shared.note_xrun();
+                if pcm.try_recover(e, true).is_err() {
+                    return Err(());
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 fn write_all_i32(
     io: &alsa::pcm::IO<'_, i32>,
     pcm: &alsa::pcm::PCM,
