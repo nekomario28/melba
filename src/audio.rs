@@ -290,9 +290,32 @@ fn fmt_msbits(f: Format) -> u32 {
         Format::S16LE => 16,
         Format::S24LE | Format::S243LE => 24,
         Format::S32LE => 32,
-        Format::FloatLE => 32,
         _ => 0,
     }
+}
+
+/// ALSA's Rust HwParams wrapper lacks snd_pcm_hw_params_get_sbits(). Read
+/// the *committed* PCM hardware setup instead: snd_pcm_dump_hw_setup prints
+/// the driver-reported `msbits : N` for this exact PCM handle. Do not infer
+/// the hardware's usable precision from its S32_LE container width.
+fn parse_hw_msbits(dump: &str) -> Option<u32> {
+    dump.lines()
+        .filter_map(|line| line.trim().strip_prefix("msbits :"))
+        .find_map(|value| value.trim().parse::<u32>().ok().filter(|&n| (1..=32).contains(&n)))
+}
+
+fn negotiated_msbits(pcm: &PCM, fmt: Format) -> u32 {
+    let Ok(mut output) = alsa::Output::buffer_open() else {
+        return 0;
+    };
+    if pcm.dump_hw_setup(&mut output).is_err() {
+        return 0;
+    }
+    // Any change to the dump spelling must fail closed (0), not grant
+    // BITPERFECT based solely on the selected format.
+    parse_hw_msbits(&output.to_string())
+        .unwrap_or(0)
+        .min(fmt_msbits(fmt))
 }
 
 /// Ask the session audio server to release the ALSA card behind `device`.
@@ -422,7 +445,7 @@ pub fn open_exact(device: &str, src: &SourceFormat) -> Result<(PCM, Granted), Op
             device: device.to_string(),
             rate: hwp.get_rate().unwrap_or(0),
             format: format!("{:?}", hwp.get_format().unwrap_or(Format::Unknown)),
-            msbits: fmt_msbits(fmt),
+            msbits: negotiated_msbits(&pcm, fmt),
             channels: hwp.get_channels().unwrap_or(0),
             buffer_frames: hwp.get_buffer_size().unwrap_or(0) as u32,
             period_frames: hwp.get_period_size().unwrap_or(0) as u32,
@@ -893,6 +916,15 @@ mod format_choice_tests {
         assert_eq!(actual, [0x0012_3456, -0x0012_3456, -0x0080_0000, 0x007f_ffff, 0]);
         assert_eq!(actual[0].to_le_bytes(), [0x56, 0x34, 0x12, 0x00]);
         assert_eq!(actual[1].to_le_bytes(), [0xaa, 0xcb, 0xed, 0xff]);
+    }
+
+    #[test]
+    fn msbits_comes_from_the_alsa_pcm_setup_and_fails_closed() {
+        assert_eq!(parse_hw_msbits(" format : S32_LE\n msbits : 24\n"), Some(24));
+        assert_eq!(parse_hw_msbits(" format : S32_LE\n msbits : 32\n"), Some(32));
+        assert_eq!(parse_hw_msbits(" format : S32_LE\n"), None);
+        assert_eq!(parse_hw_msbits(" msbits : 0\n"), None);
+        assert_eq!(parse_hw_msbits(" msbits : potato\n"), None);
     }
 
     #[test]
