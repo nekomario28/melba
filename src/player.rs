@@ -903,6 +903,12 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
             }
             Flow::Ended => advance(&shared),
             Flow::Reload => {}
+            Flow::Reopen => {
+                // snd_pcm_drop() stops samples, but does NOT close the ALSA
+                // handle. Close it here so a software-paused selection does
+                // not continue reserving the user's output device.
+                stream.take();
+            }
             // Cmd::Stop: hold position in the queue (no advance), stay stopped
             // until a command selects something to play. The stream is left
             // dropped; 'outer's reuse path prepares or reopens it.
@@ -1252,6 +1258,9 @@ enum Flow {
     Stopped,
     /// A load already replaced the queue and selected its exact cursor.
     Reload,
+    /// A failed hardware Pause/Resume parked a seek; close this PCM handle
+    /// before letting the outer loop reopen the same selection.
+    Reopen,
 }
 
 /// Cursor writers and MPRIS planning share idx → queue → order lock order.
@@ -1455,7 +1464,7 @@ fn play_controlled(
                     // let the outer paused-selection loop reopen on Resume.
                     park_for_reopen(shared, pcm, sr, true);
                     shared.set_state(PlayState::Paused);
-                    return Flow::Reload;
+                    return Flow::Reopen;
                 }
                 shared.set_state(PlayState::Paused);
                 loop {
@@ -1466,7 +1475,7 @@ fn play_controlled(
                                 // pause (e.g. unplug/reconfigure). Reopen rather
                                 // than reporting Playing on a paused PCM.
                                 park_for_reopen(shared, pcm, sr, false);
-                                return Flow::Reload;
+                                return Flow::Reopen;
                             }
                             shared.set_state(PlayState::Playing);
                             break;
