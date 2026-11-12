@@ -256,10 +256,15 @@ pub fn list_devices() -> Vec<DeviceCap> {
 
 // ---- exact-format open ----------------------------------------------------
 
+/// Linux has three 24-bit formats and a device may offer only one of them.
+/// Measured 2026-11-12: the USB DAC here rejects `S32_LE` and `S24_LE` at 48 kHz
+/// and lists exactly `S16_LE, S24_3LE`, so a list without the packed format
+/// refused to play audio the hardware carries ("no format carries 24bit @
+/// 48000Hz x2ch"). The write path has a packed branch to match.
 fn fmt_for_depth(bits: u32) -> &'static [Format] {
     match bits {
         0..=16 => &[Format::S16LE],
-        17..=24 => &[Format::S32LE, Format::S24LE],
+        17..=24 => &[Format::S32LE, Format::S24LE, Format::S243LE],
         _ => &[Format::S32LE, Format::FloatLE],
     }
 }
@@ -280,7 +285,7 @@ pub fn stream_matches(g: &Granted, src: &SourceFormat) -> bool {
 fn fmt_msbits(f: Format) -> u32 {
     match f {
         Format::S16LE => 16,
-        Format::S24LE => 24,
+        Format::S24LE | Format::S243LE => 24,
         Format::S32LE => 32,
         Format::FloatLE => 32,
         _ => 0,
@@ -541,6 +546,12 @@ pub fn play_into(
             let io = pcm.io_i16().map_err(|e| format!("io_i16: {e}"))?;
             let out: Vec<i16> = samples.iter().map(|&s| (s >> 16) as i16).collect();
             frames_total += write_frames_t(&io, pcm, &out, g.channels as usize, xruns)?;
+        } else if is_packed_24(&g.format) {
+            // Packed 24-bit: three bytes per sample, so a frame is 3 × channels
+            // bytes and the sample count handed to `write_frames` is per frame.
+            let io = pcm.io_bytes();
+            let packed = pack_s24_3le(samples);
+            frames_total += write_frames_t(&io, pcm, &packed, g.channels as usize * 3, xruns)?;
         } else {
             let io = pcm.io_i32().map_err(|e| format!("io_i32: {e}"))?;
             frames_total += write_frames_t(&io, pcm, samples, g.channels as usize, xruns)?;
@@ -554,6 +565,28 @@ pub fn play_into(
     }
     let _ = pcm.drain();
     Ok(frames_total)
+}
+
+/// Is this granted format the packed 24-bit one?
+///
+/// `Granted::format` is built with `{:?}`, which for `alsa::pcm::Format` prints the
+/// **variant** name (`S243LE`), while ALSA and every other tool spells the format
+/// `S24_3LE`. Matching only one spelling silently sent packed streams down the
+/// i32 write path, which answers `io_xx: Operation not supported`.
+pub fn is_packed_24(format: &str) -> bool {
+    matches!(format, "S243LE" | "S24_3LE")
+}
+
+/// i32 samples (24 significant bits in the high end) as packed little-endian
+/// 3-byte samples: `S24_3LE` on the wire, which is what a DAC offering only that
+/// format expects.
+pub fn pack_s24_3le(samples: &[i32]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(samples.len() * 3);
+    for &s in samples {
+        let b = (s >> 8).to_le_bytes();
+        out.extend_from_slice(&b[..3]);
+    }
+    out
 }
 
 fn write_frames_t<T: Copy>(
@@ -829,5 +862,58 @@ mod auto_tests {
     fn auto_never_selects_a_plug_device() {
         let caps = vec![cap("default", "PipeWire", 0, 384_000, 1, 8)];
         assert!(auto_candidates(&caps, &src()).is_empty());
+    }
+}
+
+#[cfg(test)]
+mod format_choice_tests {
+    use super::*;
+
+    /// The packed format is what a DAC offering only `S16_LE, S24_3LE` needs
+    /// (measured 2026-11-12, `hw:0,2`). Three bytes per sample, least significant
+    /// byte first, and the bytes are the source's top 24 — not a re-scale.
+    #[test]
+    fn packed_24_bit_keeps_the_significant_bytes() {
+        let samples = [0x0012_3456_i32, -0x0012_3456, 0, 0x7FFF_FF00u32 as i32];
+        let packed = pack_s24_3le(&samples);
+        assert_eq!(packed.len(), samples.len() * 3);
+        assert_eq!(&packed[0..3], &[0x34, 0x12, 0x00]);
+        // -0x123456 >> 8 == 0xFF_FFEDCB: the sign extends, the packed value is
+        // the source's top 24 bits.
+        assert_eq!(&packed[3..6], &[0xCB, 0xED, 0xFF]);
+        assert_eq!(&packed[6..9], &[0x00, 0x00, 0x00]);
+        assert_eq!(&packed[9..12], &[0xFF, 0xFF, 0x7F]);
+    }
+
+    /// A device may offer exactly one of the three Linux 24-bit formats. The USB
+    /// DAC here offers `S16_LE, S24_3LE` at 48 kHz and rejects the two wider
+    /// containers, so a list without `S24_3LE` refused to play 24-bit audio the
+    /// hardware carries perfectly well (measured 2026-11-12, `hw:0,2`).
+    #[test]
+    fn every_linux_24_bit_container_is_a_candidate() {
+        let formats = fmt_for_depth(24);
+        for expected in [Format::S32LE, Format::S24LE, Format::S243LE] {
+            assert!(
+                formats.contains(&expected),
+                "24-bit must be able to use {expected:?}; tried {formats:?}"
+            );
+        }
+        // The packed format is 24 bits on the wire, not 32.
+        assert_eq!(fmt_msbits(Format::S243LE), 24);
+        assert_eq!(fmt_msbits(Format::S24LE), 24);
+        assert_eq!(fmt_msbits(Format::S32LE), 32);
+        // 16-bit content stays on the 16-bit format only.
+        assert_eq!(fmt_for_depth(16), &[Format::S16LE]);
+    }
+
+    /// `Granted::format` carries the Debug name, so the write paths have to
+    /// recognise both spellings or a packed stream silently takes the i32 path.
+    #[test]
+    fn the_packed_format_is_recognised_under_either_name() {
+        assert!(is_packed_24("S243LE"), "the Debug name this crate stores");
+        assert!(is_packed_24("S24_3LE"), "the name ALSA prints");
+        assert!(!is_packed_24("S32LE"));
+        assert!(!is_packed_24("S24LE"));
+        assert!(!is_packed_24("S16LE"));
     }
 }
