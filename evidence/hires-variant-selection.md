@@ -110,9 +110,9 @@ back to AAC.
 
 ### What this still does not establish
 
-* The rate is what the player asked the session graph for and what the graph
-  negotiated; the host's USB DAC was not opened directly for this measurement (see
-  below), so a DAC-side reading is still unmeasured.
+* The rate above is what the session graph negotiated. The DAC itself was read
+  separately: with `--device hw:0,0` and `hi-res`, `/proc/asound/…/hw_params` shows
+  `format: S32_LE  rate: 192000` (`evidence/dac-24bit-format-negotiation.md`).
 * Direct `hw:` playback of the *base* rendition failed here with
   `no format carries 24bit @ 48000Hz x2ch` on `hw:0,2`, while the device advertises
   44.1–192 kHz. That is a separate question — the app's 24-bit format negotiation
