@@ -88,7 +88,7 @@
     },
     {
       "path": "tests/source_format.rs",
-      "sha256": "4fffae513672891cb988af9591cf1f9adfa0c113a4f38e77bbdec7774f884912"
+      "sha256": "88ba55730204d8a44b229e7f8738839e0411b4a381ee426e4960401fc6f766a5"
     },
     {
       "path": "research/2026-10-15-auth-path-jadx-scan.md",
