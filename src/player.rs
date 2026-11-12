@@ -1429,7 +1429,8 @@ fn play_controlled(
     let mut position_remainder = 0u64;
     let io_err = match g.format.as_str() {
         "S16LE" => pcm.io_i16().err(),
-        "S24LE" => pcm.io_i32_s24().err(),
+        // alsa 0.9 supports S24LE through io_bytes(), not a typed writer.
+        "S24LE" => None,
         // a packed 24-bit stream rejects io_i32 with -EINVAL, which would look
         // like a broken stream instead of the format it is
         f if audio::is_packed_24(f) => None,
@@ -1718,12 +1719,9 @@ fn play_controlled(
                 return Flow::Ended;
             }
         } else if g.format == "S24LE" {
-            let io = match pcm.io_i32_s24() {
-                Ok(i) => i,
-                Err(_) => return Flow::Ended,
-            };
+            let io = pcm.io_bytes();
             let out = audio::unpacked_s24_le(&samples);
-            if write_all_i32(&io, pcm, &out, g.channels as usize, shared).is_err() {
+            if write_all_bytes(&io, pcm, &out, g.channels as usize * 4, shared).is_err() {
                 return Flow::Ended;
             }
         } else {
