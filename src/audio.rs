@@ -265,7 +265,10 @@ fn fmt_for_depth(bits: u32) -> &'static [Format] {
     match bits {
         0..=16 => &[Format::S16LE],
         17..=24 => &[Format::S32LE, Format::S24LE, Format::S243LE],
-        _ => &[Format::S32LE, Format::FloatLE],
+        // FloatLE needs a floating-point writer, and conversion from 32-bit
+        // integer PCM would not be bit-exact. Do not negotiate a format the
+        // playback paths cannot actually write.
+        _ => &[Format::S32LE],
     }
 }
 
@@ -552,6 +555,13 @@ pub fn play_into(
             let io = pcm.io_bytes();
             let packed = pack_s24_3le(samples);
             frames_total += write_frames_t(&io, pcm, &packed, g.channels as usize * 3, xruns)?;
+        } else if g.format == "S24LE" {
+            // S24_LE stores 24 significant bits in the LOW three bytes of an
+            // i32 container. Symphonia samples are left-justified, so sending
+            // them unchanged would shift/sign-wrap the waveform.
+            let io = pcm.io_i32_s24().map_err(|e| format!("io_i32_s24: {e}"))?;
+            let out = unpacked_s24_le(samples);
+            frames_total += write_frames_t(&io, pcm, &out, g.channels as usize, xruns)?;
         } else {
             let io = pcm.io_i32().map_err(|e| format!("io_i32: {e}"))?;
             frames_total += write_frames_t(&io, pcm, samples, g.channels as usize, xruns)?;
@@ -565,6 +575,13 @@ pub fn play_into(
     }
     let _ = pcm.drain();
     Ok(frames_total)
+}
+
+/// Convert left-justified i32 decoded PCM to ALSA's signed S24_LE samples.
+/// S24_LE is four bytes per sample, with its *lower* 24 bits significant;
+/// S24_3LE is a separate three-byte wire format.
+pub fn unpacked_s24_le(samples: &[i32]) -> Vec<i32> {
+    samples.iter().map(|&sample| sample >> 8).collect()
 }
 
 /// Is this granted format the packed 24-bit one?
@@ -868,6 +885,22 @@ mod auto_tests {
 #[cfg(test)]
 mod format_choice_tests {
     use super::*;
+
+    #[test]
+    fn s24_le_right_justifies_signed_samples_in_four_byte_containers() {
+        let src = [0x1234_5600_i32, -0x1234_5600_i32, i32::MIN, i32::MAX, 0];
+        let actual = unpacked_s24_le(&src);
+        assert_eq!(actual, [0x0012_3456, -0x0012_3456, -0x0080_0000, 0x007f_ffff, 0]);
+        assert_eq!(actual[0].to_le_bytes(), [0x56, 0x34, 0x12, 0x00]);
+        assert_eq!(actual[1].to_le_bytes(), [0xaa, 0xcb, 0xed, 0xff]);
+    }
+
+    #[test]
+    fn 32_bit_integer_sources_never_negotiate_an_unimplemented_float_writer() {
+        assert_eq!(fmt_for_depth(32), &[Format::S32LE]);
+        assert!(!fmt_for_depth(32).contains(&Format::FloatLE));
+    }
+
 
     /// The packed format is what a DAC offering only `S16_LE, S24_3LE` needs
     /// (measured 2026-11-12, `hw:0,2`). Three bytes per sample, least significant
