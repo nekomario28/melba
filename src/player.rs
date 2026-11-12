@@ -1378,9 +1378,15 @@ fn elapsed_ms(frames: u64, rate: u64, remainder: &mut u64) -> u64 {
 fn park_for_reopen(shared: &Shared, pcm: &alsa::pcm::PCM, rate: u64, paused: bool) {
     let queued = pcm.delay().unwrap_or(0).max(0) as u64;
     let queued_ms = (u128::from(queued) * 1000 / u128::from(rate.max(1))) as u64;
-    let position = shared.pos_ms.load(Ordering::SeqCst).saturating_sub(queued_ms);
+    let position = shared
+        .pos_ms
+        .load(Ordering::SeqCst)
+        .saturating_sub(queued_ms);
     let index = *shared.idx.lock().unwrap_or_else(|e| e.into_inner());
-    *shared.pending_seek.lock().unwrap_or_else(|e| e.into_inner()) = Some((index, position));
+    *shared
+        .pending_seek
+        .lock()
+        .unwrap_or_else(|e| e.into_inner()) = Some((index, position));
     shared.pos_ms.store(position, Ordering::SeqCst);
     shared.start_paused.store(paused, Ordering::SeqCst);
     let _ = pcm.drop();
@@ -1444,7 +1450,15 @@ fn play_controlled(
         .take()
     {
         if i == *shared.idx.lock().unwrap_or_else(|e| e.into_inner()) {
-            seek_to(&mut *probed.format, &mut *dec, track_id, sr, ms, shared, &mut position_remainder);
+            seek_to(
+                &mut *probed.format,
+                &mut *dec,
+                track_id,
+                sr,
+                ms,
+                shared,
+                &mut position_remainder,
+            );
         }
     }
 
@@ -1493,7 +1507,15 @@ fn play_controlled(
                             // Apple Music semantics: >3s in rewinds to the
                             // track start, a press near the start goes back
                             if shared.pos_ms.load(Ordering::SeqCst) > 3000 {
-                                seek_to(&mut *probed.format, &mut *dec, track_id, sr, 0, shared, &mut position_remainder);
+                                seek_to(
+                                    &mut *probed.format,
+                                    &mut *dec,
+                                    track_id,
+                                    sr,
+                                    0,
+                                    shared,
+                                    &mut position_remainder,
+                                );
                                 continue;
                             }
                             let _ = pcm.drop();
@@ -1511,7 +1533,15 @@ fn play_controlled(
                             return Flow::Ended;
                         }
                         Ok(Cmd::Seek(ms)) => {
-                            seek_to(&mut *probed.format, &mut *dec, track_id, sr, ms, shared, &mut position_remainder);
+                            seek_to(
+                                &mut *probed.format,
+                                &mut *dec,
+                                track_id,
+                                sr,
+                                ms,
+                                shared,
+                                &mut position_remainder,
+                            );
                         }
                         Ok(Cmd::Enqueue(ps)) => {
                             shared
@@ -1565,7 +1595,15 @@ fn play_controlled(
             Ok(Cmd::Prev) => {
                 // same >3s rule while playing: rewind to 0 and keep playing
                 if shared.pos_ms.load(Ordering::SeqCst) > 3000 {
-                    seek_to(&mut *probed.format, &mut *dec, track_id, sr, 0, shared, &mut position_remainder);
+                    seek_to(
+                        &mut *probed.format,
+                        &mut *dec,
+                        track_id,
+                        sr,
+                        0,
+                        shared,
+                        &mut position_remainder,
+                    );
                     continue;
                 }
                 let _ = pcm.drop();
@@ -1582,7 +1620,15 @@ fn play_controlled(
             }
             Ok(Cmd::Quit) | Err(TryRecvError::Disconnected) => return Flow::Quit,
             Ok(Cmd::Seek(ms)) => {
-                seek_to(&mut *probed.format, &mut *dec, track_id, sr, ms, shared, &mut position_remainder);
+                seek_to(
+                    &mut *probed.format,
+                    &mut *dec,
+                    track_id,
+                    sr,
+                    ms,
+                    shared,
+                    &mut position_remainder,
+                );
             }
             Ok(Cmd::Shuffle(on)) => shared.shuffle.store(on, Ordering::SeqCst),
             Ok(Cmd::SetLoop(m)) => shared.repeat.store(m, Ordering::SeqCst),
