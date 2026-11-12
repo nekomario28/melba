@@ -299,15 +299,17 @@ fn fmt_msbits(f: Format) -> u32 {
 /// the driver-reported `msbits : N` for this exact PCM handle. Do not infer
 /// the hardware's usable precision from its S32_LE container width.
 fn parse_hw_msbits(dump: &str) -> Option<u32> {
-    dump.lines()
-        .filter_map(|line| line.trim().strip_prefix("msbits :"))
-        .find_map(|value| {
-            value
-                .trim()
-                .parse::<u32>()
-                .ok()
-                .filter(|&n| (1..=32).contains(&n))
-        })
+    dump.lines().find_map(|line| {
+        let (name, value) = line.split_once(':')?;
+        if name.trim() != "msbits" {
+            return None;
+        }
+        value
+            .trim()
+            .parse::<u32>()
+            .ok()
+            .filter(|&n| (1..=32).contains(&n))
+    })
 }
 
 fn negotiated_msbits(pcm: &PCM, fmt: Format) -> u32 {
@@ -943,6 +945,10 @@ mod format_choice_tests {
         assert_eq!(parse_hw_msbits(" format : S32_LE\n"), None);
         assert_eq!(parse_hw_msbits(" msbits : 0\n"), None);
         assert_eq!(parse_hw_msbits(" msbits : potato\n"), None);
+        // Older/other alsa-lib releases align the field name to a column.
+        assert_eq!(parse_hw_msbits("  format       : S32_LE\n  msbits       : 24\n"), Some(24));
+        assert_eq!(parse_hw_msbits("  msbits       : 16\n"), Some(16));
+        assert_eq!(parse_hw_msbits("some_msbits : 32\n"), None);
     }
 
     #[test]
