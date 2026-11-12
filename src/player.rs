@@ -1353,6 +1353,30 @@ fn advance(shared: &Arc<Shared>) {
 
 /// Packet-granular control: between packets we can Pause (ALSA pause), Stop,
 /// or Quit. Returns Quit if Cmd::Quit seen.
+/// Return the elapsed whole milliseconds for a decoded frame count while
+/// carrying fractional milliseconds across packets. Rounding each packet
+/// independently makes displayed/MPRIS position drift behind playback.
+fn elapsed_ms(frames: u64, rate: u64, remainder: &mut u64) -> u64 {
+    let total = u128::from(frames) * 1000 + u128::from(*remainder);
+    let rate = u128::from(rate.max(1));
+    *remainder = (total % rate) as u64;
+    (total / rate).min(u128::from(u64::MAX)) as u64
+}
+
+/// Preserve the selected track and its unplayed ALSA buffer on a fallback
+/// reopen. A device without native Pause is stopped, and the next Play opens
+/// a new PCM and seeks back to approximately the audible position.
+fn park_for_reopen(shared: &Shared, pcm: &alsa::pcm::PCM, rate: u64, paused: bool) {
+    let queued = pcm.delay().unwrap_or(0).max(0) as u64;
+    let queued_ms = (u128::from(queued) * 1000 / u128::from(rate.max(1))) as u64;
+    let position = shared.pos_ms.load(Ordering::SeqCst).saturating_sub(queued_ms);
+    let index = *shared.idx.lock().unwrap_or_else(|e| e.into_inner());
+    *shared.pending_seek.lock().unwrap_or_else(|e| e.into_inner()) = Some((index, position));
+    shared.pos_ms.store(position, Ordering::SeqCst);
+    shared.start_paused.store(paused, Ordering::SeqCst);
+    let _ = pcm.drop();
+}
+
 /// symphonia coarse seek to `ms` on the live decoder. Shared by the running
 /// Seek handler, Apple-style ⏮ (restart when >3s in), and deferred seeks
 /// queued while Stopped.
@@ -1363,13 +1387,15 @@ fn seek_to(
     sr: u64,
     ms: u64,
     shared: &Shared,
+    position_remainder: &mut u64,
 ) {
     use symphonia::core::formats::{SeekMode, SeekTo};
-    let ts = ms * sr / 1000;
+    let ts = (u128::from(ms) * u128::from(sr) / 1000).min(u128::from(u64::MAX)) as u64;
     if f.seek(SeekMode::Coarse, SeekTo::TimeStamp { ts, track_id })
         .is_ok()
     {
         dec.reset();
+        *position_remainder = 0;
         shared.pos_ms.store(ms, Ordering::SeqCst);
     }
 }
@@ -1385,8 +1411,10 @@ fn play_controlled(
     use std::sync::mpsc::TryRecvError;
     let track_id = probed.track_id;
     let mut dec = probed.decoder;
+    let mut position_remainder = 0u64;
     let io_err = match g.format.as_str() {
         "S16LE" => pcm.io_i16().err(),
+        "S24LE" => pcm.io_i32_s24().err(),
         // a packed 24-bit stream rejects io_i32 with -EINVAL, which would look
         // like a broken stream instead of the format it is
         f if audio::is_packed_24(f) => None,
@@ -1407,7 +1435,7 @@ fn play_controlled(
         .take()
     {
         if i == *shared.idx.lock().unwrap_or_else(|e| e.into_inner()) {
-            seek_to(&mut *probed.format, &mut *dec, track_id, sr, ms, shared);
+            seek_to(&mut *probed.format, &mut *dec, track_id, sr, ms, shared, &mut position_remainder);
         }
     }
 
@@ -1421,12 +1449,25 @@ fn play_controlled(
         };
         match command {
             Ok(Cmd::Pause) => {
-                let _ = pcm.pause(true);
+                if pcm.pause(true).is_err() {
+                    // ALSA does not guarantee native pause support. Never say
+                    // Paused while the hardware is still playing: drop it and
+                    // let the outer paused-selection loop reopen on Resume.
+                    park_for_reopen(shared, pcm, sr, true);
+                    shared.set_state(PlayState::Paused);
+                    return Flow::Reload;
+                }
                 shared.set_state(PlayState::Paused);
                 loop {
                     match rx.recv() {
                         Ok(Cmd::Resume) | Ok(Cmd::Play) => {
-                            let _ = pcm.pause(false);
+                            if pcm.pause(false).is_err() {
+                                // The resume itself may fail after a supported
+                                // pause (e.g. unplug/reconfigure). Reopen rather
+                                // than reporting Playing on a paused PCM.
+                                park_for_reopen(shared, pcm, sr, false);
+                                return Flow::Reload;
+                            }
                             shared.set_state(PlayState::Playing);
                             break;
                         }
@@ -1443,7 +1484,7 @@ fn play_controlled(
                             // Apple Music semantics: >3s in rewinds to the
                             // track start, a press near the start goes back
                             if shared.pos_ms.load(Ordering::SeqCst) > 3000 {
-                                seek_to(&mut *probed.format, &mut *dec, track_id, sr, 0, shared);
+                                seek_to(&mut *probed.format, &mut *dec, track_id, sr, 0, shared, &mut position_remainder);
                                 continue;
                             }
                             let _ = pcm.drop();
@@ -1461,7 +1502,7 @@ fn play_controlled(
                             return Flow::Ended;
                         }
                         Ok(Cmd::Seek(ms)) => {
-                            seek_to(&mut *probed.format, &mut *dec, track_id, sr, ms, shared);
+                            seek_to(&mut *probed.format, &mut *dec, track_id, sr, ms, shared, &mut position_remainder);
                         }
                         Ok(Cmd::Enqueue(ps)) => {
                             shared
@@ -1515,7 +1556,7 @@ fn play_controlled(
             Ok(Cmd::Prev) => {
                 // same >3s rule while playing: rewind to 0 and keep playing
                 if shared.pos_ms.load(Ordering::SeqCst) > 3000 {
-                    seek_to(&mut *probed.format, &mut *dec, track_id, sr, 0, shared);
+                    seek_to(&mut *probed.format, &mut *dec, track_id, sr, 0, shared, &mut position_remainder);
                     continue;
                 }
                 let _ = pcm.drop();
@@ -1532,7 +1573,7 @@ fn play_controlled(
             }
             Ok(Cmd::Quit) | Err(TryRecvError::Disconnected) => return Flow::Quit,
             Ok(Cmd::Seek(ms)) => {
-                seek_to(&mut *probed.format, &mut *dec, track_id, sr, ms, shared);
+                seek_to(&mut *probed.format, &mut *dec, track_id, sr, ms, shared, &mut position_remainder);
             }
             Ok(Cmd::Shuffle(on)) => shared.shuffle.store(on, Ordering::SeqCst),
             Ok(Cmd::SetLoop(m)) => shared.repeat.store(m, Ordering::SeqCst),
@@ -1621,6 +1662,15 @@ fn play_controlled(
             if write_all_bytes(&io, pcm, &packed, g.channels as usize * 3, shared).is_err() {
                 return Flow::Ended;
             }
+        } else if g.format == "S24LE" {
+            let io = match pcm.io_i32_s24() {
+                Ok(i) => i,
+                Err(_) => return Flow::Ended,
+            };
+            let out = audio::unpacked_s24_le(&samples);
+            if write_all_i32(&io, pcm, &out, g.channels as usize, shared).is_err() {
+                return Flow::Ended;
+            }
         } else {
             let io = match pcm.io_i32() {
                 Ok(i) => i,
@@ -1630,8 +1680,9 @@ fn play_controlled(
                 return Flow::Ended;
             }
         }
+        let frames = samples.len() as u64 / g.channels.max(1) as u64;
         shared.pos_ms.fetch_add(
-            samples.len() as u64 / g.channels.max(1) as u64 * 1000 / sr,
+            elapsed_ms(frames, sr, &mut position_remainder),
             Ordering::SeqCst,
         );
     }
@@ -2690,6 +2741,23 @@ mod tests {
             .map(|value| value.as_str().unwrap().to_owned())
             .collect();
         assert_eq!(urls, ["fixture:art"]);
+    }
+
+    #[test]
+    fn fractional_packet_durations_do_not_accumulate_position_drift() {
+        let mut remainder = 0;
+        let mut ms = 0;
+        // 441 packets * 1024 frames at 44.1 kHz are precisely 10_240 ms.
+        for _ in 0..441 {
+            ms += super::elapsed_ms(1024, 44_100, &mut remainder);
+        }
+        assert_eq!(ms, 10_240);
+        assert_eq!(remainder, 0);
+        // A seek resets the remainder: subsequent packets start from the
+        // sought timestamp without inheriting fractions from the old track.
+        ms += super::elapsed_ms(1, 44_100, &mut remainder);
+        assert_eq!(ms, 10_240);
+        assert_eq!(remainder, 1000);
     }
 
     #[test]
