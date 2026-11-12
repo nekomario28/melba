@@ -301,7 +301,13 @@ fn fmt_msbits(f: Format) -> u32 {
 fn parse_hw_msbits(dump: &str) -> Option<u32> {
     dump.lines()
         .filter_map(|line| line.trim().strip_prefix("msbits :"))
-        .find_map(|value| value.trim().parse::<u32>().ok().filter(|&n| (1..=32).contains(&n)))
+        .find_map(|value| {
+            value
+                .trim()
+                .parse::<u32>()
+                .ok()
+                .filter(|&n| (1..=32).contains(&n))
+        })
 }
 
 fn negotiated_msbits(pcm: &PCM, fmt: Format) -> u32 {
