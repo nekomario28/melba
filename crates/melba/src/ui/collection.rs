@@ -234,8 +234,8 @@ pub fn actions_row(
             let is_filtered = filter.as_ref().is_some_and(|f| !f.trim().is_empty());
             // A radio is mixed afresh each time the service is asked, so it
             // always plays the songs on screen.
-            let play_view = actions.view.is_some()
-                && (!app.playing_context_shuffle() || is_filtered);
+            let play_view =
+                actions.view.is_some() && (!app.playing_context_shuffle() || is_filtered);
             let can_start = actions.view.as_ref().is_none_or(|uris| !uris.is_empty());
             let icon = if now_playing_here {
                 Icon::PauseFilled
@@ -3655,7 +3655,7 @@ mod tests {
                                     owned_playlist: None,
                                     reload: Some((Page::Playlist("test".into()), loading)),
                                     name: "Test",
-                                                            },
+                                },
                                 Some(&mut filter),
                             )
                         },
@@ -3778,7 +3778,7 @@ mod tests {
                         owned_playlist: None,
                         reload: None,
                         name: "Test",
-                                    },
+                    },
                     None,
                 );
             });
@@ -3840,7 +3840,7 @@ mod tests {
                             owned_playlist: None,
                             reload: None,
                             name: "Test",
-                                            },
+                        },
                         None,
                     );
                 },
@@ -3894,7 +3894,7 @@ mod tests {
                     owned_playlist: None,
                     reload: None,
                     name: "Test",
-                            },
+                },
                 None,
             );
         });
@@ -3937,7 +3937,7 @@ mod tests {
                     owned_playlist: None,
                     reload: None,
                     name: "Test",
-                            },
+                },
                 None,
             );
         });
@@ -3984,7 +3984,7 @@ mod tests {
                     owned_playlist: None,
                     reload: None,
                     name: "Test",
-                            },
+                },
                 None,
             );
         });
@@ -4027,7 +4027,7 @@ mod tests {
                     owned_playlist: None,
                     reload: None,
                     name: "Test",
-                            },
+                },
                 None,
             );
         });
@@ -4075,7 +4075,7 @@ mod tests {
                     owned_playlist: None,
                     reload: None,
                     name: "Test",
-                            },
+                },
                 Some(&mut filter),
             );
         });
@@ -4118,7 +4118,7 @@ mod tests {
                     owned_playlist: None,
                     reload: None,
                     name: "Test",
-                            },
+                },
                 Some(&mut filter),
             );
         });

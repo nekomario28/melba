@@ -2066,3 +2066,27 @@ msgstr ""
 #: src/ui/settings.rs
 msgid "Set up ALAC"
 msgstr ""
+
+#: src/ui/settings.rs
+msgid "Stream quality"
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "Auto asks for the best rendition the release offers (hi-res when it has one), and AAC-256 when no ALAC service is configured."
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "Auto"
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "AAC 256"
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "Lossless"
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "Hi-res lossless"
+msgstr ""

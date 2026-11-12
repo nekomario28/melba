@@ -10,8 +10,8 @@
 //!   developer token   ~/.cache/melba/dev-token   (fetched like musickit.rs)
 //!   music-user-token  ~/.config/melba/music-user-token  (`melbad auth open`)
 
-use std::sync::Mutex;
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 

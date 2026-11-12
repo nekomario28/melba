@@ -2045,3 +2045,27 @@ msgstr "ALAC の導入ガイド"
 #: src/ui/settings.rs
 msgid "Set up ALAC"
 msgstr "ALAC をセットアップ"
+
+#: src/ui/settings.rs
+msgid "Stream quality"
+msgstr "ストリーム品質"
+
+#: src/ui/settings.rs
+msgid "Auto asks for the best rendition the release offers (hi-res when it has one), and AAC-256 when no ALAC service is configured."
+msgstr "自動では、そのリリースが提供する最良の音源（ハイレゾがあればそれ）を要求します。ALAC の復号サービスが未設定なら AAC-256 です。"
+
+#: src/ui/settings.rs
+msgid "Auto"
+msgstr "自動"
+
+#: src/ui/settings.rs
+msgid "AAC 256"
+msgstr "AAC 256"
+
+#: src/ui/settings.rs
+msgid "Lossless"
+msgstr "ロスレス"
+
+#: src/ui/settings.rs
+msgid "Hi-res lossless"
+msgstr "ハイレゾロスレス"

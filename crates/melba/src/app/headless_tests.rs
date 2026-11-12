@@ -713,7 +713,8 @@ fn a_queue_row_named_with_an_id_still_asks_for_its_song() {
     let _ = ui.tree(Vec::new());
     let sent = ui.app.backend.take_sent_api();
     assert!(
-        sent.iter().any(|r| matches!(r, ApiRequest::Track { id: got } if got == id)),
+        sent.iter()
+            .any(|r| matches!(r, ApiRequest::Track { id: got } if got == id)),
         "a row labelled with its id must still ask for the song: {sent:?}"
     );
 }
@@ -761,7 +762,8 @@ fn a_cached_track_without_a_cover_does_not_stop_the_request() {
     let _ = ui.tree(Vec::new());
     let sent = ui.app.backend.take_sent_api();
     assert!(
-        sent.iter().any(|r| matches!(r, ApiRequest::Track { id: got } if got == id)),
+        sent.iter()
+            .any(|r| matches!(r, ApiRequest::Track { id: got } if got == id)),
         "an undescribed cache entry must not answer for the song: {sent:?}"
     );
 
@@ -832,7 +834,8 @@ fn a_named_queue_row_without_a_cover_still_asks_for_its_song() {
     let _ = ui.tree(Vec::new());
     let sent = ui.app.backend.take_sent_api();
     assert!(
-        sent.iter().any(|r| matches!(r, ApiRequest::Track { id: got } if got == id)),
+        sent.iter()
+            .any(|r| matches!(r, ApiRequest::Track { id: got } if got == id)),
         "a row with no cover must still ask for the song: {sent:?}"
     );
 }
@@ -888,7 +891,9 @@ fn a_failed_lookup_is_not_retried_every_frame() {
     assert_eq!(again, 0, "a failed id waits before it is asked for again");
 }
 
-fn page_of(items: Vec<crate::api::models::Playlist>) -> crate::api::models::Page<crate::api::models::Playlist> {
+fn page_of(
+    items: Vec<crate::api::models::Playlist>,
+) -> crate::api::models::Page<crate::api::models::Playlist> {
     crate::api::models::Page {
         items,
         total: 1,
@@ -966,14 +971,22 @@ fn a_playlist_that_is_still_loading_does_not_cover_its_header() {
             _ => None,
         })
         .collect();
-    assert_eq!(asked, vec!["p.header".to_string()], "asked once for the header");
+    assert_eq!(
+        asked,
+        vec!["p.header".to_string()],
+        "asked once for the header"
+    );
 
     ui.app.handle_api(ApiResponse::PlaylistMosaic {
         id: playlist.id.clone(),
         result: Ok(vec!["https://example.invalid/1.jpg".into()]),
     });
     let art = crate::ui::collection::hero_group_art_for_test(&mut ui.app, &playlist, false);
-    assert_eq!(art.map(|covers| covers.len()), Some(1), "the header gets it");
+    assert_eq!(
+        art.map(|covers| covers.len()),
+        Some(1),
+        "the header gets it"
+    );
     assert_eq!(
         crate::ui::collection::hero_group_art_for_test(&mut ui.app, &playlist, true),
         None,
@@ -1071,7 +1084,11 @@ fn a_playlist_without_art_asks_for_its_group_icon_once() {
             _ => None,
         })
         .collect();
-    assert_eq!(asked, vec!["p.mine".to_string()], "only the undrawn playlist");
+    assert_eq!(
+        asked,
+        vec!["p.mine".to_string()],
+        "only the undrawn playlist"
+    );
 
     // The answer lands where the tile looks for it.
     ui.app.handle_api(ApiResponse::PlaylistMosaic {
@@ -1159,7 +1176,8 @@ fn an_unnamed_queue_row_asks_for_its_song() {
     let _ = ui.tree(Vec::new());
     let sent = ui.app.backend.take_sent_api();
     assert!(
-        sent.iter().any(|r| matches!(r, ApiRequest::Track { id: got } if got == id)),
+        sent.iter()
+            .any(|r| matches!(r, ApiRequest::Track { id: got } if got == id)),
         "unnamed queue row must request its song: {sent:?}"
     );
 }
