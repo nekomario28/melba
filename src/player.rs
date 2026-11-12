@@ -719,8 +719,14 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                     backwards = false;
                 }
                 Ok(Cmd::Stop) => {
-                    shared.set_state(PlayState::Stopped);
+                    // A fallback Pause parked a decoder cursor. Stop discards
+                    // it as well as the displayed position before the next Play.
+                    *shared
+                        .pending_seek
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner()) = None;
                     shared.pos_ms.store(0, Ordering::SeqCst);
+                    shared.set_state(PlayState::Stopped);
                     persist_queue(&shared);
                 }
                 Ok(Cmd::Next) => {
@@ -758,7 +764,14 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                     clear_queue(&shared);
                     persist_queue(&shared);
                 }
-                Ok(Cmd::Seek(ms)) => shared.pos_ms.store(ms, Ordering::SeqCst),
+                Ok(Cmd::Seek(ms)) => {
+                    let index = *shared.idx.lock().unwrap_or_else(|e| e.into_inner());
+                    *shared
+                        .pending_seek
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner()) = Some((index, ms));
+                    shared.pos_ms.store(ms, Ordering::SeqCst);
+                }
                 Ok(Cmd::Shuffle(on)) => shared.shuffle.store(on, Ordering::SeqCst),
                 Ok(Cmd::SetLoop(mode)) => shared.repeat.store(mode, Ordering::SeqCst),
                 Ok(Cmd::LoadTrack(i)) => {

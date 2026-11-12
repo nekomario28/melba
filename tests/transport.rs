@@ -609,3 +609,133 @@ fn paused_startup_takes_no_output_device() {
     let playing = wait(&conn, |s| s.status == "Playing" && s.stream_opens > 0);
     assert_eq!(playing.index, 0, "Play resumes the selected entry");
 }
+
+/// Exercise the real reopen loop with deterministic pause/resume failures.
+/// The shim throttles ALSA null, so position assertions cannot race through EOF.
+fn pause_case(name: &str, failure: &str, seek_while_parked: bool) {
+    if !private_case(name) {
+        return;
+    }
+    let root = PathBuf::from(std::env::var_os("XDG_STATE_HOME").unwrap());
+    let shim = root.join("pcm_pause.so");
+    assert!(Command::new("cc")
+        .args(["-shared", "-fPIC", "-Wall", "-Werror"])
+        .arg(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/pcm_pause.c"))
+        .args(["-ldl", "-o"])
+        .arg(&shim)
+        .status()
+        .unwrap()
+        .success());
+    // 45 seconds of stereo 16-bit silence at 48 kHz.
+    let bytes = 45u32 * 48000 * 4;
+    let mut wav = Vec::new();
+    wav.extend_from_slice(b"RIFF");
+    wav.extend_from_slice(&(36 + bytes).to_le_bytes());
+    wav.extend_from_slice(b"WAVEfmt \x10\0\0\0\x01\0\x02\0");
+    wav.extend_from_slice(&48000u32.to_le_bytes());
+    wav.extend_from_slice(&192000u32.to_le_bytes());
+    wav.extend_from_slice(b"\x04\0\x10\0data");
+    wav.extend_from_slice(&bytes.to_le_bytes());
+    wav.resize(44 + bytes as usize, 0);
+    let file = root.join("pause.wav");
+    std::fs::write(&file, wav).unwrap();
+    let trace = root.join("pause.trace");
+    let _daemon = Daemon(
+        Command::new(env!("CARGO_BIN_EXE_melbad"))
+            .args(["serve", "--device", "null", "--paused"])
+            .arg(file)
+            .env("LD_PRELOAD", shim)
+            .env("MELBA_TEST_PCM_THROTTLE", "1")
+            .env("MELBA_TEST_PAUSE_FAILURE", failure)
+            .env("MELBA_TEST_PAUSE_TRACE", &trace)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .spawn()
+            .unwrap(),
+    );
+    let conn = Connection::new_session().unwrap();
+    let proxy = conn.with_proxy(BUS, "/org/mpris/MediaPlayer2", Duration::from_secs(2));
+    wait(&conn, |s| s.status == "Paused" && s.rate == 48000);
+    proxy.method_call::<(), _, _, _>(IFACE, "Play", ()).unwrap();
+    wait(&conn, |s| s.status == "Playing" && s.position >= 500);
+    for cycle in 0..2 {
+        proxy
+            .method_call::<(), _, _, _>(IFACE, "Pause", ())
+            .unwrap();
+        let paused = wait(&conn, |s| s.status == "Paused");
+        std::thread::sleep(Duration::from_millis(200));
+        assert_eq!(snapshot(&conn).unwrap().position, paused.position);
+        let target = if seek_while_parked {
+            15000 + cycle * 5000
+        } else {
+            paused.position
+        };
+        if seek_while_parked {
+            proxy
+                .method_call::<(), _, _, _>(
+                    IFACE,
+                    "SetPosition",
+                    (
+                        dbus::Path::new(paused.track_id.clone()).unwrap(),
+                        target * 1000,
+                    ),
+                )
+                .unwrap();
+            wait(&conn, |s| s.position == target);
+        }
+        proxy.method_call::<(), _, _, _>(IFACE, "Play", ()).unwrap();
+        let resumed = wait(&conn, |s| {
+            s.status == "Playing" && s.stream_opens > paused.stream_opens
+        });
+        assert!(
+            (target..target + 500).contains(&resumed.position),
+            "resume lost cursor: target={target}, got {resumed:?}"
+        );
+        wait(&conn, |s| s.position >= target + 500);
+    }
+    if seek_while_parked {
+        proxy
+            .method_call::<(), _, _, _>(IFACE, "Pause", ())
+            .unwrap();
+        wait(&conn, |s| s.status == "Paused");
+        proxy.method_call::<(), _, _, _>(IFACE, "Stop", ()).unwrap();
+        let stopped = wait(&conn, |s| s.status == "Stopped" && s.position == 0);
+        proxy.method_call::<(), _, _, _>(IFACE, "Play", ()).unwrap();
+        let restarted = wait(&conn, |s| {
+            s.status == "Playing" && s.stream_opens > stopped.stream_opens
+        });
+        assert!(
+            restarted.position < 500,
+            "Stop must discard the parked cursor: {restarted:?}"
+        );
+    }
+    let trace = std::fs::read_to_string(trace).unwrap();
+    let expected = if failure == "pause" {
+        "reject 1"
+    } else {
+        "reject 0"
+    };
+    assert_eq!(
+        trace.lines().filter(|line| *line == expected).count(),
+        if seek_while_parked { 3 } else { 2 },
+        "fault path must execute: {trace}"
+    );
+}
+
+#[test]
+fn unsupported_pause_reopens_at_the_parked_seek() {
+    pause_case(
+        "unsupported_pause_reopens_at_the_parked_seek",
+        "pause",
+        true,
+    );
+}
+
+#[test]
+fn failed_native_resume_reopens_and_progresses() {
+    pause_case(
+        "failed_native_resume_reopens_and_progresses",
+        "resume",
+        false,
+    );
+}
