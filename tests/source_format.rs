@@ -58,7 +58,9 @@ fn alac_source_format_ignores_generic_mp4_placeholders() {
     let (pcm, granted) = audio::open_exact("null", &pf.src).expect("open null output");
     assert_eq!((granted.rate, granted.channels), (96_000, 2));
     assert_eq!(granted.format, "S32LE");
-    assert!(granted.msbits >= 24);
+    // The virtual ALSA null sink is not physical output; it may report no
+    // usable hardware msbits. That must not become a BITPERFECT claim.
+    assert_eq!(audio::verdict_str(&pf.src, &granted), "SHARED");
     assert!(audio::stream_matches(&granted, &pf.src));
     assert!(
         audio::play_into(&pcm, &granted, pf, Some(4096), &xruns).expect("decode into null") > 0
