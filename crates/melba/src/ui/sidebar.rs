@@ -321,7 +321,6 @@ impl Entry {
     fn page_is_playlist(&self) -> bool {
         matches!(self.page, Page::Playlist(_))
     }
-
 }
 
 pub(crate) fn selected_sort(app: &App, shelf: Filter) -> LibrarySort {
@@ -1238,13 +1237,7 @@ fn contents(app: &mut App, ui: &mut egui::Ui, grid_art: Option<Rect>) {
                         } else if let Some(covers) = entry.mosaic.as_deref() {
                             // The group icon the service composes: the
                             // playlist's first tracks, laid together.
-                            mosaic_cover(
-                                ui,
-                                cover_rect,
-                                6.0,
-                                covers,
-                                Some(app.backend.art()),
-                            );
+                            mosaic_cover(ui, cover_rect, 6.0, covers, Some(app.backend.art()));
                         } else if entry.grid_image.is_none()
                             && entry.image.is_none()
                             && entry.page_is_playlist()
@@ -1862,8 +1855,12 @@ fn mosaic_cells(rect: Rect, count: usize) -> Vec<Rect> {
     let half_w = rect.width() / 2.0;
     let half_h = rect.height() / 2.0;
     let left = Rect::from_min_size(rect.min, vec2(half_w, rect.height()));
-    let right = Rect::from_min_size(pos2(rect.min.x + half_w, rect.min.y), vec2(half_w, rect.height()));
-    let top_right = Rect::from_min_size(pos2(rect.min.x + half_w, rect.min.y), vec2(half_w, half_h));
+    let right = Rect::from_min_size(
+        pos2(rect.min.x + half_w, rect.min.y),
+        vec2(half_w, rect.height()),
+    );
+    let top_right =
+        Rect::from_min_size(pos2(rect.min.x + half_w, rect.min.y), vec2(half_w, half_h));
     let bottom_right = Rect::from_min_size(
         pos2(rect.min.x + half_w, rect.min.y + half_h),
         vec2(half_w, half_h),
@@ -1946,10 +1943,8 @@ fn generated_cover_colors(seed: &str) -> (egui::Color32, egui::Color32) {
     }
     let hue_a = (hash % 360) as f32;
     let hue_b = (hue_a + 32.0 + (hash >> 9) as f32 % 48.0) % 360.0;
-    let top: egui::Color32 =
-        egui::ecolor::Hsva::new(hue_a / 360.0, 0.62, 0.62, 1.0).into();
-    let bottom: egui::Color32 =
-        egui::ecolor::Hsva::new(hue_b / 360.0, 0.55, 0.32, 1.0).into();
+    let top: egui::Color32 = egui::ecolor::Hsva::new(hue_a / 360.0, 0.62, 0.62, 1.0).into();
+    let bottom: egui::Color32 = egui::ecolor::Hsva::new(hue_b / 360.0, 0.55, 0.32, 1.0).into();
     (top, bottom)
 }
 
@@ -1992,7 +1987,7 @@ pub fn generated_cover(ui: &egui::Ui, rect: Rect, radius: f32, seed: &str) {
 #[cfg(test)]
 mod mosaic_cells_tests {
     use super::mosaic_cells;
-    use egui::{pos2, Rect};
+    use egui::{Rect, pos2};
 
     fn tile() -> Rect {
         Rect::from_min_size(pos2(10.0, 20.0), egui::vec2(60.0, 60.0))

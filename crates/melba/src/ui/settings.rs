@@ -395,30 +395,46 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
         quality_title.clone(),
         gettext(
             locale,
-            "Auto asks for lossless when the ALAC service is configured, and AAC-256 otherwise.",
+            "Auto asks for the best rendition the release offers (hi-res when it has one), and AAC-256 when no ALAC service is configured.",
         ),
     )];
     if section_matches(&needle, &quality_title, &quality_rows) {
         any_visible = true;
         let current = read_stream_quality_for_user();
         section(ui, &palette, &quality_title, |ui| {
-            filtered_row(ui, &palette, &needle, &quality_title, &quality_rows[0], |ui| {
-                for (quality, label) in [
-                    (StreamQuality::Auto, gettext(locale, "Auto")),
-                    (StreamQuality::Aac, gettext(locale, "AAC 256")),
-                    (StreamQuality::Lossless, gettext(locale, "Lossless")),
-                    (StreamQuality::HiRes, gettext(locale, "Hi-res lossless")),
-                ] {
-                    if theme::pill_button(ui, &palette, &label, quality == current).clicked()
-                        && quality != current
-                        && let Err(error) = write_stream_quality_for_user(quality)
-                    {
-                        ui.data_mut(|data| {
-                            data.insert_temp(egui::Id::new("quality-error"), error)
-                        });
+            let choices = [
+                (StreamQuality::Auto, gettext(locale, "Auto")),
+                (StreamQuality::Aac, gettext(locale, "AAC 256")),
+                (StreamQuality::Lossless, gettext(locale, "Lossless")),
+                (StreamQuality::HiRes, gettext(locale, "Hi-res lossless")),
+            ];
+            // The row reserves exactly what the pills need: guessing too little
+            // drew the description underneath them.
+            let pills_width = choices
+                .iter()
+                .map(|(_, label)| theme::pill_button_width(ui, label))
+                .sum::<f32>()
+                + 6.0 * (choices.len().saturating_sub(1) as f32);
+            filtered_row_sized(
+                ui,
+                &palette,
+                &needle,
+                &quality_title,
+                &quality_rows[0],
+                pills_width,
+                |ui| {
+                    for (quality, label) in choices {
+                        if theme::pill_button(ui, &palette, &label, quality == current).clicked()
+                            && quality != current
+                            && let Err(error) = write_stream_quality_for_user(quality)
+                        {
+                            ui.data_mut(|data| {
+                                data.insert_temp(egui::Id::new("quality-error"), error)
+                            });
+                        }
                     }
-                }
-            });
+                },
+            );
         });
     }
 
@@ -1266,10 +1282,39 @@ mod stream_quality_tests {
             serde_json::from_slice(&std::fs::read(dir.join("melba/config.json")).unwrap()).unwrap();
         assert!(saved.get("audio_quality").is_none(), "{saved}");
 
+        // The hi-res option reaches the file as the word the daemon reads, so the
+        // choice survives the trip through the GUI and back.
+        write_stream_quality_for_user(StreamQuality::HiRes).unwrap();
+        let saved: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(dir.join("melba/config.json")).unwrap()).unwrap();
+        assert_eq!(saved["audio_quality"], "hi-res");
+        assert_eq!(read_stream_quality_for_user(), StreamQuality::HiRes);
+        assert_eq!(StreamQuality::HiRes.key(), Some("hi-res"));
+
         // A value this build does not know reads as Auto rather than breaking.
         assert_eq!(
             StreamQuality::from_config(Some(&serde_json::json!({"audio_quality": "hires"}))),
             StreamQuality::Auto
+        );
+
+        // Every option the row offers has its own word; two that shared one
+        // would make a click indistinguishable from no click.
+        let words: Vec<_> = [
+            StreamQuality::Auto,
+            StreamQuality::Aac,
+            StreamQuality::Lossless,
+            StreamQuality::HiRes,
+        ]
+        .into_iter()
+        .map(StreamQuality::key)
+        .collect();
+        let mut unique = words.clone();
+        unique.sort_unstable();
+        unique.dedup();
+        assert_eq!(
+            unique.len(),
+            words.len(),
+            "options must not share a word: {words:?}"
         );
         let _ = std::fs::remove_dir_all(&dir);
     }

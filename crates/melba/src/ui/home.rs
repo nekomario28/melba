@@ -294,8 +294,10 @@ fn made_for_you(app: &mut App, ui: &mut egui::Ui) {
                 {
                     app.request_playlist_mosaic(&playlist.id.clone());
                 }
-                let group: Option<Vec<String>> = app.playlist_mosaic(&playlist.id).map(<[String]>::to_vec);
-                let url: Option<String> = pick_image(&playlist.images, card_art).map(str::to_string);
+                let group: Option<Vec<String>> =
+                    app.playlist_mosaic(&playlist.id).map(<[String]>::to_vec);
+                let url: Option<String> =
+                    pick_image(&playlist.images, card_art).map(str::to_string);
                 let cover = match (url.as_deref(), group.as_deref()) {
                     (Some(url), _) => widgets::PlaylistCover::Image(url),
                     (None, Some(covers)) => widgets::PlaylistCover::Group(covers),

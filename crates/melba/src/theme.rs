@@ -677,6 +677,16 @@ pub fn circle_spinner(
 }
 
 /// A pill-shaped text button: filled for the primary action, outlined otherwise.
+/// How wide [`pill_button`] will be for this label, without drawing it. A row of
+/// pills has to tell the settings row above it how much space to leave, or the
+/// pills land on top of the description (measured: four of them overlapped it).
+pub fn pill_button_width(ui: &egui::Ui, label: &str) -> f32 {
+    let galley =
+        ui.painter()
+            .layout_no_wrap(label.to_string(), semibold(13.0), egui::Color32::WHITE);
+    galley.size().x + 36.0
+}
+
 pub fn pill_button(ui: &mut egui::Ui, palette: &Palette, label: &str, primary: bool) -> Response {
     let font = semibold(13.0);
     let color = if primary {

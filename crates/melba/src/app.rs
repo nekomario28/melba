@@ -773,7 +773,10 @@ fn track_is_described(track: &Track) -> bool {
 /// carrying one is treated as unnamed and asked for like any other.
 fn name_is_an_id(name: &str) -> bool {
     name.strip_prefix("stream:").is_some_and(|rest| {
-        !rest.is_empty() && rest.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        !rest.is_empty()
+            && rest
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
     })
 }
 
@@ -6408,9 +6411,8 @@ impl App {
     /// Ask for one playlist's group icon, once.
     pub fn request_playlist_mosaic(&mut self, id: &str) {
         if self.playlist_mosaic_asked.insert(id.to_string()) {
-            self.backend.api(ApiRequest::PlaylistMosaic {
-                id: id.to_string(),
-            });
+            self.backend
+                .api(ApiRequest::PlaylistMosaic { id: id.to_string() });
         }
     }
 
@@ -10333,7 +10335,6 @@ fn cover_error(locale: Locale, error: &crate::api::ApiError) -> String {
             .replace("{error}", &error.to_string()),
     }
 }
-
 
 // The daemon-backed runtime is currently implemented only on Linux.
 #[cfg(all(test, target_os = "linux"))]
@@ -16786,7 +16787,6 @@ mod tests {
 
         assume(&mut app, "melba:user:me:collection");
         assert_eq!(named(&app), ("Liked Songs".into(), Some(Page::LikedSongs)));
-
     }
 
     /// A replaced window, as when the mini player's taskbar setting

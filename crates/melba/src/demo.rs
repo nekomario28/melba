@@ -8464,5 +8464,4 @@ mod tests {
             app.backend.shutdown();
         }
     }
-
 }

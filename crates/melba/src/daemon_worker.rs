@@ -145,12 +145,24 @@ mod network_transition_tests {
     #[test]
     fn only_a_change_is_published() {
         let mut last = None;
-        assert_eq!(network_transition(&mut last, None), None, "nothing tried yet");
+        assert_eq!(
+            network_transition(&mut last, None),
+            None,
+            "nothing tried yet"
+        );
         assert_eq!(network_transition(&mut last, Some(true)), Some(true));
-        assert_eq!(network_transition(&mut last, Some(true)), None, "same state");
+        assert_eq!(
+            network_transition(&mut last, Some(true)),
+            None,
+            "same state"
+        );
         assert_eq!(network_transition(&mut last, Some(false)), Some(false));
         assert_eq!(network_transition(&mut last, Some(false)), None);
-        assert_eq!(network_transition(&mut last, Some(true)), Some(true), "back");
+        assert_eq!(
+            network_transition(&mut last, Some(true)),
+            Some(true),
+            "back"
+        );
     }
 }
 
@@ -370,15 +382,14 @@ impl DaemonWorker {
                 .filter(|path| path.is_file())
                 .and_then(|path| std::fs::read(path).ok())
         };
-        let playlists =
-            read("library.json").and_then(|bytes| {
-                serde_json::from_slice::<
+        let playlists = read("library.json").and_then(|bytes| {
+            serde_json::from_slice::<
                     crate::account_cache::Cache<Vec<crate::api::models::Playlist>>,
                 >(&bytes)
                 .ok()
                 .filter(|cache| cache.account_id == account)
                 .map(|cache| cache.data)
-            });
+        });
         let home = read("home.json").and_then(|bytes| {
             serde_json::from_slice::<crate::account_cache::Cache<crate::model::HomeSnapshot>>(
                 &bytes,
