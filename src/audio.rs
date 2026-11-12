@@ -913,26 +913,34 @@ mod format_choice_tests {
     fn s24_le_right_justifies_signed_samples_in_four_byte_containers() {
         let src = [0x1234_5600_i32, -0x1234_5600_i32, i32::MIN, i32::MAX, 0];
         let actual = unpacked_s24_le(&src);
-        assert_eq!(actual, [0x0012_3456, -0x0012_3456, -0x0080_0000, 0x007f_ffff, 0]);
+        assert_eq!(
+            actual,
+            [0x0012_3456, -0x0012_3456, -0x0080_0000, 0x007f_ffff, 0]
+        );
         assert_eq!(actual[0].to_le_bytes(), [0x56, 0x34, 0x12, 0x00]);
         assert_eq!(actual[1].to_le_bytes(), [0xaa, 0xcb, 0xed, 0xff]);
     }
 
     #[test]
     fn msbits_comes_from_the_alsa_pcm_setup_and_fails_closed() {
-        assert_eq!(parse_hw_msbits(" format : S32_LE\n msbits : 24\n"), Some(24));
-        assert_eq!(parse_hw_msbits(" format : S32_LE\n msbits : 32\n"), Some(32));
+        assert_eq!(
+            parse_hw_msbits(" format : S32_LE\n msbits : 24\n"),
+            Some(24)
+        );
+        assert_eq!(
+            parse_hw_msbits(" format : S32_LE\n msbits : 32\n"),
+            Some(32)
+        );
         assert_eq!(parse_hw_msbits(" format : S32_LE\n"), None);
         assert_eq!(parse_hw_msbits(" msbits : 0\n"), None);
         assert_eq!(parse_hw_msbits(" msbits : potato\n"), None);
     }
 
     #[test]
-    fn 32_bit_integer_sources_never_negotiate_an_unimplemented_float_writer() {
+    fn thirty_two_bit_integer_sources_never_negotiate_an_unimplemented_float_writer() {
         assert_eq!(fmt_for_depth(32), &[Format::S32LE]);
         assert!(!fmt_for_depth(32).contains(&Format::FloatLE));
     }
-
 
     /// The packed format is what a DAC offering only `S16_LE, S24_3LE` needs
     /// (measured 2026-11-12, `hw:0,2`). Three bytes per sample, least significant
