@@ -205,3 +205,37 @@ fn invalid_alac_configuration_is_not_guessed_from_generic_fields() {
         );
     }
 }
+
+#[test]
+fn s24_le_alsa_writer_accepts_decoded_24_bit_audio() {
+    use alsa::pcm::{Access, Format, HwParams, PCM};
+    use alsa::{Direction, ValueOr};
+
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/96k-24bit.m4a");
+    let probed = audio::open_source(path).expect("24-bit ALAC fixture");
+    assert_eq!(probed.src.bits, 24);
+
+    // The ALSA null plugin supports the requested 4-byte S24_LE wire format.
+    // This exercises the real io_i32_s24 writer, not just sample conversion.
+    let pcm = PCM::new("null", Direction::Playback, false).expect("ALSA null PCM");
+    let hwp = HwParams::any(&pcm).expect("hardware params");
+    hwp.set_access(Access::RWInterleaved).unwrap();
+    hwp.set_format(Format::S24LE).unwrap();
+    hwp.set_rate(probed.src.rate, ValueOr::Nearest).unwrap();
+    hwp.set_channels(probed.src.channels).unwrap();
+    pcm.hw_params(&hwp).unwrap();
+    drop(hwp);
+    let granted = audio::Granted {
+        device: "null".into(),
+        rate: probed.src.rate,
+        format: "S24LE".into(),
+        msbits: 24,
+        channels: probed.src.channels,
+        buffer_frames: 0,
+        period_frames: 0,
+    };
+    let xruns = AtomicU64::new(0);
+    let written = audio::play_into(&pcm, &granted, probed, Some(4096), &xruns)
+        .expect("S24LE playback through ALSA null PCM");
+    assert!(written > 0);
+}
