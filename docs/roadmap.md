@@ -25,8 +25,9 @@ versions are dated records, not the current release.
   against a real master on 2026-11-11, which showed the master listing the
   **hi-res rendition first** and therefore that `lossless` had been asking for
   hi-res all along; the choice now reads the declared bitrates
-  (`evidence/hires-variant-selection.md`). Decoding the two renditions was not
-  measured: that needs the user's decrypt service.
+  (`evidence/hires-variant-selection.md`). Decoding was measured the same day with
+  the user's decrypt service running: the session graph ran at 192 kHz for `hi-res`,
+  48 kHz for `lossless` and 192 kHz for `auto`. A DAC-side reading is still open.
 
 - [x] **A paused daemon must not hold the output device** — `melbad serve
   --paused` opened the exclusive `hw:` PCM and paused it, so the card stayed
