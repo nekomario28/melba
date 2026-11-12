@@ -91,6 +91,34 @@ a change nobody asked for, in a player whose claim is exactness. So:
 
 `the_automatic_choice_keeps_asking_for_the_best_rendition` pins that mapping.
 
+## Decoded, through the decrypt service (same day)
+
+The wrapper was started (`melbad wrapper start`, listening, key port reachable) and
+the track played through the daemon into PipeWire, once per setting. The graph's own
+rate for the melba node, read with `pw-dump` while it played:
+
+| setting | PipeWire rate | status | verdict |
+| --- | --- | --- | --- |
+| `hi-res` | `1/192000` | Playing | PASSTHROUGH |
+| `lossless` | `1/48000` | Playing | PASSTHROUGH |
+| `auto` | `1/192000` | Playing | PASSTHROUGH |
+
+So the setting changes the stream that actually reaches the audio graph — 192 kHz for
+`hi-res`, 48 kHz for the base tier, and `auto` keeping the best, as intended. The
+decrypt service is required and was running for this: without it the same tracks fall
+back to AAC.
+
+### What this still does not establish
+
+* The rate is what the player asked the session graph for and what the graph
+  negotiated; the host's USB DAC was not opened directly for this measurement (see
+  below), so a DAC-side reading is still unmeasured.
+* Direct `hw:` playback of the *base* rendition failed here with
+  `no format carries 24bit @ 48000Hz x2ch` on `hw:0,2`, while the device advertises
+  44.1–192 kHz. That is a separate question — the app's 24-bit format negotiation
+  against this device — and is recorded rather than claimed as correct or broken.
+* One track from one album.
+
 ## What this does not establish
 
 * **No audio was decoded.** Both renditions need the user's decrypt service, which

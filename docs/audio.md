@@ -205,8 +205,10 @@ for "So What" states 1,761,161 bit/s for one ALAC rendition and 4,995,600 for
 another, and lists the **hi-res one first** — so the old "take the first ALAC"
 rule was asking for hi-res under the `lossless` setting. `lossless` now takes the
 lowest declared bitrate and `hi-res` the highest. What is verified is which
-playlist is requested; no audio was decoded, and the receipt keeps reporting the
-rate and depth that actually arrived. Two other masters were read too: one serves a
+playlist is requested. Decoded through the user's decrypt service on the same day,
+the session graph then ran at 192 kHz for `hi-res`, 48 kHz for `lossless` and
+192 kHz for `auto` (`pw-dump` on the playing node), so the setting changes the
+stream that actually plays; a DAC-side reading is still unmeasured. Two other masters were read too: one serves a
 single ALAC rendition (so the setting changes nothing), which is why the choice
 reads each master's numbers rather than assuming a fixed shape.
 
