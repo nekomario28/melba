@@ -53,7 +53,7 @@ Use it when an update regresses something: the binaries and the wrapper from the
 previous release are still on the Releases page, so going back is a reinstall,
 not a rebuild. `melba --version` reports what is installed.
 
-## Distro compatibility of the published v0.3.28 release
+## Distro compatibility of the published v0.3.29 release
 
 The signed portable archive needs **glibc 2.35** or newer; measured on the
 published x86_64 archives, `melba` requires at most `GLIBC_2.35` and `melbad`
