@@ -58,7 +58,9 @@ fn alac_source_format_ignores_generic_mp4_placeholders() {
     let (pcm, granted) = audio::open_exact("null", &pf.src).expect("open null output");
     assert_eq!((granted.rate, granted.channels), (96_000, 2));
     assert_eq!(granted.format, "S32LE");
-    assert!(granted.msbits >= 24);
+    // The virtual ALSA null sink is not physical output; it may report no
+    // usable hardware msbits. That must not become a BITPERFECT claim.
+    assert_eq!(audio::verdict_str(&pf.src, &granted), "SHARED");
     assert!(audio::stream_matches(&granted, &pf.src));
     assert!(
         audio::play_into(&pcm, &granted, pf, Some(4096), &xruns).expect("decode into null") > 0
@@ -204,4 +206,38 @@ fn invalid_alac_configuration_is_not_guessed_from_generic_fields() {
             "an invalid ALAC configuration must not be reported as a valid source"
         );
     }
+}
+
+#[test]
+fn s24_le_alsa_writer_accepts_decoded_24_bit_audio() {
+    use alsa::pcm::{Access, Format, HwParams, PCM};
+    use alsa::{Direction, ValueOr};
+
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/96k-24bit.m4a");
+    let probed = audio::open_source(path).expect("24-bit ALAC fixture");
+    assert_eq!(probed.src.bits, 24);
+
+    // The ALSA null plugin supports the requested 4-byte S24_LE wire format.
+    // This exercises the real io_i32_s24 writer, not just sample conversion.
+    let pcm = PCM::new("null", Direction::Playback, false).expect("ALSA null PCM");
+    let hwp = HwParams::any(&pcm).expect("hardware params");
+    hwp.set_access(Access::RWInterleaved).unwrap();
+    hwp.set_format(Format::S24LE).unwrap();
+    hwp.set_rate(probed.src.rate, ValueOr::Nearest).unwrap();
+    hwp.set_channels(probed.src.channels).unwrap();
+    pcm.hw_params(&hwp).unwrap();
+    drop(hwp);
+    let granted = audio::Granted {
+        device: "null".into(),
+        rate: probed.src.rate,
+        format: "S24LE".into(),
+        msbits: 24,
+        channels: probed.src.channels,
+        buffer_frames: 0,
+        period_frames: 0,
+    };
+    let xruns = AtomicU64::new(0);
+    let written = audio::play_into(&pcm, &granted, probed, Some(4096), &xruns)
+        .expect("S24LE playback through ALSA null PCM");
+    assert!(written > 0);
 }

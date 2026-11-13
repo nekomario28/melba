@@ -265,7 +265,10 @@ fn fmt_for_depth(bits: u32) -> &'static [Format] {
     match bits {
         0..=16 => &[Format::S16LE],
         17..=24 => &[Format::S32LE, Format::S24LE, Format::S243LE],
-        _ => &[Format::S32LE, Format::FloatLE],
+        // FloatLE needs a floating-point writer, and conversion from 32-bit
+        // integer PCM would not be bit-exact. Do not negotiate a format the
+        // playback paths cannot actually write.
+        _ => &[Format::S32LE],
     }
 }
 
@@ -287,9 +290,40 @@ fn fmt_msbits(f: Format) -> u32 {
         Format::S16LE => 16,
         Format::S24LE | Format::S243LE => 24,
         Format::S32LE => 32,
-        Format::FloatLE => 32,
         _ => 0,
     }
+}
+
+/// ALSA's Rust HwParams wrapper lacks snd_pcm_hw_params_get_sbits(). Read
+/// the *committed* PCM hardware setup instead: snd_pcm_dump_hw_setup prints
+/// the driver-reported `msbits : N` for this exact PCM handle. Do not infer
+/// the hardware's usable precision from its S32_LE container width.
+fn parse_hw_msbits(dump: &str) -> Option<u32> {
+    dump.lines().find_map(|line| {
+        let (name, value) = line.split_once(':')?;
+        if name.trim() != "msbits" {
+            return None;
+        }
+        value
+            .trim()
+            .parse::<u32>()
+            .ok()
+            .filter(|&n| (1..=32).contains(&n))
+    })
+}
+
+fn negotiated_msbits(pcm: &PCM, fmt: Format) -> u32 {
+    let Ok(mut output) = alsa::Output::buffer_open() else {
+        return 0;
+    };
+    if pcm.dump_hw_setup(&mut output).is_err() {
+        return 0;
+    }
+    // Any change to the dump spelling must fail closed (0), not grant
+    // BITPERFECT based solely on the selected format.
+    parse_hw_msbits(&output.to_string())
+        .unwrap_or(0)
+        .min(fmt_msbits(fmt))
 }
 
 /// Ask the session audio server to release the ALSA card behind `device`.
@@ -419,7 +453,7 @@ pub fn open_exact(device: &str, src: &SourceFormat) -> Result<(PCM, Granted), Op
             device: device.to_string(),
             rate: hwp.get_rate().unwrap_or(0),
             format: format!("{:?}", hwp.get_format().unwrap_or(Format::Unknown)),
-            msbits: fmt_msbits(fmt),
+            msbits: negotiated_msbits(&pcm, fmt),
             channels: hwp.get_channels().unwrap_or(0),
             buffer_frames: hwp.get_buffer_size().unwrap_or(0) as u32,
             period_frames: hwp.get_period_size().unwrap_or(0) as u32,
@@ -552,6 +586,13 @@ pub fn play_into(
             let io = pcm.io_bytes();
             let packed = pack_s24_3le(samples);
             frames_total += write_frames_t(&io, pcm, &packed, g.channels as usize * 3, xruns)?;
+        } else if g.format == "S24LE" {
+            // S24_LE stores 24 significant bits in the LOW three bytes of a
+            // four-byte container. alsa 0.9 has no typed S24 writer, so write
+            // the exact byte layout through its supported byte-oriented IO.
+            let io = pcm.io_bytes();
+            let out = unpacked_s24_le(samples);
+            frames_total += write_frames_t(&io, pcm, &out, g.channels as usize * 4, xruns)?;
         } else {
             let io = pcm.io_i32().map_err(|e| format!("io_i32: {e}"))?;
             frames_total += write_frames_t(&io, pcm, samples, g.channels as usize, xruns)?;
@@ -565,6 +606,17 @@ pub fn play_into(
     }
     let _ = pcm.drain();
     Ok(frames_total)
+}
+
+/// Convert left-justified i32 decoded PCM to ALSA's signed S24_LE samples.
+/// S24_LE is four bytes per sample, with its *lower* 24 bits significant;
+/// S24_3LE is a separate three-byte wire format.
+pub fn unpacked_s24_le(samples: &[i32]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(samples.len() * 4);
+    for &sample in samples {
+        out.extend_from_slice(&(sample >> 8).to_le_bytes());
+    }
+    out
 }
 
 /// Is this granted format the packed 24-bit one?
@@ -868,6 +920,45 @@ mod auto_tests {
 #[cfg(test)]
 mod format_choice_tests {
     use super::*;
+
+    #[test]
+    fn s24_le_right_justifies_signed_samples_in_four_byte_containers() {
+        let src = [0x1234_5600_i32, -0x1234_5600_i32, i32::MIN, i32::MAX, 0];
+        let actual = unpacked_s24_le(&src);
+        assert_eq!(actual.len(), src.len() * 4);
+        assert_eq!(&actual[0..4], &[0x56, 0x34, 0x12, 0x00]);
+        assert_eq!(&actual[4..8], &[0xaa, 0xcb, 0xed, 0xff]);
+        assert_eq!(&actual[8..12], &[0x00, 0x00, 0x80, 0xff]);
+        assert_eq!(&actual[12..16], &[0xff, 0xff, 0x7f, 0x00]);
+    }
+
+    #[test]
+    fn msbits_comes_from_the_alsa_pcm_setup_and_fails_closed() {
+        assert_eq!(
+            parse_hw_msbits(" format : S32_LE\n msbits : 24\n"),
+            Some(24)
+        );
+        assert_eq!(
+            parse_hw_msbits(" format : S32_LE\n msbits : 32\n"),
+            Some(32)
+        );
+        assert_eq!(parse_hw_msbits(" format : S32_LE\n"), None);
+        assert_eq!(parse_hw_msbits(" msbits : 0\n"), None);
+        assert_eq!(parse_hw_msbits(" msbits : potato\n"), None);
+        // Older/other alsa-lib releases align the field name to a column.
+        assert_eq!(
+            parse_hw_msbits("  format       : S32_LE\n  msbits       : 24\n"),
+            Some(24)
+        );
+        assert_eq!(parse_hw_msbits("  msbits       : 16\n"), Some(16));
+        assert_eq!(parse_hw_msbits("some_msbits : 32\n"), None);
+    }
+
+    #[test]
+    fn thirty_two_bit_integer_sources_never_negotiate_an_unimplemented_float_writer() {
+        assert_eq!(fmt_for_depth(32), &[Format::S32LE]);
+        assert!(!fmt_for_depth(32).contains(&Format::FloatLE));
+    }
 
     /// The packed format is what a DAC offering only `S16_LE, S24_3LE` needs
     /// (measured 2026-11-12, `hw:0,2`). Three bytes per sample, least significant
