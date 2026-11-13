@@ -412,6 +412,7 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                     if let Some((p, _)) = stream.take() {
                         finish_stream(&p);
                     }
+                    clear_current_metadata(&shared);
                     shared.set_state(PlayState::Stopped);
                     match rx.recv() {
                         Ok(Cmd::Enqueue(ps)) => {
@@ -1199,7 +1200,7 @@ fn reorder_queue(shared: &Shared, from: usize, to: usize) {
 /// leaves one entry when the daemon is stopped on a track, which looks like
 /// nothing happened if you expected an empty queue — use `clear-all` for that.
 fn clear_queue(shared: &Shared) {
-    {
+    let empty = {
         let mut idx = shared.idx.lock().unwrap_or_else(|e| e.into_inner());
         let mut q = shared.queue.lock().unwrap_or_else(|e| e.into_inner());
         let keep = (*idx < q.len()).then(|| q[*idx].clone());
@@ -1213,6 +1214,10 @@ fn clear_queue(shared: &Shared) {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .reset();
+        q.is_empty()
+    };
+    if empty {
+        clear_current_metadata(shared);
     }
     persist_queue(shared);
 }
@@ -1470,6 +1475,14 @@ fn stop_selection(shared: &Shared) {
         .lock()
         .unwrap_or_else(|e| e.into_inner()) = None;
     *shared.pending_idx.lock().unwrap_or_else(|e| e.into_inner()) = None;
+}
+
+fn clear_current_metadata(shared: &Shared) {
+    shared.dur_ms.store(0, Ordering::SeqCst);
+    shared.pos_ms.store(0, Ordering::SeqCst);
+    *shared.source.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    *shared.title.lock().unwrap_or_else(|e| e.into_inner()) = String::new();
+    *shared.art_url.lock().unwrap_or_else(|e| e.into_inner()) = String::new();
 }
 
 /// Apply controls before publishing a prepared source. Ingress has already
@@ -2325,13 +2338,15 @@ fn metadata_map(shared: &Shared) -> dbus::arg::PropMap {
     );
     put(
         "xesam:title",
-        Box::new(
+        Box::new(if orig.is_some() {
             shared
                 .title
                 .lock()
                 .unwrap_or_else(|e| e.into_inner())
-                .clone(),
-        ),
+                .clone()
+        } else {
+            String::new()
+        }),
     );
     let tm = orig.as_ref().and_then(|o| {
         shared
@@ -2363,17 +2378,23 @@ fn metadata_map(shared: &Shared) -> dbus::arg::PropMap {
     }
     put(
         "mpris:length",
-        Box::new(shared.dur_ms.load(Ordering::SeqCst) as i64 * 1000),
+        Box::new(if orig.is_some() {
+            shared.dur_ms.load(Ordering::SeqCst) as i64 * 1000
+        } else {
+            0i64
+        }),
     );
     put(
         "mpris:artUrl",
-        Box::new(
+        Box::new(if orig.is_some() {
             shared
                 .art_url
                 .lock()
                 .unwrap_or_else(|e| e.into_inner())
-                .clone(),
-        ),
+                .clone()
+        } else {
+            String::new()
+        }),
     );
     put(
         "melba:verdict",
@@ -2802,6 +2823,7 @@ pub fn serve(
                 .lock()
                 .unwrap_or_else(|e| e.into_inner())
                 .reset();
+            clear_current_metadata(&s.shared);
             let sender = txp.lock().unwrap_or_else(|e| e.into_inner());
             sender.send(Cmd::Stop).ok();
             sender.send(Cmd::Clear).ok();
@@ -3698,5 +3720,62 @@ mod tests {
         assert_eq!(reorder_idx(3, 0, 1), 3);
         assert_eq!(reorder_idx(3, 5, 7), 3);
         assert_eq!(reorder_idx(3, 0, 0), 3);
+    }
+
+    #[test]
+    fn metadata_clears_stale_track_details_when_queue_cursor_is_past_end() {
+        let shared = super::Shared::new();
+        shared
+            .queue
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push("stream:second".into());
+        *shared.title.lock().unwrap_or_else(|e| e.into_inner()) = "Stale Title".into();
+        *shared.art_url.lock().unwrap_or_else(|e| e.into_inner()) =
+            "https://example/art.jpg".into();
+        shared
+            .dur_ms
+            .store(180_000, std::sync::atomic::Ordering::SeqCst);
+        shared
+            .pos_ms
+            .store(45_000, std::sync::atomic::Ordering::SeqCst);
+        *shared.source.lock().unwrap_or_else(|e| e.into_inner()) =
+            Some(crate::audio::SourceFormat {
+                path: "stream:second".into(),
+                codec: "alac".into(),
+                rate: 44_100,
+                bits: 16,
+                channels: 2,
+                dur_ms: 180_000,
+            });
+        // Cursor moved past end of queue (e.g., track finished or failed probe).
+        *shared.idx.lock().unwrap_or_else(|e| e.into_inner()) = 1;
+
+        let meta = super::metadata_map(&shared);
+        assert!(!meta.contains_key("xesam:url"));
+        assert!(!meta.contains_key("melba:codec"));
+        assert_eq!(meta["xesam:title"].0.as_str(), Some(""));
+        assert_eq!(meta["mpris:artUrl"].0.as_str(), Some(""));
+        assert_eq!(meta["mpris:length"].0.as_i64(), Some(0));
+
+        // clear_current_metadata resets the backing fields as well.
+        super::clear_current_metadata(&shared);
+        assert!(shared
+            .title
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .is_empty());
+        assert!(shared
+            .art_url
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .is_empty());
+        assert_eq!(shared.dur_ms.load(std::sync::atomic::Ordering::SeqCst), 0);
+        assert_eq!(shared.pos_ms.load(std::sync::atomic::Ordering::SeqCst), 0);
+        assert!(shared
+            .source
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .is_none());
     }
 }

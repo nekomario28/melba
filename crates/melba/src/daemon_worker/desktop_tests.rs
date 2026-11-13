@@ -712,3 +712,197 @@ fn the_playlist_cache_keeps_its_own_account_and_snapshot() {
 
     let _ = std::fs::remove_dir_all(&root);
 }
+
+#[test]
+fn stopped_metadata_without_url_clears_track_and_load_errors_classify_accurately() {
+    const NAME: &str = "daemon_worker::desktop_tests::stopped_metadata_without_url_clears_track_and_load_errors_classify_accurately";
+    if !private_case(NAME) {
+        return;
+    }
+    use dbus::channel::{MatchingReceiver, Sender as _};
+    use std::sync::atomic::AtomicBool;
+    let (ready_tx, ready_rx) = std::sync::mpsc::channel();
+    let done = Arc::new(AtomicBool::new(false));
+    let stop = done.clone();
+    let server = std::thread::spawn(move || {
+        let conn = Connection::new_session().unwrap();
+        assert_eq!(
+            conn.request_name(BUS, false, false, true).unwrap(),
+            dbus::blocking::stdintf::org_freedesktop_dbus::RequestNameReply::PrimaryOwner
+        );
+        let mut error_mode = "InvalidArgs";
+        conn.start_receive(
+            dbus::message::MatchRule::new_method_call(),
+            Box::new(move |msg, conn| {
+                let method = msg.member().map(|m| m.to_string()).unwrap();
+                let reply = match method.as_str() {
+                    "Get" => {
+                        let (_, prop) = msg.read2::<String, String>().unwrap();
+                        let mut r = msg.method_return();
+                        match prop.as_str() {
+                            "PlaybackStatus" => {
+                                r = r.append1(dbus::arg::Variant("Stopped".to_owned()));
+                            }
+                            "Metadata" => {
+                                let mut meta = dbus::arg::PropMap::new();
+                                meta.insert("melba:idx".into(), dbus::arg::Variant(Box::new(1u32)));
+                                meta.insert(
+                                    "mpris:trackid".into(),
+                                    dbus::arg::Variant(Box::new(dbus::Path::from(
+                                        "/org/mpris/MediaPlayer2/melba/Track/1",
+                                    ))),
+                                );
+                                // Older daemon left xesam:title populated while omitting xesam:url.
+                                meta.insert(
+                                    "xesam:title".into(),
+                                    dbus::arg::Variant(Box::new("Stale Track Title".to_owned())),
+                                );
+                                r = r.append1(dbus::arg::Variant(meta));
+                            }
+                            _ => {}
+                        }
+                        r
+                    }
+                    "SetErrorMode" => {
+                        error_mode = if msg.read1::<u32>().unwrap() == 1 {
+                            "UnknownMethod"
+                        } else {
+                            "InvalidArgs"
+                        };
+                        msg.method_return()
+                    }
+                    "MelbaLoadQueue" => {
+                        if error_mode == "UnknownMethod" {
+                            msg.error(
+                                &"org.freedesktop.DBus.Error.UnknownMethod".into(),
+                                &std::ffi::CString::new("Unknown method").unwrap(),
+                            )
+                        } else {
+                            msg.error(
+                                &"org.freedesktop.DBus.Error.InvalidArgs".into(),
+                                &std::ffi::CString::new(
+                                    "Invalid argument \"unsupported queue URI\"",
+                                )
+                                .unwrap(),
+                            )
+                        }
+                    }
+                    _ => msg.method_return(),
+                };
+                conn.send(reply).unwrap();
+                true
+            }),
+        );
+        ready_tx.send(()).unwrap();
+        while !stop.load(Ordering::Acquire) {
+            conn.process(Duration::from_millis(10)).unwrap();
+        }
+    });
+    ready_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+
+    let (events, received) = std::sync::mpsc::channel();
+    let mut probe = worker(events);
+    assert!(probe.poll_daemon());
+    assert!(
+        probe.local.track.is_none(),
+        "metadata without xesam:url must not produce a track with an empty URI"
+    );
+    assert!(probe.playback_state().item.is_none());
+
+    probe.handle_player(PlayerCommand::Load(LoadSpec {
+        uris: vec!["melba:track:101".into()],
+        play: true,
+        ..Default::default()
+    }));
+    match received.recv_timeout(Duration::from_secs(2)).unwrap() {
+        Event::Error(msg) => assert_eq!(
+            msg,
+            "The playback request contains an unsupported track or position."
+        ),
+        other => panic!("unexpected event: {}", event_name(&other)),
+    }
+
+    probe
+        .proxy()
+        .unwrap()
+        .method_call::<(), _, _, _>(IFACE, "SetErrorMode", (1u32,))
+        .unwrap();
+    probe.handle_player(PlayerCommand::Load(LoadSpec {
+        uris: vec!["melba:track:101".into()],
+        play: true,
+        ..Default::default()
+    }));
+    match received.recv_timeout(Duration::from_secs(2)).unwrap() {
+        Event::Error(msg) => assert!(msg.contains("restart the playback daemon")),
+        other => panic!("unexpected event: {}", event_name(&other)),
+    }
+
+    done.store(true, Ordering::Release);
+    server.join().unwrap();
+}
+
+#[test]
+fn isolated_backend_does_not_touch_session_dbus_daemon() {
+    const NAME: &str =
+        "daemon_worker::desktop_tests::isolated_backend_does_not_touch_session_dbus_daemon";
+    if !private_case(NAME) {
+        return;
+    }
+    let received_calls = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+    let recorded = received_calls.clone();
+    let done = Arc::new(AtomicBool::new(false));
+    let stop = done.clone();
+    let (ready_tx, ready_rx) = std::sync::mpsc::channel();
+    let server = std::thread::spawn(move || {
+        use dbus::channel::{MatchingReceiver, Sender as _};
+        let conn = Connection::new_session().unwrap();
+        assert_eq!(
+            conn.request_name(BUS, false, false, true).unwrap(),
+            dbus::blocking::stdintf::org_freedesktop_dbus::RequestNameReply::PrimaryOwner
+        );
+        conn.start_receive(
+            dbus::message::MatchRule::new_method_call(),
+            Box::new(move |msg, conn| {
+                if let Some(member) = msg.member() {
+                    recorded.lock().unwrap().push(member.to_string());
+                }
+                let reply = msg.method_return();
+                conn.send(reply).unwrap();
+                true
+            }),
+        );
+        ready_tx.send(()).unwrap();
+        while !stop.load(Ordering::Acquire) {
+            conn.process(Duration::from_millis(10)).unwrap();
+        }
+    });
+    ready_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+
+    let dir = std::env::temp_dir().join(format!("melba-iso-bus-{}", std::process::id()));
+    let dirs = crate::paths::AppDirs {
+        config: dir.join("config"),
+        state: dir.join("state"),
+        cache: dir.join("cache"),
+    };
+    let mut backend = crate::backend::Backend::spawn(
+        dirs,
+        crate::settings::ProxyConfig::Off,
+        crate::backend::Waker::default(),
+        false,
+    );
+    backend.send(Command::Player(PlayerCommand::AddToQueue(
+        "melba:track:999".into(),
+    )));
+    std::thread::sleep(Duration::from_millis(250));
+    backend.shutdown();
+
+    done.store(true, Ordering::Release);
+    server.join().unwrap();
+    let _ = std::fs::remove_dir_all(dir);
+
+    assert!(
+        received_calls.lock().unwrap().is_empty(),
+        "isolated/demo/test backends must never poll or send commands to the user's live daemon: {:?}",
+        *received_calls.lock().unwrap()
+    );
+}
