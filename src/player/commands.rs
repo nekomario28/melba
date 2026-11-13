@@ -208,7 +208,13 @@ mod tests {
     use super::*;
     fn issued(commands: &Commands, expected: u64) {
         let deadline = std::time::Instant::now() + Duration::from_secs(2);
-        while commands.routing.lock().unwrap().issued < expected {
+        while commands
+            .routing
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .issued
+            < expected
+        {
             assert!(
                 std::time::Instant::now() < deadline,
                 "ingress did not receive controls"
@@ -245,11 +251,25 @@ mod tests {
         issued(&commands, 3);
         assert_eq!(commands.take_skip(), Some(SkipDirection::Forward));
         assert_eq!(commands.take_skip(), None);
-        assert_eq!(commands.routing.lock().unwrap().consumed, 1);
+        assert_eq!(
+            commands
+                .routing
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .consumed,
+            1
+        );
         assert!(commands.begin().is_cancelled());
         assert!(matches!(commands.recv().unwrap(), Cmd::Stop));
         assert_eq!(commands.take_skip(), Some(SkipDirection::Forward));
-        assert_eq!(commands.routing.lock().unwrap().consumed, 3);
+        assert_eq!(
+            commands
+                .routing
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .consumed,
+            3
+        );
         assert!(!commands.begin().is_cancelled());
         sender.send(Cmd::Quit).unwrap();
     }

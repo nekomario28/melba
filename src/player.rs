@@ -3186,16 +3186,18 @@ mod tests {
             let shared = super::Shared::new();
             // Equal URIs are distinct occurrences. A source opened for the
             // first one is not evidence that later copies were opened too.
-            *shared.queue.lock().unwrap() = vec![PathBuf::from("track-0"); 7];
+            *shared.queue.lock().unwrap_or_else(|e| e.into_inner()) =
+                vec![PathBuf::from("track-0"); 7];
             shared.source_opened.store(true, Ordering::SeqCst);
-            *shared.source.lock().unwrap() = Some(crate::audio::SourceFormat {
-                path: "track-0".into(),
-                codec: "pcm".into(),
-                rate: 48000,
-                bits: 16,
-                channels: 2,
-                dur_ms: 45000,
-            });
+            *shared.source.lock().unwrap_or_else(|e| e.into_inner()) =
+                Some(crate::audio::SourceFormat {
+                    path: "track-0".into(),
+                    codec: "pcm".into(),
+                    rate: 48000,
+                    bits: 16,
+                    channels: 2,
+                    dur_ms: 45000,
+                });
             shared.shuffle.store(shuffle, Ordering::SeqCst);
             let plan = super::planned_indices(&shared);
             let (tx, receiver) = std::sync::mpsc::channel();
@@ -3207,8 +3209,16 @@ mod tests {
             tx.send(super::Cmd::Next).unwrap();
             let mut backwards = true;
             let stream = Some(
-                crate::audio::open_exact("null", shared.source.lock().unwrap().as_ref().unwrap())
-                    .unwrap(),
+                crate::audio::open_exact(
+                    "null",
+                    shared
+                        .source
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .as_ref()
+                        .unwrap(),
+                )
+                .unwrap(),
             );
             assert_eq!(
                 stream.as_ref().unwrap().0.state(),
@@ -3227,7 +3237,10 @@ mod tests {
                 "an explicit skip must drop the retained output tail"
             );
             assert!(!backwards);
-            assert_eq!(*shared.idx.lock().unwrap(), plan[2] as usize);
+            assert_eq!(
+                *shared.idx.lock().unwrap_or_else(|e| e.into_inner()),
+                plan[2] as usize
+            );
             assert_eq!(super::planned_indices(&shared), plan[3..]);
             assert!(!super::drain_skips(
                 &shared,
@@ -3243,7 +3256,7 @@ mod tests {
             assert!(matches!(commands.try_recv(), Ok(super::Cmd::Next)));
             super::previous_index(&shared);
             assert_eq!(
-                *shared.idx.lock().unwrap(),
+                *shared.idx.lock().unwrap_or_else(|e| e.into_inner()),
                 0,
                 "loading candidates never enter playback history"
             );
@@ -3255,14 +3268,23 @@ mod tests {
     #[test]
     fn next_while_previous_is_loading_keeps_history_and_paused_identity() {
         let shared = super::Shared::new();
-        *shared.queue.lock().unwrap() = (0..5).map(|n| format!("track-{n}").into()).collect();
+        *shared.queue.lock().unwrap_or_else(|e| e.into_inner()) =
+            (0..5).map(|n| format!("track-{n}").into()).collect();
         shared.shuffle.store(true, Ordering::SeqCst);
-        let visited = shared.order.lock().unwrap().next(4, 5, true, 0, true);
-        *shared.idx.lock().unwrap() = visited;
+        let visited = shared
+            .order
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .next(4, 5, true, 0, true);
+        *shared.idx.lock().unwrap_or_else(|e| e.into_inner()) = visited;
         super::previous_index(&shared);
-        assert_eq!(*shared.idx.lock().unwrap(), 4);
+        assert_eq!(*shared.idx.lock().unwrap_or_else(|e| e.into_inner()), 4);
         assert!(
-            shared.source.lock().unwrap().is_none(),
+            shared
+                .source
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .is_none(),
             "Previous is still preparing its source"
         );
         shared.start_paused.store(true, Ordering::SeqCst);
@@ -3277,11 +3299,14 @@ mod tests {
             None,
             None
         ));
-        assert_eq!(*shared.idx.lock().unwrap(), visited);
+        assert_eq!(
+            *shared.idx.lock().unwrap_or_else(|e| e.into_inner()),
+            visited
+        );
         assert_eq!(shared.play_seq.load(Ordering::SeqCst), before + 1);
         super::previous_index(&shared);
         assert_eq!(
-            *shared.idx.lock().unwrap(),
+            *shared.idx.lock().unwrap_or_else(|e| e.into_inner()),
             4,
             "returning to a visited occurrence must remain reversible"
         );
@@ -3290,10 +3315,19 @@ mod tests {
     #[test]
     fn mixed_pending_skips_share_one_plan_and_keep_the_stop_barrier() {
         let shared = super::Shared::new();
-        *shared.queue.lock().unwrap() = (0..6).map(|n| format!("track-{n}").into()).collect();
-        shared.order.lock().unwrap().next(0, 6, false, 0, true);
-        shared.order.lock().unwrap().next(1, 6, false, 0, true);
-        *shared.idx.lock().unwrap() = 2;
+        *shared.queue.lock().unwrap_or_else(|e| e.into_inner()) =
+            (0..6).map(|n| format!("track-{n}").into()).collect();
+        shared
+            .order
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .next(0, 6, false, 0, true);
+        shared
+            .order
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .next(1, 6, false, 0, true);
+        *shared.idx.lock().unwrap_or_else(|e| e.into_inner()) = 2;
         shared.source_opened.store(true, Ordering::SeqCst);
         shared.start_paused.store(true, Ordering::SeqCst);
         let (sender, receiver) = std::sync::mpsc::channel();
@@ -3316,7 +3350,7 @@ mod tests {
             None,
             None
         ));
-        assert_eq!(*shared.idx.lock().unwrap(), 2);
+        assert_eq!(*shared.idx.lock().unwrap_or_else(|e| e.into_inner()), 2);
         assert!(backwards);
         assert_eq!(shared.play_seq.load(Ordering::SeqCst), 1);
         assert!(matches!(commands.recv().unwrap(), super::Cmd::Stop));
@@ -3324,7 +3358,7 @@ mod tests {
         assert_eq!(super::planned_indices(&shared)[0], 3);
         super::previous_index(&shared);
         assert_eq!(
-            *shared.idx.lock().unwrap(),
+            *shared.idx.lock().unwrap_or_else(|e| e.into_inner()),
             1,
             "intermediate candidate 3 never played"
         );
@@ -3334,15 +3368,27 @@ mod tests {
     fn back_skip_restarts_only_the_visited_selection_then_goes_back() {
         for opened in [false, true] {
             let shared = super::Shared::new();
-            *shared.queue.lock().unwrap() = (0..4).map(|n| format!("track-{n}").into()).collect();
-            shared.order.lock().unwrap().next(0, 4, false, 0, true);
-            shared.order.lock().unwrap().next(1, 4, false, 0, true);
-            *shared.idx.lock().unwrap() = 2;
+            *shared.queue.lock().unwrap_or_else(|e| e.into_inner()) =
+                (0..4).map(|n| format!("track-{n}").into()).collect();
+            shared
+                .order
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .next(0, 4, false, 0, true);
+            shared
+                .order
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .next(1, 4, false, 0, true);
+            *shared.idx.lock().unwrap_or_else(|e| e.into_inner()) = 2;
             shared.source_opened.store(opened, Ordering::SeqCst);
             shared.set_state(super::PlayState::Paused);
             shared.start_paused.store(true, Ordering::SeqCst);
             shared.pos_ms.store(4000, Ordering::SeqCst);
-            *shared.pending_seek.lock().unwrap() = Some((2, 4000));
+            *shared
+                .pending_seek
+                .lock()
+                .unwrap_or_else(|e| e.into_inner()) = Some((2, 4000));
             let (sender, receiver) = std::sync::mpsc::channel();
             sender.send(super::Cmd::Prev).unwrap();
             let commands = super::Commands::new(receiver);
@@ -3354,9 +3400,16 @@ mod tests {
                 None,
                 None
             ));
-            assert_eq!(*shared.idx.lock().unwrap(), if opened { 2 } else { 1 });
+            assert_eq!(
+                *shared.idx.lock().unwrap_or_else(|e| e.into_inner()),
+                if opened { 2 } else { 1 }
+            );
             assert_eq!(shared.pos_ms.load(Ordering::SeqCst), 0);
-            assert!(shared.pending_seek.lock().unwrap().is_none());
+            assert!(shared
+                .pending_seek
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .is_none());
             sender.send(super::Cmd::Prev).unwrap();
             assert!(super::drain_skips(
                 &shared,
@@ -3365,22 +3418,34 @@ mod tests {
                 None,
                 None
             ));
-            assert_eq!(*shared.idx.lock().unwrap(), if opened { 1 } else { 0 });
+            assert_eq!(
+                *shared.idx.lock().unwrap_or_else(|e| e.into_inner()),
+                if opened { 1 } else { 0 }
+            );
         }
     }
 
     #[test]
     fn reopening_keeps_visit_proof_without_a_format_receipt() {
         let shared = super::Shared::new();
-        *shared.queue.lock().unwrap() = (0..4).map(|n| format!("track-{n}").into()).collect();
-        *shared.idx.lock().unwrap() = 1;
-        shared.order.lock().unwrap().next(0, 4, false, 0, true);
+        *shared.queue.lock().unwrap_or_else(|e| e.into_inner()) =
+            (0..4).map(|n| format!("track-{n}").into()).collect();
+        *shared.idx.lock().unwrap_or_else(|e| e.into_inner()) = 1;
+        shared
+            .order
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .next(0, 4, false, 0, true);
         shared.source_opened.store(true, Ordering::SeqCst);
-        assert!(shared.source.lock().unwrap().is_none());
+        assert!(shared
+            .source
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .is_none());
         super::advance(&shared);
         super::previous_index(&shared);
         assert_eq!(
-            *shared.idx.lock().unwrap(),
+            *shared.idx.lock().unwrap_or_else(|e| e.into_inner()),
             1,
             "reopening must not erase the played occurrence"
         );
@@ -3389,12 +3454,19 @@ mod tests {
     #[test]
     fn next_discards_a_parked_seek_even_when_repeat_keeps_the_same_row() {
         let shared = super::Shared::new();
-        *shared.queue.lock().unwrap() = vec!["track".into()];
+        *shared.queue.lock().unwrap_or_else(|e| e.into_inner()) = vec!["track".into()];
         shared.repeat.store(2, Ordering::SeqCst);
-        *shared.pending_seek.lock().unwrap() = Some((0, 4000));
+        *shared
+            .pending_seek
+            .lock()
+            .unwrap_or_else(|e| e.into_inner()) = Some((0, 4000));
         super::advance(&shared);
-        assert_eq!(*shared.idx.lock().unwrap(), 0);
-        assert!(shared.pending_seek.lock().unwrap().is_none());
+        assert_eq!(*shared.idx.lock().unwrap_or_else(|e| e.into_inner()), 0);
+        assert!(shared
+            .pending_seek
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .is_none());
     }
 
     #[test]
@@ -3404,36 +3476,50 @@ mod tests {
             .into_iter()
             .map(Into::into)
             .collect();
-        *shared.queue.lock().unwrap() = original.clone();
+        *shared.queue.lock().unwrap_or_else(|e| e.into_inner()) = original.clone();
         shared.source_opened.store(true, Ordering::SeqCst);
         shared.start_paused.store(true, Ordering::SeqCst);
-        *shared.pending_seek.lock().unwrap() = Some((0, 4000));
-        *shared.pending_idx.lock().unwrap() = Some(1);
+        *shared
+            .pending_seek
+            .lock()
+            .unwrap_or_else(|e| e.into_inner()) = Some((0, 4000));
+        *shared.pending_idx.lock().unwrap_or_else(|e| e.into_inner()) = Some(1);
         assert!(super::select_queued(&shared, 1, "stream:b"));
         assert_eq!(
-            *shared.idx.lock().unwrap(),
+            *shared.idx.lock().unwrap_or_else(|e| e.into_inner()),
             2,
             "the clicked duplicate, not the first copy"
         );
-        assert_eq!(*shared.queue.lock().unwrap(), original);
+        assert_eq!(
+            *shared.queue.lock().unwrap_or_else(|e| e.into_inner()),
+            original
+        );
         assert_eq!(super::planned_indices(&shared), [3]);
         assert!(!shared.start_paused.load(Ordering::SeqCst));
-        assert!(shared.pending_seek.lock().unwrap().is_none());
-        assert!(shared.pending_idx.lock().unwrap().is_none());
+        assert!(shared
+            .pending_seek
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .is_none());
+        assert!(shared
+            .pending_idx
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .is_none());
         // Simulate playback of the selected duplicate before the next click.
         shared.source_opened.store(true, Ordering::SeqCst);
         shared.pos_ms.store(123, Ordering::SeqCst);
         assert!(!super::select_queued(&shared, 0, "stream:gone"));
-        assert_eq!(*shared.idx.lock().unwrap(), 2);
+        assert_eq!(*shared.idx.lock().unwrap_or_else(|e| e.into_inner()), 2);
         assert_eq!(shared.pos_ms.load(Ordering::SeqCst), 123);
         // The UI's row number can become stale after a natural transition.
         assert!(super::select_queued(&shared, 99, "stream:c"));
-        assert_eq!(*shared.idx.lock().unwrap(), 3);
+        assert_eq!(*shared.idx.lock().unwrap_or_else(|e| e.into_inner()), 3);
         super::previous_index(&shared);
-        assert_eq!(*shared.idx.lock().unwrap(), 2);
+        assert_eq!(*shared.idx.lock().unwrap_or_else(|e| e.into_inner()), 2);
         super::previous_index(&shared);
         assert_eq!(
-            *shared.idx.lock().unwrap(),
+            *shared.idx.lock().unwrap_or_else(|e| e.into_inner()),
             0,
             "the skipped copy never played"
         );
