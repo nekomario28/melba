@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Semver from both Cargo manifests (for example 0.3.13)"
+        description: "Semver from both Cargo manifests (for example 0.3.13 or 0.4.0-alpha.1)"
         type: string
         required: true
       confirm_publish:
@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.version.outputs.tag }}
+      kind: ${{ steps.version.outputs.kind }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: version
@@ -33,18 +34,20 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$CONFIRM" = true ]] || { echo "Confirm publication explicitly" >&2; exit 1; }
-          [[ "$REQUESTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 2
+          kind=$(bash ci/release-version.sh "$REQUESTED_VERSION")
           # Check only package versions, not the version of every dependency.
           daemon=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -1)
           gui=$(sed -n 's/^version = "\([^"]*\)"/\1/p' crates/melba/Cargo.toml | head -1)
           [[ "$daemon" = "$REQUESTED_VERSION" && "$gui" = "$REQUESTED_VERSION" ]] ||
             { echo "Cargo versions and release version disagree" >&2; exit 1; }
           tag="v$REQUESTED_VERSION"
+          test -s "docs/releases/$tag.md" || { echo "missing release notes docs/releases/$tag.md" >&2; exit 1; }
           if git ls-remote --tags origin "refs/tags/$tag" | grep -q .; then
             echo "tag $tag already exists; refusing to overwrite a release" >&2
             exit 1
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "kind=$kind" >> "$GITHUB_OUTPUT"
 
   # Reuse the exact tested ABI-build jobs and the 8 real Linux consumer smokes.
   verified-candidates:
@@ -100,17 +103,27 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.preflight.outputs.tag }}
+          KIND: ${{ needs.preflight.outputs.kind }}
         run: |
           set -euo pipefail
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release already exists; not replacing assets" >&2
             exit 1
           fi
-          gh release create "$TAG" release-assets/* \
-            --target "$GITHUB_SHA" \
-            --title "Melba $TAG" \
-            --notes-file "docs/releases/$TAG.md" \
-            --latest
+          if [[ "$KIND" = alpha ]]; then
+            gh release create "$TAG" release-assets/* \
+              --target "$GITHUB_SHA" \
+              --title "Melba $TAG" \
+              --notes-file "docs/releases/$TAG.md" \
+              --prerelease \
+              --latest=false
+          else
+            gh release create "$TAG" release-assets/* \
+              --target "$GITHUB_SHA" \
+              --title "Melba $TAG" \
+              --notes-file "docs/releases/$TAG.md" \
+              --latest
+          fi
       - name: Verify published signature and all four published archives
         shell: bash
         env:
@@ -178,6 +191,7 @@ jobs:
         shell: bash
         env:
           RELEASE_VERSION: ${{ inputs.version }}
+          TAG: ${{ needs.preflight.outputs.tag }}
         run: |
           set -euo pipefail
           export MELBA_PORTABLE_DIR="$RUNNER_TEMP/signed-release-smoke/app"
@@ -190,7 +204,7 @@ jobs:
           # loudly, so the gap is visible rather than silent.
           attempt=1
           while :; do
-            if log=$(sh packaging/install-release.sh --no-alac 2>&1); then
+            if log=$(sh packaging/install-release.sh --no-alac --version "$TAG" 2>&1); then
               printf '%s\n' "$log"
               break
             fi

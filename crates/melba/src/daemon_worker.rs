@@ -1223,6 +1223,7 @@ impl DaemonWorker {
         task: impl FnOnce(anyhow::Result<crate::updates::Updater>, &dyn Fn(Event)) + Send + 'static,
     ) {
         let proxy = self.update_proxy.clone();
+        let config_dir = self.dirs.config.clone();
         let events = self.events.clone();
         let waker = self.waker.clone();
         tokio::task::spawn_blocking(move || {
@@ -1230,7 +1231,7 @@ impl DaemonWorker {
                 let _ = events.send(event);
                 waker.wake();
             };
-            task(crate::updates::updater(&proxy), &emit);
+            task(crate::updates::updater_in(&config_dir, &proxy), &emit);
         });
     }
 

@@ -9,10 +9,7 @@ if [[ $# -ne 2 ]]; then
   exit 2
 fi
 assets=$1 version=$2
-if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "invalid release version" >&2
-  exit 2
-fi
+bash "$(dirname "$0")/release-version.sh" "$version" >/dev/null
 if [[ -z "${MELBA_SIGNING_KEY_PEM:-}" ]]; then
   echo "MELBA_SIGNING_KEY_PEM is absent: no release may be signed or published" >&2
   exit 1

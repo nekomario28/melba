@@ -43,10 +43,48 @@ pub const CONFIG: UpdateConfig = UpdateConfig {
     )
 };
 
+fn for_channel(channel: crate::settings::UpdateChannel) -> UpdateConfig {
+    UpdateConfig {
+        prereleases: match channel {
+            crate::settings::UpdateChannel::Stable => fastframe_update::Prereleases::Never,
+            crate::settings::UpdateChannel::Alpha => fastframe_update::Prereleases::Always,
+        },
+        ..CONFIG
+    }
+}
+
+/// One policy for discovery, download, helper execution and receipt acceptance.
+/// The hidden preference is edited with the app closed; no UI writes this field.
+pub fn configured() -> UpdateConfig {
+    configured_in(&crate::paths::AppDirs::discover().config)
+}
+
+/// Same policy as [`configured`], resolving `settings.json` inside `config_dir`
+/// when provided (falling back to [`AppDirs::discover`] for empty default dirs).
+pub fn configured_in(config_dir: &std::path::Path) -> UpdateConfig {
+    let path = if config_dir.as_os_str().is_empty() {
+        crate::paths::AppDirs::discover().settings_file()
+    } else {
+        config_dir.join("settings.json")
+    };
+    for_channel(crate::settings::Settings::load(&path).update_channel)
+}
+
 /// An updater on melba's HTTP client, through the configured proxy.
 pub fn updater(proxy: &crate::settings::ProxyConfig) -> anyhow::Result<Updater> {
+    updater_in(&crate::paths::AppDirs::discover().config, proxy)
+}
+
+/// An updater resolving hidden channel preferences from `config_dir`.
+pub fn updater_in(
+    config_dir: &std::path::Path,
+    proxy: &crate::settings::ProxyConfig,
+) -> anyhow::Result<Updater> {
     let builder = crate::http::blocking_builder(proxy).map_err(anyhow::Error::msg)?;
-    Ok(Updater::new(CONFIG, ReqwestTransport::new(builder)?))
+    Ok(Updater::new(
+        configured_in(config_dir),
+        ReqwestTransport::new(builder)?,
+    ))
 }
 
 /// The vendored fastframe helper replaces `melba` and the companion `melbad`
@@ -76,6 +114,64 @@ mod tests {
         assert!(!daemon_version_matches("melbad 0.3.1\n", "0.3.2"));
         assert!(!daemon_version_matches("melba 0.3.2\n", "0.3.2"));
         assert!(!daemon_version_matches("melbad 0.3.2 extra", "0.3.2"));
+    }
+
+    #[test]
+    fn hidden_channel_round_trips_and_keeps_the_same_trust_anchor() {
+        use crate::settings::{Settings, UpdateChannel};
+        for (json, expected) in [
+            ("{}", UpdateChannel::Stable),
+            (r#"{"update_channel":"stable"}"#, UpdateChannel::Stable),
+            (r#"{"update_channel":"unknown"}"#, UpdateChannel::Stable),
+            (r#"{"update_channel":"alpha"}"#, UpdateChannel::Alpha),
+        ] {
+            let settings: Settings = serde_json::from_str(json).unwrap();
+            assert_eq!(settings.update_channel, expected);
+            let saved: Settings = serde_json::from_str(&settings.encode().unwrap()).unwrap();
+            assert_eq!(saved.update_channel, expected);
+            let config = for_channel(saved.update_channel);
+            config.validate().unwrap();
+            assert_eq!(config.publisher_key, CONFIG.publisher_key);
+            assert_eq!(
+                config.additional_publisher_keys,
+                CONFIG.additional_publisher_keys
+            );
+            assert_eq!(config.current_version, CONFIG.current_version);
+            assert_eq!(
+                config.prereleases,
+                if expected == UpdateChannel::Alpha {
+                    fastframe_update::Prereleases::Always
+                } else {
+                    fastframe_update::Prereleases::Never
+                }
+            );
+        }
+        let default_json = Settings::default().encode().unwrap();
+        assert!(!default_json.contains("update_channel"));
+    }
+
+    #[test]
+    fn configured_in_reads_hidden_update_channel_from_settings_file() {
+        let dir = std::env::temp_dir().join(format!(
+            "melba-updates-channel-{:016x}",
+            rand::random::<u64>()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        assert_eq!(
+            configured_in(&dir).prereleases,
+            fastframe_update::Prereleases::Never
+        );
+        std::fs::write(dir.join("settings.json"), r#"{"update_channel":"alpha"}"#).unwrap();
+        assert_eq!(
+            configured_in(&dir).prereleases,
+            fastframe_update::Prereleases::Always
+        );
+        std::fs::write(dir.join("settings.json"), r#"{"update_channel":"bogus"}"#).unwrap();
+        assert_eq!(
+            configured_in(&dir).prereleases,
+            fastframe_update::Prereleases::Never
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
