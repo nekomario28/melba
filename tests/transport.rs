@@ -646,6 +646,15 @@ fn pause_case(name: &str, failure: &str, seek_while_parked: bool) {
             .arg(file)
             .env("LD_PRELOAD", shim)
             .env("MELBA_TEST_PCM_THROTTLE", "1")
+            // Preserve a 200 ms tail even if failed Resume invalidates delay.
+            .env(
+                "MELBA_TEST_PAUSED_QUEUE_FRAMES",
+                match failure {
+                    "resume" => "9600",
+                    "unknown" => "-1",
+                    _ => "0",
+                },
+            )
             .env("MELBA_TEST_PAUSE_FAILURE", failure)
             .env("MELBA_TEST_PAUSE_TRACE", &trace)
             .stdin(Stdio::null())
@@ -668,7 +677,7 @@ fn pause_case(name: &str, failure: &str, seek_while_parked: bool) {
         let target = if seek_while_parked {
             15000 + cycle * 5000
         } else {
-            paused.position
+            paused.position - 200
         };
         if seek_while_parked {
             proxy
@@ -684,16 +693,38 @@ fn pause_case(name: &str, failure: &str, seek_while_parked: bool) {
             wait(&conn, |s| s.position == target);
         }
         proxy.method_call::<(), _, _, _>(IFACE, "Play", ()).unwrap();
+        if failure == "unknown" {
+            wait(&conn, |s| s.status == "Stopped");
+            let output = Command::new(env!("CARGO_BIN_EXE_melbad"))
+                .arg("now")
+                .output()
+                .unwrap();
+            let state: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+            assert!(
+                state["verdict"].as_str().unwrap().contains("paused avail"),
+                "{state}"
+            );
+            assert_eq!(
+                std::fs::read_to_string(trace)
+                    .unwrap()
+                    .lines()
+                    .filter(|line| *line == "reject 0")
+                    .count(),
+                1
+            );
+            return;
+        }
         let resumed = wait(&conn, |s| {
             s.status == "Playing" && s.stream_opens > paused.stream_opens
         });
         assert!(
-            (target..target + 500).contains(&resumed.position),
+            (target..target + if failure == "resume" { 100 } else { 500 })
+                .contains(&resumed.position),
             "resume lost cursor: target={target}, got {resumed:?}"
         );
         wait(&conn, |s| s.position >= target + 500);
     }
-    if seek_while_parked {
+    if seek_while_parked && failure != "seek" {
         proxy
             .method_call::<(), _, _, _>(IFACE, "Pause", ())
             .unwrap();
@@ -710,6 +741,13 @@ fn pause_case(name: &str, failure: &str, seek_while_parked: bool) {
         );
     }
     let trace = std::fs::read_to_string(trace).unwrap();
+    if failure == "resume" {
+        assert_eq!(
+            trace.lines().filter(|line| *line == "queued 9600").count(),
+            2,
+            "capture the paused buffer before each failed Resume: {trace}"
+        );
+    }
     let expected = if failure == "pause" {
         "reject 1"
     } else {
@@ -717,8 +755,12 @@ fn pause_case(name: &str, failure: &str, seek_while_parked: bool) {
     };
     assert_eq!(
         trace.lines().filter(|line| *line == expected).count(),
-        if seek_while_parked { 3 } else { 2 },
-        "fault path must execute: {trace}"
+        match failure {
+            "seek" => 0,
+            "pause" => 3,
+            _ => 2,
+        },
+        "fault path must execute only when expected: {trace}"
     );
 }
 
@@ -728,6 +770,24 @@ fn unsupported_pause_reopens_at_the_parked_seek() {
         "unsupported_pause_reopens_at_the_parked_seek",
         "pause",
         true,
+    );
+}
+
+#[test]
+fn seek_while_natively_paused_discards_the_old_buffer() {
+    pause_case(
+        "seek_while_natively_paused_discards_the_old_buffer",
+        "seek",
+        true,
+    );
+}
+
+#[test]
+fn failed_native_resume_with_unknown_buffer_stops_instead_of_skipping() {
+    pause_case(
+        "failed_native_resume_with_unknown_buffer_stops_instead_of_skipping",
+        "unknown",
+        false,
     );
 }
 

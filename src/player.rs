@@ -1388,13 +1388,22 @@ fn elapsed_ms(frames: u64, rate: u64, remainder: &mut u64) -> u64 {
 /// Preserve the selected track and its unplayed ALSA buffer on a fallback
 /// reopen. A device without native Pause is stopped, and the next Play opens
 /// a new PCM and seeks back to approximately the audible position.
-fn park_for_reopen(shared: &Shared, pcm: &alsa::pcm::PCM, rate: u64, paused: bool) {
-    let queued = pcm.delay().unwrap_or(0).max(0) as u64;
-    let queued_ms = (u128::from(queued) * 1000 / u128::from(rate.max(1))) as u64;
-    let position = shared
-        .pos_ms
-        .load(Ordering::SeqCst)
-        .saturating_sub(queued_ms);
+fn park_for_reopen(
+    shared: &Shared,
+    pcm: &alsa::pcm::PCM,
+    position: Result<u64, String>,
+    paused: bool,
+) -> Flow {
+    let position = match position {
+        Ok(position) => position,
+        Err(error) => {
+            // Unknown buffer accounting must not silently become a zero tail.
+            *shared.verdict.lock().unwrap_or_else(|e| e.into_inner()) =
+                format!("pause position unavailable: {error}");
+            let _ = pcm.drop();
+            return Flow::Stopped;
+        }
+    };
     let index = *shared.idx.lock().unwrap_or_else(|e| e.into_inner());
     *shared
         .pending_seek
@@ -1403,6 +1412,41 @@ fn park_for_reopen(shared: &Shared, pcm: &alsa::pcm::PCM, rate: u64, paused: boo
     shared.pos_ms.store(position, Ordering::SeqCst);
     shared.start_paused.store(paused, Ordering::SeqCst);
     let _ = pcm.drop();
+    if paused {
+        shared.set_state(PlayState::Paused);
+    }
+    Flow::Reopen
+}
+
+/// Subtract the unplayed frames before flooring to whole milliseconds. The
+/// remainder is in the same frame/rate units carried by elapsed_ms().
+fn position_without_buffer(ms: u64, remainder: u64, queued: u64, rate: u64) -> u64 {
+    let rate = u128::from(rate.max(1));
+    let submitted = u128::from(ms) * rate + u128::from(remainder);
+    (submitted.saturating_sub(u128::from(queued) * 1000) / rate).min(u128::from(u64::MAX)) as u64
+}
+
+/// HDMI's PAUSED kernel status can show delay=0 with samples still in the ring.
+/// Read available ring space while it is frozen, BEFORE trying Resume: a
+/// failing Resume ioctl may invalidate the handle's pointer accounting.
+fn paused_position(
+    pcm: &alsa::pcm::PCM,
+    granted: &Granted,
+    shared: &Shared,
+    rate: u64,
+    remainder: u64,
+) -> Result<u64, String> {
+    let available = pcm.avail().map_err(|e| format!("paused avail: {e}"))?;
+    let buffer = i64::from(granted.buffer_frames);
+    if !(0..=buffer).contains(&available) {
+        return Err(format!("paused avail {available} outside buffer {buffer}"));
+    }
+    Ok(position_without_buffer(
+        shared.pos_ms.load(Ordering::SeqCst),
+        remainder,
+        (buffer - available) as u64,
+        rate,
+    ))
 }
 
 /// symphonia coarse seek to `ms` on the live decoder. Shared by the running
@@ -1486,14 +1530,24 @@ fn play_controlled(
         };
         match command {
             Ok(Cmd::Pause) => {
+                let before_pause =
+                    pcm.delay()
+                        .map_err(|e| format!("running delay: {e}"))
+                        .map(|queued| {
+                            position_without_buffer(
+                                shared.pos_ms.load(Ordering::SeqCst),
+                                position_remainder,
+                                queued.max(0) as u64,
+                                sr,
+                            )
+                        });
                 if pcm.pause(true).is_err() {
                     // ALSA does not guarantee native pause support. Never say
                     // Paused while the hardware is still playing: drop it and
                     // let the outer paused-selection loop reopen on Resume.
-                    park_for_reopen(shared, pcm, sr, true);
-                    shared.set_state(PlayState::Paused);
-                    return Flow::Reopen;
+                    return park_for_reopen(shared, pcm, before_pause, true);
                 }
+                let resume_position = paused_position(pcm, g, shared, sr, position_remainder);
                 shared.set_state(PlayState::Paused);
                 loop {
                     match rx.recv() {
@@ -1502,8 +1556,7 @@ fn play_controlled(
                                 // The resume itself may fail after a supported
                                 // pause (e.g. unplug/reconfigure). Reopen rather
                                 // than reporting Playing on a paused PCM.
-                                park_for_reopen(shared, pcm, sr, false);
-                                return Flow::Reopen;
+                                return park_for_reopen(shared, pcm, resume_position, false);
                             }
                             shared.set_state(PlayState::Playing);
                             break;
@@ -1521,16 +1574,7 @@ fn play_controlled(
                             // Apple Music semantics: >3s in rewinds to the
                             // track start, a press near the start goes back
                             if shared.pos_ms.load(Ordering::SeqCst) > 3000 {
-                                seek_to(
-                                    &mut *probed.format,
-                                    &mut *dec,
-                                    track_id,
-                                    sr,
-                                    0,
-                                    shared,
-                                    &mut position_remainder,
-                                );
-                                continue;
+                                return park_for_reopen(shared, pcm, Ok(0), true);
                             }
                             let _ = pcm.drop();
                             shared.start_paused.store(true, Ordering::SeqCst);
@@ -1547,15 +1591,10 @@ fn play_controlled(
                             return Flow::Ended;
                         }
                         Ok(Cmd::Seek(ms)) => {
-                            seek_to(
-                                &mut *probed.format,
-                                &mut *dec,
-                                track_id,
-                                sr,
-                                ms,
-                                shared,
-                                &mut position_remainder,
-                            );
+                            // The old paused buffer belongs to the pre-seek
+                            // cursor. Discard it rather than subtracting it
+                            // from a new decoder position on failed Resume.
+                            return park_for_reopen(shared, pcm, Ok(ms), true);
                         }
                         Ok(Cmd::Enqueue(ps)) => {
                             shared
@@ -2824,6 +2863,25 @@ mod tests {
         ms += super::elapsed_ms(1, 44_100, &mut remainder);
         assert_eq!(ms, 10_240);
         assert_eq!(remainder, 1000);
+    }
+
+    #[test]
+    fn buffered_position_subtracts_frames_before_rounding() {
+        // Compare against an integer frame cursor, including fractional ms at
+        // 44.1 kHz; subtracting floor(queued_ms) from floor(submitted_ms) is wrong.
+        for rate in [44_100, 48_000, 96_000] {
+            for frames in [1u64, 1024, 4096, 24000, 96001] {
+                let mut remainder = 0;
+                let ms = super::elapsed_ms(frames, rate, &mut remainder);
+                for queued in [0, 1, 1023, 20000, frames, frames + 1] {
+                    let expected = frames.saturating_sub(queued) * 1000 / rate;
+                    assert_eq!(
+                        super::position_without_buffer(ms, remainder, queued, rate),
+                        expected
+                    );
+                }
+            }
+        }
     }
 
     #[test]
