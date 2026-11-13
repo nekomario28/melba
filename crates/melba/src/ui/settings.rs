@@ -245,15 +245,31 @@ fn section(
         .corner_radius(CornerRadius::same(theme::RADIUS + 2))
         .inner_margin(Margin::symmetric(20, 16))
         .show(ui, |ui| {
-            ui.set_width(ui.available_width().min(760.0));
+            ui.set_width(ui.available_width());
             add_contents(ui);
         });
     ui.add_space(8.0);
 }
 
 pub fn show(app: &mut App, ui: &mut egui::Ui) {
+    // Use the window without turning descriptions into page-wide lines.
+    // Headings, search and cards share one centred content column.
+    let width = ui.available_width().min(1120.0);
+    let inset = ((ui.available_width() - width) / 2.0).max(0.0);
+    ui.horizontal(|ui| {
+        ui.add_space(inset);
+        ui.allocate_ui_with_layout(Vec2::new(width, 0.0), Layout::top_down(Align::Min), |ui| {
+            show_contents(app, ui);
+        });
+    });
+}
+
+fn show_contents(app: &mut App, ui: &mut egui::Ui) {
     let palette = app.palette;
     let locale = app.locale;
+    // Keep native selectors distinct from their card, especially in light mode.
+    ui.visuals_mut().widgets.inactive.bg_stroke = Stroke::new(1.0, palette.dim);
+    ui.visuals_mut().widgets.hovered.bg_stroke = Stroke::new(1.0, palette.text);
     ui.add_space(8.0);
     theme::text(
         ui,
@@ -423,8 +439,9 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                 &quality_rows[0],
                 pills_width,
                 |ui| {
-                    for (quality, label) in choices {
-                        if theme::pill_button(ui, &palette, &label, quality == current).clicked()
+                    let select = |ui: &mut egui::Ui, quality, label: &str, width| {
+                        if theme::pill_button_sized(ui, &palette, label, quality == current, width)
+                            .clicked()
                             && quality != current
                             && let Err(error) = write_stream_quality_for_user(quality)
                         {
@@ -432,6 +449,34 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                                 data.insert_temp(egui::Id::new("quality-error"), error)
                             });
                         }
+                    };
+                    if ui.available_width() >= pills_width {
+                        for (quality, label) in choices {
+                            select(ui, quality, &label, 0.0);
+                        }
+                    } else {
+                        let widest = choices
+                            .iter()
+                            .map(|(_, label)| theme::pill_button_width(ui, label))
+                            .fold(0.0, f32::max);
+                        let columns = if ui.available_width() >= widest * 2.0 + 6.0 {
+                            2
+                        } else {
+                            1
+                        };
+                        let width =
+                            (ui.available_width() - 6.0 * (columns - 1) as f32) / columns as f32;
+                        ui.with_layout(Layout::top_down(Align::Max), |ui| {
+                            ui.spacing_mut().item_spacing = Vec2::splat(6.0);
+                            for start in (0..choices.len()).step_by(columns) {
+                                ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                                    for index in start..(start + columns).min(choices.len()) {
+                                        let (quality, label) = &choices[choices.len() - 1 - index];
+                                        select(ui, *quality, label, width);
+                                    }
+                                });
+                            }
+                        });
                     }
                 },
             );
@@ -449,13 +494,15 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
     if section_matches(&needle, &audio_output, &audio_output_rows) {
         any_visible = true;
         section(ui, &palette, &audio_output, |ui| {
-            filtered_row(
+            filtered_row_sized(
                 ui,
                 &palette,
                 &needle,
                 &audio_output,
                 &audio_output_rows[0],
+                320.0,
                 |ui| {
+                    ui.with_layout(Layout::top_down(Align::Max), |ui| {
                     if app.audio_outputs.is_none()
                         && !app.audio_outputs_loading
                         && app.audio_outputs_error.is_none()
@@ -476,9 +523,10 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                         current.clone()
                     };
                     let mut choose = None;
-                    egui::ComboBox::from_id_salt("audio-output-device")
-                        .selected_text(selected)
-                        .width(260.0_f32.min(ui.available_width()))
+                    let response = egui::ComboBox::from_id_salt("audio-output-device")
+                        .selected_text(&selected)
+                        .width(320.0_f32.min(ui.available_width()))
+                        .truncate()
                         .show_ui(ui, |ui| {
                             for (value, label) in [
                                 (
@@ -521,6 +569,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                                 }
                             }
                         });
+                    response.response.on_hover_text(&selected);
                     if let Some(device) = choose {
                         app.actions.push(Action::SetAudioDevice(device));
                     }
@@ -541,6 +590,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                     if let Some(error) = &app.audio_outputs_error {
                         theme::subtle(ui, &palette, error);
                     }
+                    });
                 },
             );
         });
@@ -653,6 +703,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                         let response = egui::ComboBox::from_id_salt("appearance_theme")
                             .selected_text(selected.as_ref())
                             .width(200.0_f32.min(ui.available_width()))
+                            .truncate()
                             .show_ui(ui, |ui| {
                                 for choice in ThemeChoice::ALL {
                                     if ui
@@ -683,15 +734,18 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                                     }
                                 }
                             });
-                        response.response.widget_info(|| {
-                            let mut info = egui::WidgetInfo::labeled(
-                                egui::WidgetType::ComboBox,
-                                ui.is_enabled(),
-                                theme_title.as_ref(),
-                            );
-                            info.current_text_value = Some(selected.to_string());
-                            info
-                        });
+                        response
+                            .response
+                            .on_hover_text(selected.as_ref())
+                            .widget_info(|| {
+                                let mut info = egui::WidgetInfo::labeled(
+                                    egui::WidgetType::ComboBox,
+                                    ui.is_enabled(),
+                                    theme_title.as_ref(),
+                                );
+                                info.current_text_value = Some(selected.to_string());
+                                info
+                            });
                         // The guide to writing a theme sits beside the folder
                         // it goes in, and above it when both do not fit.
                         let (guide, folder) = (&theme_guide, &themes_folder);
@@ -737,12 +791,13 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                 &appearance_rows[1],
                 |ui| language_picker(app, ui),
             );
-            filtered_row(
+            filtered_row_sized(
                 ui,
                 &palette,
                 &needle,
                 &appearance,
                 &appearance_rows[2],
+                40.0,
                 |ui| {
                     if widgets::switch(
                         ui,
@@ -756,12 +811,13 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                     }
                 },
             );
-            filtered_row(
+            filtered_row_sized(
                 ui,
                 &palette,
                 &needle,
                 &appearance,
                 &appearance_rows[3],
+                40.0,
                 |ui| {
                     if widgets::switch(
                         ui,
@@ -775,12 +831,13 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                     }
                 },
             );
-            filtered_row(
+            filtered_row_sized(
                 ui,
                 &palette,
                 &needle,
                 &appearance,
                 &appearance_rows[4],
+                40.0,
                 |ui| {
                     if widgets::switch(
                         ui,
@@ -825,12 +882,13 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                 },
             );
             if cfg!(target_os = "linux") {
-                filtered_row(
+                filtered_row_sized(
                     ui,
                     &palette,
                     &needle,
                     &appearance,
                     &appearance_rows[6],
+                    40.0,
                     |ui| {
                         if widgets::switch(
                             ui,
@@ -846,12 +904,13 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
                 );
             }
             if show_custom_titlebar {
-                filtered_row(
+                filtered_row_sized(
                     ui,
                     &palette,
                     &needle,
                     &appearance,
                     &appearance_rows[7],
+                    40.0,
                     |ui| {
                         let mut custom = app.settings.custom_titlebar;
                         if widgets::switch(ui, &palette, &custom_titlebar, &mut custom).changed() {
@@ -1127,6 +1186,7 @@ fn language_picker(app: &mut App, ui: &mut egui::Ui) {
     let response = egui::ComboBox::from_id_salt("interface_language")
         .selected_text(selected.as_ref())
         .width(200.0_f32.min(ui.available_width()))
+        .truncate()
         // As many languages as a menu holds before it scrolls, not five.
         .height(1000.0)
         .show_ui(ui, |ui| {
@@ -1146,12 +1206,18 @@ fn language_picker(app: &mut App, ui: &mut egui::Ui) {
             }
         });
     let name = gettext(locale, "Language");
-    response.response.widget_info(|| {
-        let mut info =
-            egui::WidgetInfo::labeled(egui::WidgetType::ComboBox, ui.is_enabled(), name.as_ref());
-        info.current_text_value = Some(selected.to_string());
-        info
-    });
+    response
+        .response
+        .on_hover_text(selected.as_ref())
+        .widget_info(|| {
+            let mut info = egui::WidgetInfo::labeled(
+                egui::WidgetType::ComboBox,
+                ui.is_enabled(),
+                name.as_ref(),
+            );
+            info.current_text_value = Some(selected.to_string());
+            info
+        });
 }
 
 #[cfg(test)]

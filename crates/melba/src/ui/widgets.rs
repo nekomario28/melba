@@ -3109,7 +3109,11 @@ pub fn setting_row_sized(
     control_width: f32,
     control: impl FnOnce(&mut Ui),
 ) {
-    let reserved = (control_width + 16.0).max(SETTING_CONTROL_WIDTH);
+    let reserved = if control_width > 0.0 {
+        control_width + 16.0
+    } else {
+        SETTING_CONTROL_WIDTH
+    };
     let text = |ui: &mut Ui| {
         theme::text(ui, label, theme::medium(14.0), palette.text);
         if !description.is_empty() {
@@ -3123,7 +3127,14 @@ pub fn setting_row_sized(
             );
         }
     };
-    if ui.available_width() - reserved < SETTING_TEXT_MIN_WIDTH {
+    // A large control group needs a readable paragraph, not a thin strip
+    // of six short lines at intermediate window widths.
+    let text_min = if control_width > SETTING_CONTROL_WIDTH {
+        260.0
+    } else {
+        SETTING_TEXT_MIN_WIDTH
+    };
+    if ui.available_width() - reserved < text_min {
         ui.vertical(|ui| {
             text(ui);
             ui.add_space(6.0);
@@ -4267,7 +4278,8 @@ mod tests {
                     |ui| {
                         let _ = ui.add_sized(
                             [control_width.max(40.0), 28.0],
-                            egui::Button::new("The control"),
+                            // A long label would override add_sized's requested width.
+                            egui::Button::new("X"),
                         );
                     },
                 );
@@ -4287,7 +4299,7 @@ mod tests {
                 .and_then(|(_, node)| node.bounds())
                 .unwrap_or_else(|| panic!("{label} is drawn"))
         };
-        (bounds("Höhere Bitraten"), bounds("The control"))
+        (bounds("Höhere Bitraten"), bounds("X"))
     }
 
     /// A settings row whose control is wider than the usual 260 points,
@@ -4321,6 +4333,23 @@ mod tests {
             control.y0,
             text.y1
         );
+    }
+
+    #[test]
+    fn a_complex_setting_row_stacks_before_the_description_becomes_cramped() {
+        let (text, control) = setting_row_bounds(560.0, 320.0);
+        assert!(
+            control.y0 >= text.y1,
+            "complex controls need a readable description: {text:?}, {control:?}"
+        );
+    }
+
+    #[test]
+    fn a_switch_sized_control_stays_beside_readable_text_in_a_narrow_card() {
+        let (text, control) = setting_row_bounds(380.0, 40.0);
+        assert!(text.x1 <= control.x0);
+        assert!(control.y0 < text.y1);
+        assert!(text.width() > 260.0);
     }
 
     /// Ordinary controls stay beside the text while it has room, as they

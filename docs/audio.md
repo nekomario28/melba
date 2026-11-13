@@ -17,7 +17,7 @@ Both paths use the same transport: queue commands, MPRIS `OpenUri` / `MelbaEnque
 
 ## Output device choice
 
-`melbad setup` lists ALSA devices and saves `audio_device` in `~/.config/melba/config.json`. The Settings device picker provides the same choices and refresh action.
+`melbad setup` lists ALSA devices and saves `audio_device` in `~/.config/melba/config.json`. The Settings device picker provides the same choices and refresh action. Its selector and refresh button stay separate from the explanatory text; narrower settings cards place complex controls below their descriptions. Long selected output names are truncated in the closed selector and available in its tooltip.
 
 | Choice | Behaviour |
 |---|---|
