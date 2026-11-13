@@ -59,6 +59,95 @@ const DAEMON_RESTART_COOLDOWN: Duration = Duration::from_secs(3);
 /// Restarts allowed per app run before the app stops trying.
 const DAEMON_RESTART_LIMIT: u32 = 3;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum DbusCallError {
+    NoBus,
+    Dbus {
+        name: Option<String>,
+        message: String,
+    },
+}
+
+impl DbusCallError {
+    fn name(&self) -> Option<&str> {
+        match self {
+            Self::NoBus => None,
+            Self::Dbus { name, .. } => name.as_deref(),
+        }
+    }
+
+    fn message(&self) -> &str {
+        match self {
+            Self::NoBus => "no session bus",
+            Self::Dbus { message, .. } => message,
+        }
+    }
+}
+
+impl std::fmt::Display for DbusCallError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NoBus => f.write_str("no session bus"),
+            Self::Dbus {
+                name: Some(name),
+                message,
+            } => write!(f, "{name}: {message}"),
+            Self::Dbus {
+                name: None,
+                message,
+            } => f.write_str(message),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PlaybackCallKind {
+    LoadQueue,
+    PlayQueued,
+}
+
+fn classify_playback_call_error(kind: PlaybackCallKind, error: &DbusCallError) -> String {
+    match error {
+        DbusCallError::NoBus => "The playback daemon is unavailable.".into(),
+        DbusCallError::Dbus { name, .. } => match name.as_deref() {
+            Some(
+                "org.freedesktop.DBus.Error.UnknownMethod"
+                | "org.freedesktop.DBus.Error.InvalidSignature",
+            ) => match kind {
+                PlaybackCallKind::LoadQueue => {
+                    "The playback request was rejected. If the app was updated, restart the playback daemon."
+                }
+                PlaybackCallKind::PlayQueued => {
+                    "The queue selection was rejected. If the app was updated, restart the playback daemon."
+                }
+            }
+            .into(),
+            Some(
+                "org.freedesktop.DBus.Error.ServiceUnknown"
+                | "org.freedesktop.DBus.Error.NameHasNoOwner"
+                | "org.freedesktop.DBus.Error.Disconnected",
+            ) => "The playback daemon is unavailable.".into(),
+            Some(
+                "org.freedesktop.DBus.Error.NoReply"
+                | "org.freedesktop.DBus.Error.Timeout"
+                | "org.freedesktop.DBus.Error.TimedOut",
+            ) => "The playback daemon did not respond in time.".into(),
+            Some("org.freedesktop.DBus.Error.InvalidArgs") => match kind {
+                PlaybackCallKind::LoadQueue => {
+                    "The playback request contains an unsupported track or position."
+                }
+                PlaybackCallKind::PlayQueued => "The queue selection is no longer valid.",
+            }
+            .into(),
+            _ => match kind {
+                PlaybackCallKind::LoadQueue => "The playback request failed.",
+                PlaybackCallKind::PlayQueued => "The queue selection failed.",
+            }
+            .into(),
+        },
+    }
+}
+
 pub struct DaemonWorker {
     events: Sender<Event>,
     waker: crate::backend::Waker,
@@ -220,10 +309,23 @@ impl DaemonWorker {
         update_proxy: crate::settings::ProxyConfig,
         dirs: DaemonDirs,
     ) -> Self {
+        Self::new_with_bus(events, waker, auth_epoch, update_proxy, dirs, true)
+    }
+
+    pub fn new_with_bus(
+        events: Sender<Event>,
+        waker: crate::backend::Waker,
+        auth_epoch: Arc<std::sync::atomic::AtomicU64>,
+        update_proxy: crate::settings::ProxyConfig,
+        dirs: DaemonDirs,
+        connect_dbus: bool,
+    ) -> Self {
         Self {
             events,
             waker,
-            conn: Connection::new_session().ok(),
+            conn: connect_dbus
+                .then(Connection::new_session)
+                .and_then(Result::ok),
             local: LocalState::default(),
             queue_uris: Vec::new(),
             queue_titles: Vec::new(),
@@ -541,13 +643,24 @@ impl DaemonWorker {
             .map(|conn| conn.with_proxy(BUS, OBJ, CALL_TIMEOUT))
     }
 
-    fn call(&self, method: &str, args: impl dbus::arg::AppendAll) -> Result<(), String> {
+    fn call_dbus(
+        &self,
+        method: &str,
+        args: impl dbus::arg::AppendAll,
+    ) -> Result<(), DbusCallError> {
         let Some(proxy) = self.proxy() else {
-            return Err("no session bus".into());
+            return Err(DbusCallError::NoBus);
         };
         proxy
             .method_call::<(), _, _, _>(IFACE, method, args)
-            .map_err(|e| e.to_string())
+            .map_err(|e| DbusCallError::Dbus {
+                name: e.name().map(str::to_owned),
+                message: e.message().unwrap_or("D-Bus call failed").to_owned(),
+            })
+    }
+
+    fn call(&self, method: &str, args: impl dbus::arg::AppendAll) -> Result<(), String> {
+        self.call_dbus(method, args).map_err(|e| e.to_string())
     }
 
     fn call_string(&self, method: &str, args: impl dbus::arg::AppendAll) -> Result<String, String> {
@@ -680,7 +793,7 @@ impl DaemonWorker {
             }
             let uri = model_uri(&str_at("xesam:url"));
             let title = str_at("xesam:title");
-            next.track = if title.is_empty() && uri.is_empty() {
+            next.track = if uri.is_empty() {
                 None
             } else {
                 Some(LocalTrack {
@@ -739,13 +852,25 @@ impl DaemonWorker {
                 let _ = self.call(method, ());
             }
             PlayerCommand::PlayQueued { index, uri } => {
-                let result = u32::try_from(index)
-                    .map_err(|_| "queue row out of range".to_string())
-                    .and_then(|row| self.call("MelbaPlayQueued", (row, daemon_uri(&uri))));
-                if result.is_err() {
+                let Ok(row) = u32::try_from(index) else {
+                    log::warn!("melbad MelbaPlayQueued skipped: queue row {index} out of range");
+                    self.emit(Event::Error(
+                        "The queue selection is no longer valid.".into(),
+                    ));
+                    return;
+                };
+                if let Err(err) = self.call_dbus("MelbaPlayQueued", (row, daemon_uri(&uri))) {
+                    log::warn!(
+                        "melbad MelbaPlayQueued failed ({}): {}",
+                        err.name().unwrap_or("dbus"),
+                        err.message()
+                    );
                     // Do not fall back to repeated Next: it opens every skipped
                     // source and can take seconds on the service.
-                    self.emit(Event::Error("The queue selection was rejected. If the app was updated, restart the playback daemon.".into()));
+                    self.emit(Event::Error(classify_playback_call_error(
+                        PlaybackCallKind::PlayQueued,
+                        &err,
+                    )));
                 }
             }
             PlayerCommand::Seek(ms) => {
@@ -801,22 +926,32 @@ impl DaemonWorker {
         if uris.is_empty() {
             return;
         }
+        let indexed: Vec<(usize, String)> = uris
+            .iter()
+            .enumerate()
+            .filter_map(|(i, u)| {
+                let mapped = daemon_uri(u);
+                (!mapped.trim().is_empty()).then_some((i, mapped))
+            })
+            .collect();
+        if indexed.is_empty() {
+            log::warn!("ignoring playback load with no playable URIs");
+            return;
+        }
         let selected = offset_uri.as_deref().map(daemon_uri);
         // An explicit row disambiguates duplicate URIs. When context resolution
         // changed the list, use the named track instead of a stale row number.
         let start = offset_index
-            .map(|i| i as usize)
-            .filter(|i| {
-                uris.get(*i).is_some_and(|u| {
-                    selected
-                        .as_ref()
-                        .is_none_or(|wanted| daemon_uri(u) == *wanted)
+            .and_then(|i| {
+                let target = i as usize;
+                indexed.iter().position(|(orig, u)| {
+                    *orig == target && selected.as_ref().is_none_or(|wanted| u == wanted)
                 })
             })
             .or_else(|| {
                 selected
                     .as_ref()
-                    .and_then(|uri| uris.iter().position(|u| daemon_uri(u) == *uri))
+                    .and_then(|uri| indexed.iter().position(|(_, u)| u == uri))
             })
             .or_else(|| (selected.is_none() && offset_index.is_none()).then_some(0));
         let Some(start) = start else {
@@ -838,12 +973,18 @@ impl DaemonWorker {
                 },
             );
         }
-        let uris: Vec<String> = uris.iter().map(|u| daemon_uri(u)).collect();
-        if self
-            .call("MelbaLoadQueue", (uris, start as u32, position_ms, play))
-            .is_err()
+        let uris: Vec<String> = indexed.into_iter().map(|(_, u)| u).collect();
+        if let Err(err) = self.call_dbus("MelbaLoadQueue", (uris, start as u32, position_ms, play))
         {
-            self.emit(Event::Error("The playback request was rejected. If the app was updated, restart the playback daemon.".into()));
+            log::warn!(
+                "melbad MelbaLoadQueue failed ({}): {}",
+                err.name().unwrap_or("dbus"),
+                err.message()
+            );
+            self.emit(Event::Error(classify_playback_call_error(
+                PlaybackCallKind::LoadQueue,
+                &err,
+            )));
         }
     }
 
@@ -938,15 +1079,20 @@ impl DaemonWorker {
             timestamp: 0,
             progress_ms: Some(self.local.position_now()),
             is_playing: self.local.playback == Playback::Playing,
-            item: self.local.track.as_ref().map(|track| {
-                PlayableItem::Track(Track {
-                    uri: track.uri.clone(),
-                    name: track.title.clone(),
-                    duration_ms: track.duration_ms,
-                    artists: track.artists.clone(),
-                    ..Track::default()
-                })
-            }),
+            item: self
+                .local
+                .track
+                .as_ref()
+                .filter(|track| !track.uri.is_empty())
+                .map(|track| {
+                    PlayableItem::Track(Track {
+                        uri: track.uri.clone(),
+                        name: track.title.clone(),
+                        duration_ms: track.duration_ms,
+                        artists: track.artists.clone(),
+                        ..Track::default()
+                    })
+                }),
             currently_playing_type: Some("track".into()),
             ..PlaybackState::default()
         }
@@ -2528,7 +2674,10 @@ where
                 (
                     page.items
                         .into_iter()
-                        .filter_map(|i| i.item.map(|i| i.uri().to_owned()))
+                        .filter_map(|i| {
+                            let uri = i.item?.uri().to_owned();
+                            (!uri.trim().is_empty()).then_some(uri)
+                        })
                         .collect(),
                     count,
                     page.next,
@@ -2538,7 +2687,11 @@ where
                 let page = result.map_err(|_| "album context request failed")?;
                 let count = page.items.len();
                 (
-                    page.items.into_iter().map(|t| t.uri).collect(),
+                    page.items
+                        .into_iter()
+                        .map(|t| t.uri)
+                        .filter(|u| !u.trim().is_empty())
+                        .collect(),
                     count,
                     page.next,
                 )
@@ -2546,7 +2699,15 @@ where
             ApiResponse::ArtistTopTracks { result, .. } => {
                 let tracks = result.map_err(|_| "artist context request failed")?;
                 let count = tracks.len();
-                (tracks.into_iter().map(|t| t.uri).collect(), count, None)
+                (
+                    tracks
+                        .into_iter()
+                        .map(|t| t.uri)
+                        .filter(|u| !u.trim().is_empty())
+                        .collect(),
+                    count,
+                    None,
+                )
             }
             _ => return Err("context request returned an unexpected response".into()),
         };
@@ -3266,6 +3427,87 @@ mod tests {
         assert_eq!(
             daemon_uri("melba:album:1588048900"),
             "melba:album:1588048900"
+        );
+    }
+
+    #[test]
+    fn playback_call_errors_are_classified_accurately() {
+        use super::{DbusCallError, PlaybackCallKind, classify_playback_call_error};
+
+        let unknown = DbusCallError::Dbus {
+            name: Some("org.freedesktop.DBus.Error.UnknownMethod".into()),
+            message: "No such method".into(),
+        };
+        assert!(
+            classify_playback_call_error(PlaybackCallKind::LoadQueue, &unknown)
+                .contains("restart the playback daemon")
+        );
+        assert!(
+            classify_playback_call_error(PlaybackCallKind::PlayQueued, &unknown)
+                .contains("restart the playback daemon")
+        );
+
+        let invalid = DbusCallError::Dbus {
+            name: Some("org.freedesktop.DBus.Error.InvalidArgs".into()),
+            message: "unsupported queue URI".into(),
+        };
+        assert_eq!(
+            classify_playback_call_error(PlaybackCallKind::LoadQueue, &invalid),
+            "The playback request contains an unsupported track or position."
+        );
+        assert_eq!(
+            classify_playback_call_error(PlaybackCallKind::PlayQueued, &invalid),
+            "The queue selection is no longer valid."
+        );
+
+        let timeout = DbusCallError::Dbus {
+            name: Some("org.freedesktop.DBus.Error.NoReply".into()),
+            message: "timed out".into(),
+        };
+        assert_eq!(
+            classify_playback_call_error(PlaybackCallKind::LoadQueue, &timeout),
+            "The playback daemon did not respond in time."
+        );
+
+        let no_owner = DbusCallError::Dbus {
+            name: Some("org.freedesktop.DBus.Error.NameHasNoOwner".into()),
+            message: "gone".into(),
+        };
+        assert_eq!(
+            classify_playback_call_error(PlaybackCallKind::LoadQueue, &no_owner),
+            "The playback daemon is unavailable."
+        );
+        assert_eq!(
+            classify_playback_call_error(PlaybackCallKind::LoadQueue, &DbusCallError::NoBus),
+            "The playback daemon is unavailable."
+        );
+    }
+
+    #[test]
+    fn playback_state_and_load_suppress_empty_uris() {
+        let (events, received) = std::sync::mpsc::channel();
+        let mut worker = super::DaemonWorker::new(
+            events,
+            crate::backend::Waker::default(),
+            std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0)),
+            crate::settings::ProxyConfig::Off,
+            crate::daemon_worker::DaemonDirs::default(),
+        );
+        worker.local.track = Some(crate::player::LocalTrack {
+            uri: String::new(),
+            title: "Stale Title".into(),
+            ..Default::default()
+        });
+        assert!(worker.playback_state().item.is_none());
+
+        worker.load(crate::player::LoadSpec {
+            uris: vec![String::new(), "   ".into()],
+            play: true,
+            ..Default::default()
+        });
+        assert!(
+            received.try_recv().is_err(),
+            "empty-URI loads must be ignored instead of emitting daemon errors"
         );
     }
 }

@@ -1023,8 +1023,8 @@ impl App {
                 .collect(),
             user_images: HashMap::new(),
             recent_contexts: session.recent_contexts.clone(),
-            resume_context: session.last_context.clone(),
-            resume_track: session.last_track.clone(),
+            resume_context: session.last_context.clone().filter(|u| !u.is_empty()),
+            resume_track: session.last_track.clone().filter(|u| !u.is_empty()),
             resume_position_ms: session.last_position_ms,
             resume_queue: session.last_added_queue.clone(),
             manual_queue: Vec::new(),
@@ -1248,20 +1248,31 @@ impl App {
             .filter(|remote| remote.received_at.elapsed() < REMOTE_FRESH)
     }
 
+    fn is_local_device(&self, state: &PlaybackState) -> bool {
+        self.local_device_id.is_some()
+            && state
+                .device
+                .as_ref()
+                .and_then(|device| device.id.as_deref())
+                == self.local_device_id.as_deref()
+    }
+
     /// Where playback commands go: this computer's player, or no ready
     /// surface yet.
     pub fn target(&self) -> Target {
         if self.local_ready && self.local.is_active() {
             return Target::Local;
         }
-        if let Some(remote) = self.remote_fresh() {
-            let device = remote.state.device.as_ref();
-            let is_local = device
-                .and_then(|device| device.id.as_deref())
-                .is_some_and(|id| Some(id) == self.local_device_id.as_deref());
-            if !is_local && (remote.state.is_playing || remote.state.item.is_some()) {
-                return Target::Remote;
-            }
+        if let Some(remote) = self.remote_fresh()
+            && !self.is_local_device(&remote.state)
+            && (remote.state.is_playing
+                || remote
+                    .state
+                    .item
+                    .as_ref()
+                    .is_some_and(|item| !item.uri().is_empty()))
+        {
+            return Target::Remote;
         }
         if self.local_ready {
             Target::Local
@@ -1443,7 +1454,11 @@ impl App {
     /// What a device is actually playing, here or elsewhere.
     fn now_playing_live(&self) -> Option<NowPlaying> {
         if self.local.is_active() {
-            let track = self.local.track.as_ref()?;
+            let track = self
+                .local
+                .track
+                .as_ref()
+                .filter(|track| !track.uri.is_empty())?;
             let cached = track
                 .uri
                 .rsplit(':')
@@ -1510,17 +1525,14 @@ impl App {
         let remote = self.remote_fresh()?;
         // Ignore a remote snapshot for this device when the local daemon has
         // no track. The snapshot may predate a local stop.
-        if self.local_device_id.is_some()
-            && remote
-                .state
-                .device
-                .as_ref()
-                .and_then(|device| device.id.as_deref())
-                == self.local_device_id.as_deref()
-        {
+        if self.is_local_device(&remote.state) {
             return None;
         }
-        let item = remote.state.item.as_ref()?;
+        let item = remote
+            .state
+            .item
+            .as_ref()
+            .filter(|item| !item.uri().is_empty())?;
         let device = remote.state.device.as_ref();
         let playing = match self.optimistic_playing {
             Some((playing, at)) if at.elapsed() < PLAYBACK_HOLD => playing,
@@ -4223,7 +4235,9 @@ impl App {
             self.last_now_playing_sequence = self.local.track_sequence;
         }
         self.resume_context = self.playing_context_uri();
-        self.resume_track = Some(now.uri.clone());
+        if !now.uri.is_empty() {
+            self.resume_track = Some(now.uri.clone());
+        }
         self.resume_position_ms = 0;
         if now.local
             && !now.is_episode
@@ -7245,10 +7259,10 @@ impl App {
     /// Play what was playing when the app last closed. `false` when
     /// nothing is known to resume.
     fn resume_last(&mut self) -> bool {
-        let Some(track) = self.resume_track.clone() else {
+        let Some(track) = self.resume_track.clone().filter(|uri| !uri.is_empty()) else {
             return false;
         };
-        let mut request = match self.resume_context.clone() {
+        let mut request = match self.resume_context.clone().filter(|uri| !uri.is_empty()) {
             Some(context) => PlayRequest::context(context).starting_at_uri(track),
             None => PlayRequest::tracks(vec![track]),
         };
@@ -7263,13 +7277,17 @@ impl App {
             Target::Local => {
                 if self.local.is_active() {
                     self.backend.player(PlayerCommand::Toggle);
-                } else if let Some(remote) = self.remote_fresh() {
-                    // Nothing is playing locally: resume on this computer.
+                } else if let Some(remote) = self
+                    .remote_fresh()
+                    .filter(|remote| !self.is_local_device(&remote.state))
+                {
+                    // Nothing is playing locally: pull playback from another device.
                     let uri = remote
                         .state
                         .item
                         .as_ref()
-                        .map(|item| item.uri().to_string());
+                        .map(|item| item.uri().to_string())
+                        .filter(|uri| !uri.is_empty());
                     let position = remote.state.progress_ms.unwrap_or(0);
                     if let Some(uri) = uri {
                         let mut request = match &remote.state.context {
@@ -9878,7 +9896,9 @@ impl App {
         self.last_session_save = Instant::now();
         if let Some(now) = self.now_playing() {
             self.resume_context = self.playing_context_uri();
-            self.resume_track = Some(now.uri.clone());
+            if !now.uri.is_empty() {
+                self.resume_track = Some(now.uri.clone());
+            }
             self.resume_position_ms = now.position_ms;
         }
         if !self.offline {
@@ -12756,6 +12776,54 @@ mod tests {
             request.position_ms, 19_566,
             "the song resumes where it stopped, not at zero"
         );
+    }
+
+    #[test]
+    fn pressing_play_when_stopped_ignores_local_remote_snapshot_and_empty_uris() {
+        let make_remote = |device_id: &str, track_uri: &str| RemoteSnapshot {
+            state: PlaybackState {
+                device: Some(crate::api::models::Device {
+                    id: Some(device_id.into()),
+                    is_active: true,
+                    ..Default::default()
+                }),
+                item: Some(PlayableItem::Track(Track {
+                    uri: track_uri.into(),
+                    name: "Stale".into(),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+            received_at: Instant::now(),
+        };
+
+        for (device_id, track_uri) in [
+            ("melbad", ""),
+            ("melbad", "melba:track:stale"),
+            ("other-device", ""),
+        ] {
+            let mut app = headless_app();
+            app.local_device_id = Some("melbad".into());
+            app.local.playback = Playback::Stopped;
+            app.resume_context = Some("melba:playlist:pl1".into());
+            app.resume_track = Some("melba:track:abc".into());
+            app.resume_position_ms = 19_566;
+            app.remote = Some(make_remote(device_id, track_uri));
+
+            app.toggle_play();
+
+            let request = app
+                .queued_play
+                .as_ref()
+                .expect("should fall back to resume_last()");
+            assert_eq!(request.context_uri.as_deref(), Some("melba:playlist:pl1"));
+            assert_eq!(request.offset_uri.as_deref(), Some("melba:track:abc"));
+            assert!(
+                request.uris.is_empty(),
+                "must not send a track-list load for ({device_id}, {track_uri:?})"
+            );
+            assert_eq!(request.position_ms, 19_566);
+        }
     }
 
     /// Play on an in-progress episode continues from the place the row or

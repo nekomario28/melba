@@ -673,15 +673,16 @@ impl Backend {
             .spawn(move || {
                 runtime.block_on(async move {
                     #[cfg(target_os = "linux")]
-                    crate::daemon_worker::DaemonWorker::new(
+                    crate::daemon_worker::DaemonWorker::new_with_bus(
                         event_tx,
                         waker,
                         worker_epoch,
                         proxy,
                         daemon_dirs,
+                        restore_sign_in,
                     )
                     // Demo/headless sessions explicitly disable bootstrap:
-                    // they must never start or stop the user's daemon.
+                    // they must never start, stop, poll, or drive the user's daemon.
                     .run(command_rx, restore_sign_in, restore_sign_in)
                     .await;
                     #[cfg(not(target_os = "linux"))]
