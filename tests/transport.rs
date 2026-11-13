@@ -610,13 +610,260 @@ fn paused_startup_takes_no_output_device() {
     assert_eq!(playing.index, 0, "Play resumes the selected entry");
 }
 
-/// Exercise the real reopen loop with deterministic pause/resume failures.
-/// The shim throttles ALSA null, so position assertions cannot race through EOF.
-fn pause_case(name: &str, failure: &str, seek_while_parked: bool) {
-    if !private_case(name) {
+/// Skip arriving during a blocked file open must be applied before the
+/// following sources are touched, not after auto-skipping unreadable entries.
+#[test]
+fn next_burst_during_loading_skips_intermediate_sources() {
+    if !private_case("next_burst_during_loading_skips_intermediate_sources") {
         return;
     }
+    use std::{
+        fs::OpenOptions,
+        os::unix::fs::OpenOptionsExt,
+        sync::{
+            atomic::{AtomicBool, Ordering},
+            mpsc, Arc,
+        },
+    };
     let root = PathBuf::from(std::env::var_os("XDG_STATE_HOME").unwrap());
+    let fifo = root.join("blocked.wav");
+    assert!(Command::new("mkfifo")
+        .arg(&fifo)
+        .status()
+        .unwrap()
+        .success());
+    for name in ["blocked-b.wav", "blocked-c.wav"] {
+        assert!(Command::new("mkfifo")
+            .arg(root.join(name))
+            .status()
+            .unwrap()
+            .success());
+    }
+    let shared = melbad::player::Shared::new();
+    *shared.queue.lock().unwrap() = vec![
+        fifo.clone(),
+        root.join("blocked-b.wav"),
+        root.join("blocked-c.wav"),
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/96k-24bit.m4a"),
+    ];
+    let (commands, received) = mpsc::channel();
+    let state = Arc::clone(&shared);
+    let owner =
+        std::thread::spawn(move || melbad::player::playback_thread(state, received, "null".into()));
+    // A nonblocking writer only connects after the real loader has opened the
+    // FIFO for reading. Holding it open without bytes stalls that actual load.
+    let deadline = Instant::now() + Duration::from_secs(6);
+    let gate = loop {
+        match OpenOptions::new()
+            .write(true)
+            .custom_flags(libc::O_NONBLOCK)
+            .open(&fifo)
+        {
+            Ok(file) => break file,
+            Err(_) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(5)),
+            Err(error) => panic!("loader never reached FIFO: {error}"),
+        }
+    };
+    for _ in 0..3 {
+        commands.send(melbad::player::Cmd::Next).unwrap();
+    }
+    commands.send(melbad::player::Cmd::Pause).unwrap();
+    // Keep the old writer open and send no bytes. Progress must be caused by
+    // cancellation, not by the test releasing the source as before.
+    let deadline = Instant::now() + Duration::from_secs(2);
+    while Instant::now() < deadline {
+        if shared.play_state() == melbad::player::PlayState::Paused
+            && *shared.idx.lock().unwrap() == 3
+        {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    let index = *shared.idx.lock().unwrap();
+    let status = shared.play_state();
+    let opened = shared.source.lock().unwrap().clone();
+    drop(gate);
+    // Let the broken implementation's second attempt at the FIFO finish too,
+    // so the regression fails with a cursor assertion rather than hanging.
+    let done = Arc::new(AtomicBool::new(false));
+    let stop = Arc::clone(&done);
+    let release = std::thread::spawn(move || {
+        while !stop.load(Ordering::Acquire) {
+            let _ = OpenOptions::new()
+                .write(true)
+                .custom_flags(libc::O_NONBLOCK)
+                .open(&fifo);
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    });
+    commands.send(melbad::player::Cmd::Quit).unwrap();
+    owner.join().unwrap();
+    done.store(true, Ordering::Release);
+    release.join().unwrap();
+    assert_eq!(
+        index, 3,
+        "pending skips must select the final row before probing intermediate sources"
+    );
+    assert_eq!(status, melbad::player::PlayState::Paused);
+    assert_eq!(opened.unwrap().rate, 96000);
+}
+
+/// Pace ALSA null without touching a physical output device.
+#[test]
+fn source_controls_interrupt_loading_before_the_old_source_is_released() {
+    if !private_case("source_controls_interrupt_loading_before_the_old_source_is_released") {
+        return;
+    }
+    use std::{
+        fs::OpenOptions,
+        os::unix::fs::OpenOptionsExt,
+        sync::{
+            atomic::{AtomicBool, Ordering},
+            mpsc, Arc,
+        },
+    };
+    let root = PathBuf::from(std::env::var_os("XDG_STATE_HOME").unwrap());
+    for (mode, count) in [
+        ("direct", 3),
+        ("stop", 3),
+        ("quit", 3),
+        ("burst", 32),
+        ("backward", 32),
+        ("mixed", 3),
+    ] {
+        let directory = root.join(mode);
+        std::fs::create_dir_all(&directory).unwrap();
+        let mut paths = Vec::new();
+        for n in 0..count {
+            let path = directory.join(format!("blocked-{n}.wav"));
+            assert!(Command::new("mkfifo")
+                .arg(&path)
+                .status()
+                .unwrap()
+                .success());
+            paths.push(path);
+        }
+        let blocked = paths.clone();
+        let target = long_silence(&directory);
+        paths.push(target.clone());
+        if mode == "backward" {
+            paths.reverse();
+        }
+        let loading = if mode == "backward" { count } else { 0 };
+        let selected = if mode == "backward" { 0 } else { count };
+        let shared = melbad::player::Shared::new();
+        *shared.queue.lock().unwrap() = paths.clone();
+        *shared.idx.lock().unwrap() = loading;
+        shared.pos_ms.store(731, Ordering::SeqCst);
+        let (sender, receiver) = mpsc::channel();
+        let state = shared.clone();
+        let owner = std::thread::spawn(move || {
+            melbad::player::playback_thread(state, receiver, "null".into())
+        });
+        let deadline = Instant::now() + Duration::from_secs(6);
+        let gate = loop {
+            match OpenOptions::new()
+                .write(true)
+                .custom_flags(libc::O_NONBLOCK)
+                .open(&paths[loading])
+            {
+                Ok(gate) => break gate,
+                Err(_) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(5)),
+                Err(error) => panic!("loader did not enter {mode}: {error}"),
+            }
+        };
+        let threads = std::fs::read_dir("/proc/self/task").unwrap().count();
+        match mode {
+            "direct" => {
+                sender
+                    .send(melbad::player::Cmd::PlayQueued {
+                        row: count - 1,
+                        uri: target.to_string_lossy().into_owned(),
+                    })
+                    .unwrap();
+                sender.send(melbad::player::Cmd::Pause).unwrap();
+            }
+            "burst" | "backward" | "mixed" => {
+                if mode == "mixed" {
+                    for _ in 0..16 {
+                        sender.send(melbad::player::Cmd::Next).unwrap();
+                        sender.send(melbad::player::Cmd::Prev).unwrap();
+                    }
+                }
+                for _ in 0..count {
+                    sender
+                        .send(if mode == "backward" {
+                            melbad::player::Cmd::Prev
+                        } else {
+                            melbad::player::Cmd::Next
+                        })
+                        .unwrap();
+                }
+                sender.send(melbad::player::Cmd::Pause).unwrap();
+            }
+            "stop" => sender.send(melbad::player::Cmd::Stop).unwrap(),
+            "quit" => sender.send(melbad::player::Cmd::Quit).unwrap(),
+            _ => unreachable!(),
+        }
+        let deadline = Instant::now() + Duration::from_secs(2);
+        let mut progressed = false;
+        while Instant::now() < deadline {
+            progressed = match mode {
+                "quit" => owner.is_finished(),
+                "stop" => {
+                    shared.play_state() == melbad::player::PlayState::Stopped
+                        && shared.pos_ms.load(Ordering::SeqCst) == 0
+                }
+                _ => {
+                    shared.play_state() == melbad::player::PlayState::Paused
+                        && *shared.idx.lock().unwrap() == selected
+                        && shared
+                            .source
+                            .lock()
+                            .unwrap()
+                            .as_ref()
+                            .is_some_and(|source| source.path == target.to_string_lossy())
+                }
+            };
+            if progressed {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        let live_threads = std::fs::read_dir("/proc/self/task").unwrap().count();
+        let index = *shared.idx.lock().unwrap();
+        // Only now release anything. This cleanup also lets the old broken
+        // implementation terminate, so its failure is a progress assertion.
+        drop(gate);
+        let finish = Arc::new(AtomicBool::new(false));
+        let done = finish.clone();
+        let cleanup = std::thread::spawn(move || {
+            while !done.load(Ordering::Acquire) {
+                for path in &blocked {
+                    let _ = OpenOptions::new()
+                        .write(true)
+                        .custom_flags(libc::O_NONBLOCK)
+                        .open(path);
+                }
+                std::thread::sleep(Duration::from_millis(5));
+            }
+        });
+        let _ = sender.send(melbad::player::Cmd::Quit);
+        owner.join().unwrap();
+        finish.store(true, Ordering::Release);
+        cleanup.join().unwrap();
+        assert!(
+            progressed,
+            "{mode} waited for the obsolete read; index={index}"
+        );
+        assert!(
+            live_threads <= threads + 2,
+            "{mode}: source work grew with the number of clicks ({threads} -> {live_threads})"
+        );
+    }
+}
+
+fn throttled_null_shim(root: &std::path::Path) -> PathBuf {
     let shim = root.join("pcm_pause.so");
     assert!(Command::new("cc")
         .args(["-shared", "-fPIC", "-Wall", "-Werror"])
@@ -626,6 +873,10 @@ fn pause_case(name: &str, failure: &str, seek_while_parked: bool) {
         .status()
         .unwrap()
         .success());
+    shim
+}
+
+fn long_silence(root: &std::path::Path) -> PathBuf {
     // 45 seconds of stereo 16-bit silence at 48 kHz.
     let bytes = 45u32 * 48000 * 4;
     let mut wav = Vec::new();
@@ -639,6 +890,150 @@ fn pause_case(name: &str, failure: &str, seek_while_parked: bool) {
     wav.resize(44 + bytes as usize, 0);
     let file = root.join("pause.wav");
     std::fs::write(&file, wav).unwrap();
+    file
+}
+
+/// A later queue selection must prepare exactly one decoder, preserving the
+/// existing plan instead of walking through and opening intermediate songs.
+#[test]
+fn selecting_a_queue_row_opens_only_that_source_and_keeps_the_tail() {
+    if !private_case("selecting_a_queue_row_opens_only_that_source_and_keeps_the_tail") {
+        return;
+    }
+    let root = PathBuf::from(std::env::var_os("XDG_STATE_HOME").unwrap());
+    let shim = throttled_null_shim(&root);
+    let file = long_silence(&root);
+    let fixtures = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures");
+    let queue: Vec<String> = [
+        file.clone(),
+        fixtures.join("96k-24bit.m4a"),
+        fixtures.join("48k-mono-aac.m4a"),
+        file.clone(),
+        file.clone(),
+    ]
+    .iter()
+    .map(|p| format!("file://{}", p.display()))
+    .collect();
+    let paths: Vec<String> = queue
+        .iter()
+        .map(|u| u.trim_start_matches("file://").to_string())
+        .collect();
+    for (mode, shuffle) in [
+        ("paused", false),
+        ("playing", true),
+        ("stopped", false),
+        ("software", true),
+    ] {
+        // Each mode needs a fresh saved queue, not the previous daemon's
+        // persisted context (which would start playing before this case).
+        let state = root.join(mode);
+        std::fs::create_dir(&state).unwrap();
+        let _daemon = Daemon(
+            Command::new(env!("CARGO_BIN_EXE_melbad"))
+                .args(["serve", "--device", "null"])
+                .env("XDG_STATE_HOME", &state)
+                .env("LD_PRELOAD", &shim)
+                .env("MELBA_TEST_PCM_THROTTLE", "1")
+                .env(
+                    "MELBA_TEST_PAUSE_FAILURE",
+                    if mode == "software" { "pause" } else { "" },
+                )
+                .env("MELBA_TEST_PAUSE_TRACE", root.join("queue.trace"))
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .unwrap(),
+        );
+        let conn = Connection::new_session().unwrap();
+        wait(&conn, |s| s.status == "Stopped");
+        let proxy = conn.with_proxy(BUS, "/org/mpris/MediaPlayer2", Duration::from_secs(2));
+        proxy.set(IFACE, "Shuffle", shuffle).unwrap();
+        proxy
+            .method_call::<(), _, _, _>(IFACE, "MelbaLoadQueue", (queue.clone(), 0u32, 0u32, false))
+            .unwrap();
+        wait(&conn, |s| {
+            s.status == "Paused" && s.rate == 48000 && s.queue == paths
+        });
+        if mode != "paused" {
+            proxy.method_call::<(), _, _, _>(IFACE, "Play", ()).unwrap();
+            wait(&conn, |s| s.status == "Playing" && s.position >= 100);
+            if mode != "playing" {
+                let verb = if mode == "stopped" { "Stop" } else { "Pause" };
+                proxy.method_call::<(), _, _, _>(IFACE, verb, ()).unwrap();
+                wait(&conn, |s| {
+                    s.status
+                        == if mode == "stopped" {
+                            "Stopped"
+                        } else {
+                            "Paused"
+                        }
+                });
+            }
+        }
+        let before = snapshot(&conn).unwrap();
+        let plan = before
+            .next_indices
+            .as_ref()
+            .expect("daemon must report its plan");
+        let row = if shuffle { 1usize } else { 2usize };
+        let chosen = plan[row];
+        proxy
+            .method_call::<(), _, _, _>(
+                IFACE,
+                "MelbaPlayQueued",
+                (row as u32, queue[chosen as usize].clone()),
+            )
+            .unwrap();
+        let after = wait(&conn, |s| {
+            s.status == "Playing"
+                && s.index == chosen
+                && s.track_id != before.track_id
+                && s.rate > 0
+                && s.position >= 30
+        });
+        let sequence = |s: &Snapshot| {
+            s.track_id
+                .rsplit('/')
+                .next()
+                .unwrap()
+                .parse::<u64>()
+                .unwrap()
+        };
+        assert_eq!(
+            sequence(&after),
+            sequence(&before) + 1,
+            "{mode}: intermediate sources must not open"
+        );
+        assert_eq!(
+            after.queue, before.queue,
+            "{mode}: keep the original context"
+        );
+        assert_eq!(
+            after.next_indices.as_deref(),
+            Some(&plan[row + 1..]),
+            "{mode}: keep the planned tail"
+        );
+        proxy
+            .method_call::<(), _, _, _>(IFACE, "Pause", ())
+            .unwrap();
+        wait(&conn, |s| s.status == "Paused");
+        proxy
+            .method_call::<(), _, _, _>(IFACE, "Previous", ())
+            .unwrap();
+        wait(&conn, |s| s.index == 0 && s.status == "Paused");
+    }
+}
+
+/// Exercise the real reopen loop with deterministic pause/resume failures.
+/// The shim throttles ALSA null, so position assertions cannot race through EOF.
+fn pause_case(name: &str, failure: &str, seek_while_parked: bool) {
+    if !private_case(name) {
+        return;
+    }
+    let root = PathBuf::from(std::env::var_os("XDG_STATE_HOME").unwrap());
+    let shim = throttled_null_shim(&root);
+    let file = long_silence(&root);
     let trace = root.join("pause.trace");
     let _daemon = Daemon(
         Command::new(env!("CARGO_BIN_EXE_melbad"))

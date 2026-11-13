@@ -206,6 +206,9 @@ pub enum Prereleases {
     /// release. A stable build behaves as with [`Prereleases::Never`] and is
     /// never offered a pre-release.
     WhenRunningPrerelease,
+    /// Explicit developer opt-in, including from a stable build. Consider all
+    /// published non-draft semantic versions, never an older/equal version.
+    Always,
 }
 
 impl UpdateConfig {
@@ -297,11 +300,14 @@ impl UpdateConfig {
     }
 
     /// Whether this build takes part in the pre-release channel: it asked
-    /// for it and is running a pre-release itself.
+    /// for it explicitly, or is running a pre-release on its opted-in channel.
     fn prerelease_channel(&self) -> bool {
-        self.prereleases == Prereleases::WhenRunningPrerelease
-            && version::Semver::parse(self.current_version)
-                .is_some_and(|version| version.is_prerelease())
+        match self.prereleases {
+            Prereleases::Never => false,
+            Prereleases::Always => true,
+            Prereleases::WhenRunningPrerelease => version::Semver::parse(self.current_version)
+                .is_some_and(|version| version.is_prerelease()),
+        }
     }
 
     /// Whether `version` may be downloaded, staged and installed: a plain

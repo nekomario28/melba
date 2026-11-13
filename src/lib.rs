@@ -10,5 +10,6 @@ pub mod library;
 pub mod musickit;
 pub mod pipewire;
 pub mod player;
+mod source_io;
 pub mod stream;
 pub mod wrapper;

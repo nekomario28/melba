@@ -137,6 +137,7 @@ pub fn open(storefront: &str, id: &str) -> Result<Opened, String> {
 }
 
 fn open_once(storefront: &str, id: &str) -> Result<Opened, String> {
+    melba_cdm::operation::check().map_err(|e| e.to_string())?;
     let dev = crate::musickit::dev_token()?;
     let user =
         crate::auth::get().ok_or_else(|| "not signed in — run `melbad auth open`".to_string())?;
@@ -196,6 +197,7 @@ fn open_once(storefront: &str, id: &str) -> Result<Opened, String> {
             let idc = id.to_string();
             let hi_res = wants_highest_alac(quality);
             let r = std::panic::catch_unwind(move || ams::open_alac_with(h, &idc, &wurl, hi_res));
+            melba_cdm::operation::check().map_err(|e| e.to_string())?;
             match r {
                 Ok(Ok(vm)) => return Ok(opened(vm)),
                 Ok(Err(e)) => crate::diag::warn(
@@ -215,6 +217,8 @@ fn open_once(storefront: &str, id: &str) -> Result<Opened, String> {
             }
         }
     }
+    // Cancelling ALAC is not a reason to initialize the AAC fallback.
+    melba_cdm::operation::check().map_err(|e| e.to_string())?;
     let so = cdm_so()
         .ok_or_else(|| "no Widevine CDM found (install Chrome/Chromium/Vivaldi)".to_string())?;
     let store = cdm_store().ok_or_else(|| "no XDG_DATA_HOME or HOME".to_string())?;

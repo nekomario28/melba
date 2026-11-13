@@ -131,3 +131,57 @@ class ReleaseVersionLock(unittest.TestCase):
                 f"--manifest-path {manifest}",
             )
 
+
+class ReleaseChannelPublishing(unittest.TestCase):
+    def test_release_version_contract_accepts_stable_and_alpha_only(self):
+        script = ROOT / "ci" / "release-version.sh"
+        for version, expected in (
+            ("0.3.30", "stable"),
+            ("0.4.0", "stable"),
+            ("0.4.0-alpha.0", "alpha"),
+            ("0.4.0-alpha.1", "alpha"),
+            ("0.4.0-alpha.12", "alpha"),
+        ):
+            out = subprocess.run(
+                ["bash", str(script), version],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(out.returncode, 0, (version, out.stderr))
+            self.assertEqual(out.stdout.strip(), expected)
+
+        for bad in (
+            "v0.4.0",
+            "0.4.0-beta.1",
+            "0.4.0-rc.1",
+            "0.4.0-alpha",
+            "0.4.0-alpha.01",
+            "04.0.0",
+            "0.4.0+build",
+            "0.4.0-alpha.1/../x",
+        ):
+            out = subprocess.run(
+                ["bash", str(script), bad],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(out.returncode, 2, (bad, out.stdout, out.stderr))
+
+    def test_prepare_signed_release_delegates_version_check_for_alpha(self):
+        env = {k: v for k, v in __import__("os").environ.items() if k != "MELBA_SIGNING_KEY_PEM"}
+        out = subprocess.run(
+            ["bash", str(ROOT / "ci" / "prepare_signed_release.sh"), "/tmp/does-not-exist", "0.4.0-alpha.1"],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        # Fails on missing key (exit 1), not invalid version (exit 2).
+        self.assertEqual(out.returncode, 1, out.stderr)
+        self.assertIn("MELBA_SIGNING_KEY_PEM is absent", out.stderr)
+
+    def test_release_publish_keeps_alpha_off_latest_and_smokes_the_published_tag(self):
+        text = (ROOT / ".github" / "workflows" / "release-publish.yml").read_text(encoding="utf-8")
+        self.assertIn("bash ci/release-version.sh", text)
+        self.assertIn("--prerelease", text)
+        self.assertIn("--latest=false", text)
+        self.assertIn('install-release.sh --no-alac --version "$TAG"', text)

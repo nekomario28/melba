@@ -385,6 +385,56 @@ mod tests {
     }
 
     #[test]
+    fn explicit_opt_in_from_stable_uses_the_release_list_without_downgrades() {
+        let config = UpdateConfig {
+            current_version: "0.3.30",
+            prereleases: crate::Prereleases::Always,
+            ..ZAPFAST
+        };
+        let transport = FakeTransport::default()
+            .serve(LATEST, listing("v0.3.30").as_bytes())
+            .serve(
+                &format!("{LIST}1"),
+                &list(&[
+                    entry("v0.3.29", false, false),
+                    entry("v0.4.0-alpha.1", false, true),
+                    entry("v0.4.0-alpha.2", true, true),
+                ]),
+            );
+        assert_eq!(
+            offered(&config, &transport).as_deref(),
+            Some("0.4.0-alpha.1")
+        );
+        assert_eq!(transport.requested(), [format!("{LIST}1")]);
+        assert!(config.accepts_version("0.4.0-alpha.1"));
+        assert!(!config.accepts_version("0.4.0-alpha/../../x"));
+        let newer = UpdateConfig {
+            current_version: "0.4.0",
+            ..config
+        };
+        let transport = FakeTransport::default().serve(
+            &format!("{LIST}1"),
+            &list(&[
+                entry("v0.4.0-alpha.1", false, true),
+                entry("v0.4.0", false, false),
+            ]),
+        );
+        assert_eq!(offered(&newer, &transport), None);
+        let alpha = UpdateConfig {
+            current_version: "0.4.0-alpha.1",
+            ..config
+        };
+        let transport = FakeTransport::default().serve(
+            &format!("{LIST}1"),
+            &list(&[
+                entry("v0.4.0-alpha.2", false, true),
+                entry("v0.4.0", false, false),
+            ]),
+        );
+        assert_eq!(offered(&alpha, &transport).as_deref(), Some("0.4.0"));
+    }
+
+    #[test]
     fn a_prerelease_build_is_offered_the_highest_newer_release() {
         let page = list(&[
             entry("v0.3.0-alpha.9", false, true),

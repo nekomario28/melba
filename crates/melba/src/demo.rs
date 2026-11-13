@@ -556,6 +556,13 @@ pub fn apply_flags(app: &mut App, page: Option<&str>, show: Option<&str>) {
     }
     for surface in show.unwrap_or("").split(',').map(str::trim) {
         match surface {
+            "settings-output" => {
+                app.open(Page::Settings);
+                app.audio_outputs = Some(crate::api::models::AudioOutputs {
+                    current: "default".into(),
+                    devices: Vec::new(),
+                });
+            }
             "library-list"
             | "library-list-narrow"
             | "library-list-wide"
@@ -2692,6 +2699,91 @@ mod tests {
             .into_iter()
             .map(|(text, _)| text)
             .collect()
+    }
+
+    #[test]
+    fn audio_output_settings_keep_description_and_controls_apart() {
+        for width in [360.0, 560.0, 760.0, 1040.0, 1400.0] {
+            let (ctx, mut app) = accessible_app("settings-output-layout");
+            app.audio_outputs = Some(crate::api::models::AudioOutputs {
+                current: "default".into(),
+                devices: Vec::new(),
+            });
+            ctx.data_mut(|data| {
+                data.insert_temp(egui::Id::new("settings-filter"), "Audio output".to_owned());
+            });
+            let size = egui::vec2(width, 900.0);
+            view_frame_sized(&ctx, &mut app, vec![], crate::ui::settings::show, size);
+            let text = view_frame_sized(&ctx, &mut app, vec![], crate::ui::settings::show, size);
+            let description = text
+                .iter()
+                .find(|(s, _)| s.starts_with("Direct hardware output"))
+                .unwrap()
+                .1;
+            for label in ["OS mixer (not bit-perfect)", "Refresh outputs"] {
+                let rect = text.iter().find(|(s, _)| s == label).unwrap().1;
+                assert!(
+                    !description.intersects(rect),
+                    "{width}: {label} overlaps description: {description:?}, {rect:?}"
+                );
+                assert!(
+                    rect.left() >= 0.0 && rect.right() <= width,
+                    "{width}: {label} outside window: {rect:?}"
+                );
+            }
+            if width == 1400.0 {
+                let control = text
+                    .iter()
+                    .find(|(s, _)| s == "OS mixer (not bit-perfect)")
+                    .unwrap()
+                    .1;
+                assert!(
+                    control.right() > 1050.0,
+                    "wide settings must use the available space: {control:?}"
+                );
+            }
+            app.backend.shutdown();
+        }
+    }
+
+    #[test]
+    fn stream_quality_choices_form_a_balanced_narrow_grid() {
+        let (ctx, mut app) = accessible_app("settings-quality-grid");
+        ctx.data_mut(|data| {
+            data.insert_temp(
+                egui::Id::new("settings-filter"),
+                "Stream quality".to_owned(),
+            );
+        });
+        let size = egui::vec2(360.0, 900.0);
+        view_frame_sized(&ctx, &mut app, vec![], crate::ui::settings::show, size);
+        let text = view_frame_sized(&ctx, &mut app, vec![], crate::ui::settings::show, size);
+        let rect = |label| {
+            text.iter()
+                .find(|(s, _)| s == label)
+                .unwrap_or_else(|| panic!("missing {label}: {text:?}"))
+                .1
+        };
+        let (hi, lossless, aac, auto) = (
+            rect("Hi-res lossless"),
+            rect("Lossless"),
+            rect("AAC 256"),
+            rect("Auto"),
+        );
+        assert!(
+            hi.left() < lossless.left(),
+            "keep the wide layout's left-to-right order"
+        );
+        assert!(aac.left() < auto.left());
+        assert!((hi.center().y - lossless.center().y).abs() < 1.0);
+        assert!((aac.center().y - auto.center().y).abs() < 1.0);
+        assert!(aac.top() > hi.bottom());
+        assert!((hi.center().x - aac.center().x).abs() < 1.0);
+        assert!((lossless.center().x - auto.center().x).abs() < 1.0);
+        for r in [hi, lossless, aac, auto] {
+            assert!(r.left() >= 0.0 && r.right() <= size.x);
+        }
+        app.backend.shutdown();
     }
 
     /// The About card ends with the credit, and the upstream project's name

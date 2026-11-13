@@ -65,6 +65,7 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {}
 type Res<T> = Result<T, Error>;
 
+pub mod operation;
 pub mod stream;
 
 /// Live Widevine CDM session holding any acquired keys.

@@ -98,7 +98,7 @@ pub fn invalidate_dev_token() {
 }
 
 fn dev_token_fetch() -> Result<String, String> {
-    let a = agent();
+    let a = melba_cdm::operation::agent(agent());
     let html = a
         .get(TOKEN_PAGE)
         .call()
@@ -158,7 +158,7 @@ fn extract_js_path(html: &str) -> Option<String> {
 /// only way to tell live from dead. Returns Ok on HTTP 200.
 pub fn validate_token(mtok: &str) -> Result<(), String> {
     let dev = dev_token()?;
-    agent()
+    melba_cdm::operation::agent(agent())
         .get("https://api.music.apple.com/v1/me/storefront")
         .header("Authorization", &format!("Bearer {dev}"))
         .header("Origin", "https://music.apple.com")
@@ -214,7 +214,7 @@ fn with_dev_retry<T>(f: impl Fn(&str) -> Result<T, String>) -> Result<T, String>
 fn get_in(store: &str, path: &str, query: &[(&str, &str)]) -> Result<Value, String> {
     with_dev_retry(|token| {
         let url = format!("{API}/{store}{path}");
-        let mut req = agent()
+        let mut req = melba_cdm::operation::agent(agent())
             .get(&url)
             .header("Authorization", &format!("Bearer {token}"))
             .header("Origin", "https://music.apple.com");
@@ -447,7 +447,7 @@ pub fn enrich_collection(json_text: &str, limit: usize) -> Result<String, String
         let q = format!("{artist} {title}");
         let url = format!("{API}/{}/search", storefront());
         let res = with_dev_retry(|token| {
-            agent()
+            melba_cdm::operation::agent(agent())
                 .get(&url)
                 .header("Authorization", &format!("Bearer {token}"))
                 .header("Origin", "https://music.apple.com")
@@ -521,7 +521,7 @@ fn me_get(path: &str, query: &[(&str, &str)]) -> Result<Value, String> {
         .ok_or("no music-user-token — run `melbad auth open` (see `melbad auth --help`)")?;
     with_dev_retry(|dt| {
         let url = format!("https://api.music.apple.com/v1/me{path}");
-        let mut req = agent()
+        let mut req = melba_cdm::operation::agent(agent())
             .get(&url)
             .header("Authorization", &format!("Bearer {dt}"))
             .header("Music-User-Token", &ut)
@@ -539,7 +539,7 @@ fn me_post(path: &str, query: &[(&str, String)]) -> Result<(), String> {
     let ut = crate::auth::get().ok_or("no music-user-token — `melbad auth set <token>`")?;
     with_dev_retry(|dt| {
         let url = format!("https://api.music.apple.com/v1/me{path}");
-        let mut req = agent()
+        let mut req = melba_cdm::operation::agent(agent())
             .post(&url)
             .header("Authorization", &format!("Bearer {dt}"))
             .header("Music-User-Token", &ut)
@@ -597,7 +597,7 @@ pub fn lyrics(song_id: &str) -> Result<Value, String> {
 pub fn lyrics_in(store: &str, song_id: &str) -> Result<Value, String> {
     with_dev_retry(|dt| {
         let url = format!("{AMP_API}/{store}/songs/{song_id}/lyrics");
-        let mut req = agent()
+        let mut req = melba_cdm::operation::agent(agent())
             .get(&url)
             .header("Authorization", &format!("Bearer {dt}"))
             .header("Origin", "https://music.apple.com");
@@ -839,7 +839,7 @@ pub fn preview_url(song_id: &str) -> Result<(String, Value), String> {
 pub fn preview_url_in(store: &str, song_id: &str) -> Result<(String, Value), String> {
     let url = format!("{API}/{store}/songs/{song_id}");
     let v: Value = with_dev_retry(|dt| {
-        let mut res = agent()
+        let mut res = melba_cdm::operation::agent(agent())
             .get(&url)
             .header("Authorization", &format!("Bearer {dt}"))
             .header("Origin", "https://music.apple.com")
@@ -882,14 +882,31 @@ pub fn download_preview_in(store: &str, song_id: &str) -> Result<std::path::Path
     let out = cache_dir("previews")
         .ok_or("no XDG_CACHE_HOME or HOME")?
         .join(format!("{name}.m4a"));
-    let mut resp = agent()
+    let mut resp = melba_cdm::operation::agent(agent())
         .get(&url)
         .call()
         .map_err(|e| format!("preview dl: {e}"))?;
     let mut resp = resp.body_mut().as_reader();
-    let mut f = std::fs::File::create(&out).map_err(|e| e.to_string())?;
-    std::io::copy(&mut resp, &mut f).map_err(|e| e.to_string())?;
+    save_preview(&mut resp, &out)?;
     Ok(out)
+}
+
+fn save_preview(reader: &mut impl std::io::Read, out: &std::path::Path) -> Result<(), String> {
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let serial = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let temporary = out.with_extension(format!("part-{}-{serial}", std::process::id()));
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temporary)
+        .map_err(|e| e.to_string())?;
+    let copied = std::io::copy(reader, &mut file);
+    drop(file);
+    let result = copied
+        .and_then(|_| melba_cdm::operation::check())
+        .and_then(|_| std::fs::rename(&temporary, out));
+    let _ = std::fs::remove_file(&temporary);
+    result.map_err(|e| e.to_string())
 }
 
 /// `melbad dl <id>`: preview + artwork + metadata manifest into
@@ -904,7 +921,10 @@ pub fn download(song_id: &str) -> Result<Value, String> {
 
     // preview audio
     let pv = dir.join("preview.m4a");
-    let mut resp = agent().get(&purl).call().map_err(|e| format!("dl: {e}"))?;
+    let mut resp = melba_cdm::operation::agent(agent())
+        .get(&purl)
+        .call()
+        .map_err(|e| format!("dl: {e}"))?;
     let mut resp = resp.body_mut().as_reader();
     std::io::copy(
         &mut resp,
@@ -915,7 +935,7 @@ pub fn download(song_id: &str) -> Result<Value, String> {
     // artwork
     let mut art_path = None;
     if let Some(u) = meta.get("artworkUrl").and_then(|v| v.as_str()) {
-        if let Ok(mut r) = agent().get(u).call() {
+        if let Ok(mut r) = melba_cdm::operation::agent(agent()).get(u).call() {
             let ap = dir.join("artwork.jpg");
             let mut rr = r.body_mut().as_reader();
             if std::io::copy(
@@ -1004,7 +1024,7 @@ pub fn collection_of(kind: &str, id: &str) -> Result<String, String> {
 pub fn collection_of_in(store: &str, kind: &str, id: &str) -> Result<String, String> {
     let url = format!("{API}/{store}/{kind}/{id}");
     let v: Value = with_dev_retry(|dt| {
-        let mut res = agent()
+        let mut res = melba_cdm::operation::agent(agent())
             .get(&url)
             .header("Authorization", &format!("Bearer {dt}"))
             .header("Origin", "https://music.apple.com")
@@ -1073,6 +1093,55 @@ mod tests {
     /// ureq pools connections per agent, so "is the agent reused" is the whole
     /// of the keep-alive fix. Returning a fresh agent from `agent()` would make
     /// this fail while every other test still passed.
+    #[test]
+    fn cancelled_or_failed_preview_writes_do_not_replace_the_complete_cache() {
+        use std::io::{Cursor, Read};
+        let root = std::env::temp_dir().join(format!(
+            "melba-preview-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        let out = root.join("preview.m4a");
+        std::fs::write(&out, b"complete").unwrap();
+        struct Cancels {
+            operation: melba_cdm::operation::Operation,
+            bytes: Cursor<Vec<u8>>,
+        }
+        impl Read for Cancels {
+            fn read(&mut self, bytes: &mut [u8]) -> std::io::Result<usize> {
+                self.operation.cancel();
+                self.bytes.read(bytes)
+            }
+        }
+        let operation = melba_cdm::operation::Operation::default();
+        {
+            let _scope = operation.enter();
+            let mut reader = Cancels {
+                operation: operation.clone(),
+                bytes: Cursor::new(b"obsolete".to_vec()),
+            };
+            assert!(super::save_preview(&mut reader, &out).is_err());
+        }
+        assert_eq!(std::fs::read(&out).unwrap(), b"complete");
+        struct Fails;
+        impl Read for Fails {
+            fn read(&mut self, _: &mut [u8]) -> std::io::Result<usize> {
+                Err(std::io::Error::other("injected read failure"))
+            }
+        }
+        assert!(super::save_preview(&mut Fails, &out).is_err());
+        assert_eq!(std::fs::read(&out).unwrap(), b"complete");
+        super::save_preview(&mut Cursor::new(b"new"), &out).unwrap();
+        assert_eq!(std::fs::read(&out).unwrap(), b"new");
+        assert_eq!(
+            std::fs::read_dir(&root).unwrap().count(),
+            1,
+            "partial files must be removed"
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
     #[test]
     fn the_catalog_agent_is_created_once() {
         assert!(std::ptr::eq(agent(), agent()));

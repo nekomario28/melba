@@ -120,7 +120,7 @@ pub fn open_media(
 
 /// Open+probe a local file — the single-open form of `probe_source`.
 pub fn open_source(path: &str) -> Result<ProbedFile, String> {
-    let file = std::fs::File::open(path).map_err(|e| format!("open {path}: {e}"))?;
+    let file = crate::source_io::SourceFile::open(path).map_err(|e| format!("open {path}: {e}"))?;
     let ext = std::path::Path::new(path)
         .extension()
         .and_then(|e| e.to_str());

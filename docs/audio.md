@@ -17,7 +17,7 @@ Both paths use the same transport: queue commands, MPRIS `OpenUri` / `MelbaEnque
 
 ## Output device choice
 
-`melbad setup` lists ALSA devices and saves `audio_device` in `~/.config/melba/config.json`. The Settings device picker provides the same choices and refresh action.
+`melbad setup` lists ALSA devices and saves `audio_device` in `~/.config/melba/config.json`. The Settings device picker provides the same choices and refresh action. Its selector and refresh button stay separate from the explanatory text; narrower settings cards place complex controls below their descriptions. Long selected output names are truncated in the closed selector and available in its tooltip.
 
 | Choice | Behaviour |
 |---|---|
@@ -124,6 +124,12 @@ Narrow windows may abbreviate the player label; its tooltip includes the full so
 ## Queue and desktop control
 
 When opening an album or playlist context, Melba replaces the queue with the original context order, selected row, initial position and play/pause intent together. Opening one track and appending others loses the preceding rows; this is not equivalent. Decoder tests under `tests/transport.rs` exercise that contract without live account data.
+
+Choosing a later row in **Next up** consumes the rows through that selection in one daemon command. Only the chosen song is opened; the original context and remaining shuffle plan stay intact. History for **Previous** retains visited selections, not unfinished intermediate candidates abandoned during loading. This is different from repeatedly pressing Next or replacing the context with the visible queue rows.
+
+Manual **Next** and **Previous** presses share the same directional-skip path and supersede older source work without a debounce delay. Command ingress runs independently of loading and cancels that operation's established HTTP connections, wrapper TCP reads and pipe readers; it does not wait for the old response or create a loader thread per click. The playback owner consumes pending skips before further probing, fallback or output, while preserving Stop / seek / queue-load ordering. During playback or pause, Previous retains the existing rule: a visited selection beyond three seconds first restarts at zero; further presses navigate backward. A newly loading candidate cannot inherit the old track's position. Cancellation must not turn into a failed-track advance or a preview fallback. Cancelled preview downloads leave no partial cache entry.
+
+Cancellation is scoped to the selected source: unrelated catalog/auth requests keep their shared connections, speculative segment workers have a process-wide limit, and an old result cannot overwrite a newer selection. This is not an unconditional wall-clock guarantee for native DNS/connect establishment, regular-file kernel stalls or CDM calls; those native operations retain their own limits. Source-format reporting and the proof that a queue occurrence was visited are separate, so a reopen cannot erase history and an equal URI cannot make skipped duplicates count as played.
 
 The daemon owns Linux MPRIS transport. The desktop launches the co-installed daemon if necessary, restoring a previous queue **paused**. Normal window close and explicit Quit stop the desktop session and playback unless background/tray mode was explicitly enabled. Switching between full and mini-player views does not quit. `melba background off` restores close-to-quit; `melba quit` performs the normal shutdown path. A standalone `melbad serve` remains possible by choice.
 

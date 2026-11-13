@@ -1037,6 +1037,43 @@ mod tests {
     }
 
     #[test]
+    fn explicit_prerelease_opt_in_downloads_and_stages_with_signature_verification() {
+        for current in ["0.3.30", "0.4.0-alpha.0"] {
+            let directory = tempfile::tempdir().unwrap();
+            let host = FakeHost::default()
+                .with_archive_entry(
+                    "zapfast-v0.4.0-alpha.1-x86_64-unknown-linux-gnu/zapfast",
+                    b"signed alpha",
+                )
+                .with_version_output("zapfast 0.4.0-alpha.1");
+            let fixture = Fixture {
+                version: "0.4.0-alpha.1",
+                prerelease: true,
+                ..Fixture::default()
+            };
+            let opt_in = UpdateConfig {
+                current_version: current,
+                prereleases: crate::Prereleases::Always,
+                ..config()
+            };
+            let prepared = run(&fixture, &opt_in, &host, portable(directory.path())).unwrap();
+            assert_eq!(prepared.version(), "0.4.0-alpha.1");
+            prepared
+                .staged
+                .check_layout(&opt_in, &prepared.staged.file("handoff.json"))
+                .expect("opted-in helper and relaunch accept the staged prerelease");
+
+            let tampered = tempfile::tempdir().unwrap();
+            let bad_sig = Fixture {
+                signed_manifest: Some("tampered\n".into()),
+                ..fixture
+            };
+            assert!(run(&bad_sig, &opt_in, &host, portable(tampered.path())).is_err());
+            untouched(tampered.path());
+        }
+    }
+
+    #[test]
     fn a_stable_build_never_downloads_a_prerelease() {
         let fixture = Fixture {
             version: "0.3.0-alpha.10",

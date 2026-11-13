@@ -688,6 +688,17 @@ pub fn pill_button_width(ui: &egui::Ui, label: &str) -> f32 {
 }
 
 pub fn pill_button(ui: &mut egui::Ui, palette: &Palette, label: &str, primary: bool) -> Response {
+    pill_button_sized(ui, palette, label, primary, 0.0)
+}
+
+/// Equal-width pills keep related choices aligned in a responsive grid.
+pub fn pill_button_sized(
+    ui: &mut egui::Ui,
+    palette: &Palette,
+    label: &str,
+    primary: bool,
+    min_width: f32,
+) -> Response {
     let font = semibold(13.0);
     let color = if primary {
         palette.on_accent
@@ -696,7 +707,8 @@ pub fn pill_button(ui: &mut egui::Ui, palette: &Palette, label: &str, primary: b
     };
     let galley = ui.painter().layout_no_wrap(label.to_string(), font, color);
     let padding = Vec2::new(18.0, 8.0);
-    let size = galley.size() + padding * 2.0;
+    let natural = galley.size() + padding * 2.0;
+    let size = Vec2::new(natural.x.max(min_width), natural.y);
     let (rect, response) = ui.allocate_exact_size(size, Sense::click());
     response.widget_info(|| {
         egui::WidgetInfo::labeled(egui::WidgetType::Button, ui.is_enabled(), label)

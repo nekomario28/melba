@@ -658,7 +658,7 @@ pub(crate) fn credentialed_get(
     let mut current = url.to_string();
     for _ in 0..=5 {
         ensure_credential_url(&current)?;
-        let mut req = token_agent().get(&current);
+        let mut req = crate::operation::agent(token_agent()).get(&current);
         for (k, v) in headers {
             req = req.header(*k, *v);
         }
@@ -683,7 +683,7 @@ pub(crate) fn credentialed_post_json(
     body: &serde_json::Value,
 ) -> crate::Res<ureq::http::Response<ureq::Body>> {
     ensure_credential_url(url)?;
-    let mut req = token_agent().post(url);
+    let mut req = crate::operation::agent(token_agent()).post(url);
     for (k, v) in headers {
         req = req.header(*k, *v);
     }
@@ -976,6 +976,7 @@ impl KeySource for WrapperKeySource {
             .timeout_global(Some(std::time::Duration::from_secs(30)))
             .build()
             .into();
+        let (agent, _interrupt) = crate::operation::register_agent(agent);
         let mut resp = agent
             .get(&url)
             .call()
@@ -1040,10 +1041,12 @@ const PREFETCH_CONTENT_KEY: [u8; 16] = [
 pub struct WrapperTcp {
     stream: std::net::TcpStream,
     ctx: Option<(String, String)>,
+    _interrupt: Option<crate::operation::Registration>,
 }
 
 impl WrapperTcp {
     pub fn connect(addr: &str) -> Res<Self> {
+        crate::operation::check().map_err(|e| Error::Http(e.to_string()))?;
         accept_wrapper_url(addr, wrapper_remote_opt_in()).map_err(Error::Http)?;
         let dial = addr.strip_prefix("tcp://").unwrap_or(addr);
         let stream = std::net::TcpStream::connect(dial)
@@ -1052,7 +1055,21 @@ impl WrapperTcp {
         stream
             .set_read_timeout(Some(std::time::Duration::from_secs(120)))
             .ok();
-        Ok(Self { stream, ctx: None })
+        let interrupt = if let Some(operation) = crate::operation::current() {
+            let socket = stream
+                .try_clone()
+                .map_err(|e| Error::Http(format!("wrapper cancellation: {e}")))?;
+            Some(operation.register(move || {
+                let _ = socket.shutdown(std::net::Shutdown::Both);
+            }))
+        } else {
+            None
+        };
+        Ok(Self {
+            stream,
+            ctx: None,
+            _interrupt: interrupt,
+        })
     }
 
     /// Outer-loop round: switch the decrypt context to (adam, uri).
@@ -1646,6 +1663,34 @@ pub struct VirtualMedia {
 /// fetches cuts that to ~1/PREFETCH while decryption stays serialized
 /// inside `load_seg` (the CDM session is single-threaded).
 const PREFETCH: usize = 4;
+// Cancelled sources may still be inside a native DNS/connect call. Bound the
+// existing speculative workers across operations, not just within one media.
+static PREFETCH_ACTIVE: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+struct PrefetchSlot(&'static std::sync::atomic::AtomicUsize);
+impl PrefetchSlot {
+    fn take(counter: &'static std::sync::atomic::AtomicUsize) -> Option<Self> {
+        let mut count = counter.load(std::sync::atomic::Ordering::Acquire);
+        loop {
+            if count >= PREFETCH {
+                return None;
+            }
+            match counter.compare_exchange_weak(
+                count,
+                count + 1,
+                std::sync::atomic::Ordering::AcqRel,
+                std::sync::atomic::Ordering::Acquire,
+            ) {
+                Ok(_) => return Some(Self(counter)),
+                Err(actual) => count = actual,
+            }
+        }
+    }
+}
+impl Drop for PrefetchSlot {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, std::sync::atomic::Ordering::Release);
+    }
+}
 
 impl VirtualMedia {
     /// Build the byte-level view over a media playlist. `dec` performs the
@@ -1722,11 +1767,18 @@ impl VirtualMedia {
             {
                 continue;
             }
+            let Some(slot) = PrefetchSlot::take(&PREFETCH_ACTIVE) else {
+                self.inflight.remove(&i);
+                continue;
+            };
             let http = self.http.clone();
             let url = self.m.file_url.clone();
             let (off, size) = (self.m.segs[i].offset, self.m.segs[i].size);
             let tx = self.tx.clone();
+            let operation = crate::operation::current();
             std::thread::spawn(move || {
+                let _slot = slot;
+                let _scope = operation.as_ref().map(crate::operation::Operation::enter);
                 let r = http.get_range(&url, off, size);
                 let _ = tx.send((i, r));
             });
@@ -1734,6 +1786,7 @@ impl VirtualMedia {
     }
 
     fn load_seg(&mut self, i: usize) -> Res<()> {
+        crate::operation::check().map_err(|e| Error::Http(e.to_string()))?;
         if self.seg_bufs.contains_key(&i) {
             return Ok(());
         }
@@ -1747,6 +1800,7 @@ impl VirtualMedia {
                 if self.inflight.contains(&i) {
                     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(35);
                     loop {
+                        crate::operation::check().map_err(|e| Error::Http(e.to_string()))?;
                         match self.rx.recv_timeout(std::time::Duration::from_millis(200)) {
                             Ok((j, r)) => {
                                 self.inflight.remove(&j);
@@ -1771,6 +1825,7 @@ impl VirtualMedia {
                 }
             }
         };
+        crate::operation::check().map_err(|e| Error::Http(e.to_string()))?;
         let key_uri = s.key_uri.clone();
         decrypt_fragment(
             &mut buf,
@@ -1972,10 +2027,12 @@ pub fn open_aac(
     };
     let tr = wp.track(adam_id)?;
     let cert = wp.widevine_cert(&tr.cert_url)?;
+    crate::operation::check().map_err(|e| Error::Http(e.to_string()))?;
     let mut sess = crate::CdmSession::open(cdm_so, storage_dir)?;
     sess.set_server_certificate(&cert)?;
     let ch = sess.license_challenge(&tr.kid)?;
     let (lic, renew) = wp.acquire_license(&tr.license_url, &ch, &tr.kid_data_uri, adam_id)?;
+    crate::operation::check().map_err(|e| Error::Http(e.to_string()))?;
     sess.update(&lic)?;
     if !sess.has_usable_key() {
         return Err(Error::Cdm("no usable key after license".into()));
@@ -1997,6 +2054,58 @@ pub fn open_aac(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cancelling_a_wrapper_read_does_not_wait_for_its_reply() {
+        use std::{io::Read, sync::mpsc, time::Duration};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = format!("tcp://{}", listener.local_addr().unwrap());
+        let (ready_tx, ready) = mpsc::channel();
+        let (release_tx, release) = mpsc::channel();
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = [0; 27]; // context (7), sample length (4), sample (16)
+            stream.read_exact(&mut request).unwrap();
+            ready_tx.send(()).unwrap();
+            let _ = release.recv_timeout(Duration::from_secs(5));
+        });
+        let operation = crate::operation::Operation::default();
+        let active = operation.clone();
+        let (done_tx, done) = mpsc::channel();
+        let worker = std::thread::spawn(move || {
+            let _scope = active.enter();
+            let result =
+                WrapperTcp::connect(&address)
+                    .unwrap()
+                    .decrypt_batch("1", "test", &[vec![0; 16]]);
+            done_tx.send(result.is_err()).unwrap();
+        });
+        ready.recv_timeout(Duration::from_secs(2)).unwrap();
+        operation.cancel();
+        let interrupted = done.recv_timeout(Duration::from_secs(2));
+        release_tx.send(()).unwrap();
+        server.join().unwrap();
+        worker.join().unwrap();
+        assert_eq!(
+            interrupted,
+            Ok(true),
+            "wrapper reply must not hold a newer selection"
+        );
+    }
+
+    #[test]
+    fn speculative_workers_have_a_process_wide_budget_and_release_it() {
+        static COUNT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        let mut slots: Vec<_> = (0..PREFETCH)
+            .map(|_| PrefetchSlot::take(&COUNT).unwrap())
+            .collect();
+        assert!(PrefetchSlot::take(&COUNT).is_none());
+        slots.pop();
+        let replacement = PrefetchSlot::take(&COUNT).unwrap();
+        drop(slots);
+        drop(replacement);
+        assert_eq!(COUNT.load(std::sync::atomic::Ordering::Acquire), 0);
+    }
 
     // ---------- byte builders for synthetic fMP4 fixtures ----------
 

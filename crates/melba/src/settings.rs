@@ -51,6 +51,22 @@ pub enum ThemeChoice {
     System,
 }
 
+/// Developer-only update preference, persisted but not exposed in Settings.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UpdateChannel {
+    Alpha,
+    #[default]
+    #[serde(other)]
+    Stable,
+}
+
+impl UpdateChannel {
+    fn is_stable(&self) -> bool {
+        matches!(self, Self::Stable)
+    }
+}
+
 /// Whether a Home shelf is drawn. Hidden shelves still refresh normally.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
@@ -240,6 +256,9 @@ pub struct Settings {
     /// Ask GitHub once a day whether a newer release exists.
     pub check_for_updates: bool,
     pub download_updates_automatically: bool,
+    /// Edit while Melba is fully closed. Unknown values fail closed to stable.
+    #[serde(default, skip_serializing_if = "UpdateChannel::is_stable")]
+    pub update_channel: UpdateChannel,
     /// Context URIs and the local Liked Songs key, in pin order.
     #[serde(deserialize_with = "crate::link::wire_uri_vec")]
     pub pinned_contexts: Vec<String>,
@@ -329,6 +348,7 @@ impl Default for Settings {
             mac_notch_widget: false,
             check_for_updates: true,
             download_updates_automatically: false,
+            update_channel: UpdateChannel::Stable,
             pinned_contexts: Vec::new(),
             liked_songs_pinned: true,
             sidebar_order: Vec::new(),

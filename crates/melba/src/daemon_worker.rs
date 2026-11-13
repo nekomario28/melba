@@ -10,7 +10,8 @@
 //!   org.mpris.MediaPlayer2.Player — Play/Pause/PlayPause/Next/Previous/
 //!       Seek/SetPosition/OpenUri, props Volume/Shuffle/LoopStatus/
 //!       Position/Metadata/PlaybackStatus
-//!   MelbaEnqueue(as) MelbaGoTo(u) MelbaQueueReorder(u,u) MelbaQueueClear()
+//!   MelbaEnqueue(as) MelbaGoTo(u) MelbaPlayQueued(u,s)
+//!       MelbaQueueReorder(u,u) MelbaQueueClear()
 //!       MelbaLoadQueue(as,u,u,b) MelbaSetDevice(s)
 //!   Metadata extras: melba:queue melba:titles melba:artists melba:artUrls
 //!       melba:idx melba:codec melba:verdict melba:sink melba:device
@@ -717,15 +718,35 @@ impl DaemonWorker {
     }
 
     fn handle_player(&mut self, command: PlayerCommand) {
+        // Manual selection supersedes older asynchronous context resolution,
+        // regardless of whether it names a row or navigates in either direction.
+        if matches!(
+            &command,
+            PlayerCommand::Next | PlayerCommand::Previous | PlayerCommand::PlayQueued { .. }
+        ) {
+            self.load_epoch = self.load_epoch.wrapping_add(1);
+        }
         match command {
             PlayerCommand::Toggle => {
                 let _ = self.call("PlayPause", ());
             }
-            PlayerCommand::Next => {
-                let _ = self.call("Next", ());
+            command @ (PlayerCommand::Next | PlayerCommand::Previous) => {
+                let method = if matches!(command, PlayerCommand::Next) {
+                    "Next"
+                } else {
+                    "Previous"
+                };
+                let _ = self.call(method, ());
             }
-            PlayerCommand::Previous => {
-                let _ = self.call("Previous", ());
+            PlayerCommand::PlayQueued { index, uri } => {
+                let result = u32::try_from(index)
+                    .map_err(|_| "queue row out of range".to_string())
+                    .and_then(|row| self.call("MelbaPlayQueued", (row, daemon_uri(&uri))));
+                if result.is_err() {
+                    // Do not fall back to repeated Next: it opens every skipped
+                    // source and can take seconds on the service.
+                    self.emit(Event::Error("The queue selection was rejected. If the app was updated, restart the playback daemon.".into()));
+                }
             }
             PlayerCommand::Seek(ms) => {
                 if !self.trackid.is_empty() {
@@ -1202,6 +1223,7 @@ impl DaemonWorker {
         task: impl FnOnce(anyhow::Result<crate::updates::Updater>, &dyn Fn(Event)) + Send + 'static,
     ) {
         let proxy = self.update_proxy.clone();
+        let config_dir = self.dirs.config.clone();
         let events = self.events.clone();
         let waker = self.waker.clone();
         tokio::task::spawn_blocking(move || {
@@ -1209,7 +1231,7 @@ impl DaemonWorker {
                 let _ = events.send(event);
                 waker.wake();
             };
-            task(crate::updates::updater(&proxy), &emit);
+            task(crate::updates::updater_in(&config_dir, &proxy), &emit);
         });
     }
 
@@ -2797,6 +2819,8 @@ mod tests {
         };
         use std::time::Duration;
         let (opened, calls) = std::sync::mpsc::channel();
+        let (selected, selections) = std::sync::mpsc::channel();
+        let (sent_method, methods) = std::sync::mpsc::channel();
         let (ready, started) = std::sync::mpsc::channel();
         let done = Arc::new(AtomicBool::new(false));
         let stop = done.clone();
@@ -2812,17 +2836,22 @@ mod tests {
             conn.start_receive(
                 dbus::message::MatchRule::new_method_call(),
                 Box::new(move |msg, conn| {
-                    match msg.member().map(|m| m.to_string()).as_deref() {
-                        Some("OpenUri") => {
+                    let method = msg.member().map(|m| m.to_string()).unwrap();
+                    sent_method.send(method.clone()).unwrap();
+                    match method.as_str() {
+                        "MelbaPlayQueued" => {
+                            selected.send(msg.read2::<u32, String>().unwrap()).unwrap();
+                        }
+                        "OpenUri" => {
                             queue.0.push(msg.read1::<String>().unwrap());
                             queue.1 = queue.0.len() as u32 - 1;
                         }
-                        Some("MelbaEnqueue") => queue.0.extend(msg.read1::<Vec<String>>().unwrap()),
-                        Some("Play") => {
+                        "MelbaEnqueue" => queue.0.extend(msg.read1::<Vec<String>>().unwrap()),
+                        "Play" => {
                             queue.3 = true;
                             opened.send(queue.clone()).unwrap();
                         }
-                        Some("MelbaLoadQueue") => {
+                        "MelbaLoadQueue" => {
                             queue = msg.read4::<Vec<String>, u32, u32, bool>().unwrap();
                             opened.send(queue.clone()).unwrap();
                         }
@@ -2950,6 +2979,46 @@ mod tests {
             ),
             "an explicit row selects that occurrence, not the first equal URI"
         );
+        methods.try_iter().for_each(drop);
+        let old_epoch = worker.load_epoch;
+        worker.handle_player(crate::player::PlayerCommand::PlayQueued {
+            index: 2,
+            uri: "melba:track:303".into(),
+        });
+        assert_eq!(
+            selections.recv_timeout(Duration::from_secs(2)).unwrap(),
+            (2, "stream:303".into())
+        );
+        assert_eq!(methods.try_iter().collect::<Vec<_>>(), ["MelbaPlayQueued"]);
+        worker.context_resolved(
+            old_epoch,
+            crate::player::LoadSpec::default(),
+            vec!["melba:track:101".into()],
+        );
+        assert!(
+            calls.try_recv().is_err(),
+            "an older context load must not undo the queue jump"
+        );
+        for (command, method) in [
+            (crate::player::PlayerCommand::Next, "Next"),
+            (crate::player::PlayerCommand::Previous, "Previous"),
+        ] {
+            let old_epoch = worker.load_epoch;
+            worker.handle_player(command);
+            assert_eq!(
+                methods.recv_timeout(Duration::from_secs(2)).unwrap(),
+                method
+            );
+            worker.context_resolved(
+                old_epoch,
+                crate::player::LoadSpec::default(),
+                vec!["melba:track:101".into()],
+            );
+            assert!(
+                calls.try_recv().is_err(),
+                "late context must not undo {method}"
+            );
+        }
         done.store(true, Ordering::Release);
         server.join().unwrap();
     }

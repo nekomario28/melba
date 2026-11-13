@@ -5,7 +5,7 @@ exclude = ["vendor/fastframe-update"]
 
 [package]
 name = "melbad"
-version = "0.3.30"
+version = "0.4.0-alpha.1"
 edition = "2021"
 description = "native lightweight Linux music client — bit-perfect playback core"
 license = "MIT OR Apache-2.0"
@@ -24,7 +24,7 @@ sha2 = "0.11.1"
 dbus = "0.9"
 dbus-crossroads = "0.5"
 libc = "0.2.190"
-ureq = "3"
+ureq = "3.5.1"
 wry = "0.57"
 tao = "0.37"
 # Widevine CDM host + Apple Music HLS/fMP4 streaming (AAC + ALAC)

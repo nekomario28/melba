@@ -199,7 +199,7 @@ pub struct FileMeta {
 
 /// Read embedded tags and the first embedded cover visual via symphonia.
 pub fn file_meta(p: &Path) -> Option<FileMeta> {
-    let file = std::fs::File::open(p).ok()?;
+    let file = crate::source_io::SourceFile::open(p).ok()?;
     let mss = symphonia::core::io::MediaSourceStream::new(Box::new(file), Default::default());
     let mut probed = symphonia::default::get_probe()
         .format(
