@@ -53,7 +53,7 @@ Use it when an update regresses something: the binaries and the wrapper from the
 previous release are still on the Releases page, so going back is a reinstall,
 not a rebuild. `melba --version` reports what is installed.
 
-## Distro compatibility of the published v0.3.29 release
+## Distro compatibility of the published v0.3.30 release
 
 The signed portable archive needs **glibc 2.35** or newer; measured on the
 published x86_64 archives, `melba` requires at most `GLIBC_2.35` and `melbad`
@@ -73,8 +73,8 @@ sign-in):
 | Fedora 44 | 2.43 | Yes | — |
 | Current Arch/CachyOS | 2.43+ | Yes | Yes |
 
-“Yes” under *Candidate executes* means both binaries started and reported
-`0.3.13`; “Yes” under *Signed installer* means `packaging/install-release.sh`
+“Yes” under *Candidate executes* means both binaries started and reported the
+version named in this section; “Yes” under *Signed installer* means `packaging/install-release.sh`
 downloaded, signature- and checksum-verified and installed the published
 release there. This is launch and shared-library compatibility only — not Apple
 sign-in, desktop rendering, physical audio output or ALAC playback.
