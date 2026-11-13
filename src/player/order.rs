@@ -98,6 +98,27 @@ impl PlayOrder {
         next
     }
 
+    /// Consume a prefix of the existing plan without opening skipped sources
+    /// or putting songs that never played into Previous history.
+    pub(super) fn select_upcoming(
+        &mut self,
+        current: usize,
+        len: usize,
+        shuffle: bool,
+        repeat: u8,
+        row: usize,
+        opened: bool,
+    ) -> Option<usize> {
+        if row >= self.preview(current, len, shuffle, repeat).len() {
+            return None;
+        }
+        let mut selected = current;
+        for step in 0..=row {
+            selected = self.next(selected, len, shuffle, repeat, step == 0 && opened);
+        }
+        Some(selected)
+    }
+
     pub(super) fn previous(
         &mut self,
         current: usize,
@@ -142,6 +163,45 @@ impl PlayOrder {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn selecting_a_later_row_keeps_the_tail_and_only_the_played_history() {
+        for shuffle in [false, true] {
+            for repeat in [0, 1] {
+                let mut order = PlayOrder::default();
+                let plan = order.preview(0, 9, shuffle, repeat);
+                let selected = order
+                    .select_upcoming(0, 9, shuffle, repeat, 4, true)
+                    .unwrap();
+                assert_eq!(selected, plan[4]);
+                assert_eq!(order.preview(selected, 9, shuffle, repeat), plan[5..]);
+                assert_eq!(order.previous(selected, 9, shuffle, repeat), 0);
+                assert_eq!(order.next(0, 9, shuffle, repeat, true), selected);
+            }
+        }
+    }
+
+    #[test]
+    fn direct_selection_does_not_remember_a_superseded_unopened_candidate() {
+        let mut order = PlayOrder::default();
+        assert_eq!(order.next(0, 6, false, 0, true), 1);
+        assert_eq!(order.select_upcoming(1, 6, false, 0, 2, false), Some(4));
+        assert_eq!(order.previous(4, 6, false, 0), 0);
+    }
+
+    #[test]
+    fn selecting_from_forward_history_and_repeat_track_uses_the_shown_plan() {
+        let mut order = PlayOrder::default();
+        order.next(0, 4, false, 0, true);
+        order.next(1, 4, false, 0, true);
+        assert_eq!(order.previous(2, 4, false, 0), 1);
+        assert_eq!(order.previous(1, 4, false, 0), 0);
+        assert_eq!(order.select_upcoming(0, 4, false, 0, 1, true), Some(2));
+        assert_eq!(order.preview(2, 4, false, 0), [3]);
+        assert_eq!(order.previous(2, 4, false, 0), 0);
+        assert_eq!(order.select_upcoming(0, 4, false, 2, 1, true), None);
+        assert_eq!(order.select_upcoming(0, 4, false, 2, 0, true), Some(0));
+    }
 
     #[test]
     fn shuffle_preview_is_the_plan_that_next_and_back_follow() {

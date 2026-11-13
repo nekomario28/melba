@@ -205,6 +205,11 @@ pub enum PlayerCommand {
     Toggle,
     Next,
     Previous,
+    /// Consume the displayed queue prefix and open only the chosen song.
+    PlayQueued {
+        index: usize,
+        uri: String,
+    },
     /// Remove manually queued tracks and keep context tracks.
     ClearQueue,
     /// Queue a track or episode after the ones already queued.

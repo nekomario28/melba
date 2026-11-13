@@ -8,7 +8,9 @@ use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
+mod commands;
 mod order;
+use commands::{Commands, SkipDirection};
 use order::PlayOrder;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -41,6 +43,11 @@ pub enum Cmd {
     SetLoop(u8), // 0=None 1=Playlist 2=Track
     Enqueue(Vec<PathBuf>),
     LoadTrack(usize),
+    /// Select a row of the next-play plan without loading intervening tracks.
+    PlayQueued {
+        row: usize,
+        uri: String,
+    },
     /// Move queue entry `from` to final index `to` (caller pre-adjusts for
     /// the removal shift). Keeps the playing entry pinned to `idx`.
     Reorder {
@@ -113,6 +120,9 @@ pub struct Shared {
     /// Format of the source actually opened by the decoder, not the requested
     /// rendition. Published as MPRIS codec/rate/depth for the playing track.
     pub source: Mutex<Option<SourceFormat>>,
+    // Proof about the selected occurrence, independent of transient format
+    // metadata (which is cleared during a reopen, even for the same URI).
+    source_opened: std::sync::atomic::AtomicBool,
 }
 
 impl Shared {
@@ -155,6 +165,7 @@ impl Shared {
             require_bitperfect: std::sync::atomic::AtomicBool::new(false),
             bitperfect_blocked: std::sync::atomic::AtomicBool::new(false),
             source: Mutex::new(None),
+            source_opened: std::sync::atomic::AtomicBool::new(false),
         })
     }
     pub fn play_state(&self) -> PlayState {
@@ -215,7 +226,7 @@ fn finish_stream(pcm: &alsa::pcm::PCM) {
 /// Wait while a required bit-perfect path is unavailable. Commands that can
 /// change the device or the selected track return true so the caller retries;
 /// everything else is applied (or ignored) without falling back to a mixer.
-fn wait_bitperfect(shared: &Arc<Shared>, rx: &Receiver<Cmd>) -> bool {
+fn wait_bitperfect(shared: &Arc<Shared>, rx: &Commands) -> bool {
     loop {
         match rx.recv_timeout(std::time::Duration::from_millis(200)) {
             Ok(Cmd::Quit) => return false,
@@ -227,6 +238,11 @@ fn wait_bitperfect(shared: &Arc<Shared>, rx: &Receiver<Cmd>) -> bool {
                 if goto_valid(shared, i) {
                     select_index(shared, i);
                     persist_queue(shared);
+                    return true;
+                }
+            }
+            Ok(Cmd::PlayQueued { row, uri }) => {
+                if select_queued(shared, row, &uri) {
                     return true;
                 }
             }
@@ -326,6 +342,7 @@ fn watch_shared_graph(shared: &Arc<Shared>, src: &SourceFormat, granted: &Grante
 
 /// empties or Quit arrives. Playback errors land in `shared.verdict`.
 pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
+    let rx = Commands::routed(shared.clone(), rx);
     // The ALSA stream survives across same-format tracks: the next track's
     // samples append to the still-running stream (gapless album playback).
     // On normal end or format change, wait for queued PCM with a deadline;
@@ -353,7 +370,20 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
     // the user just left (measured: Previous from index 2 on a queue whose entry
     // 1 never opens ended up playing index 2 again).
     let mut backwards = false;
+    let mut stopped = false;
     'outer: loop {
+        if shared.quit.load(Ordering::SeqCst) {
+            persist_queue(&shared);
+            return;
+        }
+        if stopped {
+            if !wait_stopped(&shared, &rx, &mut backwards) {
+                return;
+            }
+            stopped = false;
+        }
+        let operation = rx.begin();
+        let _scope = operation.enter();
         if shared.bitperfect_blocked.load(Ordering::SeqCst) {
             if !wait_bitperfect(&shared, &rx) {
                 persist_queue(&shared);
@@ -404,6 +434,10 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                             }
                             continue 'outer;
                         }
+                        Ok(Cmd::PlayQueued { row, uri }) => {
+                            select_queued(&shared, row, &uri);
+                            continue 'outer;
+                        }
                         Ok(Cmd::LoadQueue(load)) => {
                             apply_queue_load(&shared, load);
                             continue 'outer;
@@ -447,6 +481,9 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                 }
             }
         };
+        if source_commands(&shared, &rx, &mut backwards, &stream, &mut stopped) {
+            continue 'outer;
+        }
         // preview:[<cc>:]<apple-id> resolves to the cached 30s AAC download;
         // a deep-link's storefront prefix selects the catalog it came from.
         // stream:[<cc>:]<song-id> is a full subscription track, opened below
@@ -495,6 +532,9 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                 }
             }
         }
+        if source_commands(&shared, &rx, &mut backwards, &stream, &mut stopped) {
+            continue 'outer;
+        }
         let path =
             if let Some((pstore, pid)) = path.to_str().and_then(crate::musickit::preview_parts) {
                 // enrich name/artist/album/art from catalog once per id (bare
@@ -537,7 +577,14 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                             );
                     }
                 }
-                match crate::musickit::download_preview_in(&pstore, &pid) {
+                if source_commands(&shared, &rx, &mut backwards, &stream, &mut stopped) {
+                    continue 'outer;
+                }
+                let downloaded = crate::musickit::download_preview_in(&pstore, &pid);
+                if source_commands(&shared, &rx, &mut backwards, &stream, &mut stopped) {
+                    continue 'outer;
+                }
+                match downloaded {
                     Ok(p) => p,
                     Err(e) => {
                         *shared.verdict.lock().unwrap_or_else(|e| e.into_inner()) =
@@ -593,6 +640,9 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                 }
                 path
             };
+        if source_commands(&shared, &rx, &mut backwards, &stream, &mut stopped) {
+            continue 'outer;
+        }
         // resolved art: explicit seed (collection) wins, else per-track meta
         *shared.art_url.lock().unwrap_or_else(|e| e.into_inner()) = shared
             .art_urls
@@ -626,28 +676,47 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
         // wrapper, else AAC-256 via CDM). Output and metadata both use
         // the codec configuration validated by audio::open_media.
         let (src, pf): (SourceFormat, audio::ProbedFile) = if let Some((cc, id)) = stream_id {
-            match crate::stream::open(&cc, &id) {
-                Ok(o) => match o.probe(&orig) {
-                    Ok(pf) => (pf.src.clone(), pf),
-                    Err(e) => {
-                        *shared.verdict.lock().unwrap_or_else(|e| e.into_inner()) =
-                            format!("stream probe: {e}");
-                        if require_block(&shared) {
-                            continue 'outer;
-                        }
-                        advance(&shared);
+            let opened = crate::stream::open(&cc, &id);
+            if source_commands(&shared, &rx, &mut backwards, &stream, &mut stopped) {
+                continue 'outer;
+            }
+            match opened {
+                Ok(o) => {
+                    let probed = o.probe(&orig);
+                    if source_commands(&shared, &rx, &mut backwards, &stream, &mut stopped) {
                         continue 'outer;
                     }
-                },
+                    match probed {
+                        Ok(pf) => (pf.src.clone(), pf),
+                        Err(e) => {
+                            *shared.verdict.lock().unwrap_or_else(|e| e.into_inner()) =
+                                format!("stream probe: {e}");
+                            if require_block(&shared) {
+                                continue 'outer;
+                            }
+                            advance(&shared);
+                            continue 'outer;
+                        }
+                    }
+                }
                 Err(e) => {
                     // an expired token or a missing wrapper must not
                     // silently skip the track — fall back to the public
                     // 30s preview of the same song and report why
-                    match crate::musickit::download_preview_in(&cc, &id) {
+                    let downloaded = crate::musickit::download_preview_in(&cc, &id);
+                    if source_commands(&shared, &rx, &mut backwards, &stream, &mut stopped) {
+                        continue 'outer;
+                    }
+                    match downloaded {
                         Ok(p) => {
                             *shared.verdict.lock().unwrap_or_else(|e| e.into_inner()) =
                                 format!("stream {id}: {e} — playing preview");
-                            match audio::open_source(p.to_str().unwrap_or("")) {
+                            let probed = audio::open_source(p.to_str().unwrap_or(""));
+                            if source_commands(&shared, &rx, &mut backwards, &stream, &mut stopped)
+                            {
+                                continue 'outer;
+                            }
+                            match probed {
                                 Ok(pf) => (pf.src.clone(), pf),
                                 Err(e) => {
                                     *shared.verdict.lock().unwrap_or_else(|e| e.into_inner()) =
@@ -673,7 +742,11 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                 }
             }
         } else {
-            match audio::open_source(path.to_str().unwrap_or("")) {
+            let probed = audio::open_source(path.to_str().unwrap_or(""));
+            if source_commands(&shared, &rx, &mut backwards, &stream, &mut stopped) {
+                continue 'outer;
+            }
+            match probed {
                 Ok(pf) => (pf.src.clone(), pf),
                 Err(e) => {
                     *shared.verdict.lock().unwrap_or_else(|e| e.into_inner()) =
@@ -698,6 +771,7 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
             let mut paused_source = src.clone();
             paused_source.path = orig.clone();
             *shared.source.lock().unwrap_or_else(|e| e.into_inner()) = Some(paused_source);
+            shared.source_opened.store(true, Ordering::SeqCst);
             shared.dur_ms.store(src.dur_ms, Ordering::SeqCst);
             // A queue load parks its start position for the eventual open; a
             // paused player still has to report where it would resume, so it
@@ -729,19 +803,14 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                     shared.set_state(PlayState::Stopped);
                     persist_queue(&shared);
                 }
-                Ok(Cmd::Next) => {
-                    backwards = false;
-                    advance(&shared);
-                    shared.pos_ms.store(0, Ordering::SeqCst);
-                    shared.play_seq.fetch_add(1, Ordering::SeqCst);
-                    continue 'outer;
-                }
-                Ok(Cmd::Prev) => {
-                    backwards = true;
-                    previous_index(&shared);
-                    persist_queue(&shared);
-                    shared.pos_ms.store(0, Ordering::SeqCst);
-                    shared.play_seq.fetch_add(1, Ordering::SeqCst);
+                Ok(command @ (Cmd::Next | Cmd::Prev)) => {
+                    drain_skips(
+                        &shared,
+                        &rx,
+                        &mut backwards,
+                        stream.as_ref().map(|(pcm, _)| pcm),
+                        SkipDirection::of(&command),
+                    );
                     continue 'outer;
                 }
                 Ok(Cmd::SetDevice(d)) => {
@@ -775,9 +844,16 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                 Ok(Cmd::Shuffle(on)) => shared.shuffle.store(on, Ordering::SeqCst),
                 Ok(Cmd::SetLoop(mode)) => shared.repeat.store(mode, Ordering::SeqCst),
                 Ok(Cmd::LoadTrack(i)) => {
-                    *shared.idx.lock().unwrap_or_else(|e| e.into_inner()) = i;
-                    shared.start_paused.store(false, Ordering::SeqCst);
-                    continue 'outer;
+                    if goto_valid(&shared, i) {
+                        select_index(&shared, i);
+                        shared.start_paused.store(false, Ordering::SeqCst);
+                        continue 'outer;
+                    }
+                }
+                Ok(Cmd::PlayQueued { row, uri }) => {
+                    if select_queued(&shared, row, &uri) {
+                        continue 'outer;
+                    }
                 }
                 Ok(Cmd::Pause) => {
                     // already paused, and nothing is open to pause
@@ -809,6 +885,9 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
                     return;
                 }
             }
+        }
+        if source_commands(&shared, &rx, &mut backwards, &stream, &mut stopped) {
+            continue 'outer;
         }
         // Reuse the open stream when it still targets the requested device and
         // carries the new source unchanged (audio::stream_matches); otherwise
@@ -905,17 +984,24 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
         let mut playing_source = src.clone();
         playing_source.path = orig.clone();
         *shared.source.lock().unwrap_or_else(|e| e.into_inner()) = Some(playing_source);
+        shared.source_opened.store(true, Ordering::SeqCst);
         shared.dur_ms.store(src.dur_ms, Ordering::SeqCst);
         shared.pos_ms.store(0, Ordering::SeqCst);
         shared.play_seq.fetch_add(1, Ordering::SeqCst);
         shared.set_state(PlayState::Playing);
+        backwards = false;
         match play_controlled(pcm, granted, &src, pf, &shared, &rx) {
             Flow::Quit => {
                 persist_queue_now(&shared);
                 return;
             }
             Flow::Ended => advance(&shared),
-            Flow::Reload => {}
+            flow @ (Flow::Reload | Flow::Previous) => {
+                backwards = matches!(flow, Flow::Previous);
+                if shared.start_paused.load(Ordering::SeqCst) {
+                    stream.take();
+                }
+            }
             Flow::Reopen => {
                 // snd_pcm_drop() stops samples, but does NOT close the ALSA
                 // handle. Close it here so a software-paused selection does
@@ -926,76 +1012,84 @@ pub fn playback_thread(shared: Arc<Shared>, rx: Receiver<Cmd>, dev: String) {
             // until a command selects something to play. The stream is left
             // dropped; 'outer's reuse path prepares or reopens it.
             Flow::Stopped => {
-                shared.set_state(PlayState::Stopped);
-                shared.pos_ms.store(0, Ordering::SeqCst);
-                'stopped: loop {
-                    match rx.recv() {
-                        Ok(Cmd::Play) | Ok(Cmd::Resume) => break 'stopped,
-                        Ok(Cmd::Next) => {
-                            advance(&shared); // persists internally
-                            break 'stopped;
-                        }
-                        Ok(Cmd::Prev) => {
-                            previous_index(&shared);
-                            persist_queue(&shared);
-                            break 'stopped;
-                        }
-                        Ok(Cmd::LoadTrack(i)) => {
-                            if goto_valid(&shared, i) {
-                                select_index(&shared, i);
-                                persist_queue(&shared);
-                                break 'stopped;
-                            }
-                        }
-                        Ok(Cmd::OpenUri(p)) => {
-                            let index = {
-                                let mut q = shared.queue.lock().unwrap_or_else(|e| e.into_inner());
-                                q.push(p);
-                                q.len() - 1
-                            };
-                            select_index(&shared, index);
-                            persist_queue(&shared);
-                            break 'stopped;
-                        }
-                        Ok(Cmd::LoadQueue(load)) => {
-                            if apply_queue_load(&shared, load) {
-                                break 'stopped;
-                            }
-                        }
-                        // non-play verbs: take effect, keep waiting
-                        Ok(Cmd::Enqueue(ps)) => {
-                            shared
-                                .queue
-                                .lock()
-                                .unwrap_or_else(|e| e.into_inner())
-                                .extend(ps);
-                            persist_queue(&shared);
-                        }
-                        Ok(Cmd::Reorder { from, to }) => reorder_queue(&shared, from, to),
-                        Ok(Cmd::Clear) => clear_queue(&shared),
-                        Ok(Cmd::SetDevice(d)) => {
-                            *shared.device.lock().unwrap_or_else(|e| e.into_inner()) = d
-                        }
-                        // seek while stopped: park it, applied when this
-                        // track next starts (or dropped if another does)
-                        Ok(Cmd::Seek(ms)) => {
-                            let i = *shared.idx.lock().unwrap_or_else(|e| e.into_inner());
-                            *shared
-                                .pending_seek
-                                .lock()
-                                .unwrap_or_else(|e| e.into_inner()) = Some((i, ms));
-                            shared.pos_ms.store(ms, Ordering::SeqCst);
-                        }
-                        Ok(Cmd::Shuffle(on)) => shared.shuffle.store(on, Ordering::SeqCst),
-                        Ok(Cmd::SetLoop(m)) => shared.repeat.store(m, Ordering::SeqCst),
-                        Ok(Cmd::Quit) | Err(_) => {
-                            persist_queue(&shared);
-                            return;
-                        }
-                        Ok(_) => {}
-                    }
+                stop_selection(&shared);
+                stopped = true;
+            }
+        }
+    }
+}
+
+fn wait_stopped(shared: &Arc<Shared>, rx: &Commands, backwards: &mut bool) -> bool {
+    *backwards = false;
+    loop {
+        match rx.recv() {
+            Ok(Cmd::Play) | Ok(Cmd::Resume) => return true,
+            Ok(Cmd::Next) => {
+                advance(shared); // persists internally
+                return true;
+            }
+            Ok(Cmd::Prev) => {
+                *backwards = true;
+                previous_index(shared);
+                persist_queue(shared);
+                return true;
+            }
+            Ok(Cmd::LoadTrack(i)) => {
+                if goto_valid(shared, i) {
+                    select_index(shared, i);
+                    persist_queue(shared);
+                    return true;
                 }
             }
+            Ok(Cmd::PlayQueued { row, uri }) => {
+                if select_queued(shared, row, &uri) {
+                    return true;
+                }
+            }
+            Ok(Cmd::OpenUri(p)) => {
+                let index = {
+                    let mut q = shared.queue.lock().unwrap_or_else(|e| e.into_inner());
+                    q.push(p);
+                    q.len() - 1
+                };
+                select_index(shared, index);
+                persist_queue(shared);
+                return true;
+            }
+            Ok(Cmd::LoadQueue(load)) => {
+                if apply_queue_load(shared, load) {
+                    return true;
+                }
+            }
+            // non-play verbs: take effect, keep waiting
+            Ok(Cmd::Enqueue(ps)) => {
+                shared
+                    .queue
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .extend(ps);
+                persist_queue(shared);
+            }
+            Ok(Cmd::Reorder { from, to }) => reorder_queue(shared, from, to),
+            Ok(Cmd::Clear) => clear_queue(shared),
+            Ok(Cmd::SetDevice(d)) => *shared.device.lock().unwrap_or_else(|e| e.into_inner()) = d,
+            // seek while stopped: park it, applied when this
+            // track next starts (or dropped if another does)
+            Ok(Cmd::Seek(ms)) => {
+                let i = *shared.idx.lock().unwrap_or_else(|e| e.into_inner());
+                *shared
+                    .pending_seek
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner()) = Some((i, ms));
+                shared.pos_ms.store(ms, Ordering::SeqCst);
+            }
+            Ok(Cmd::Shuffle(on)) => shared.shuffle.store(on, Ordering::SeqCst),
+            Ok(Cmd::SetLoop(m)) => shared.repeat.store(m, Ordering::SeqCst),
+            Ok(Cmd::Quit) | Err(_) => {
+                persist_queue(shared);
+                return false;
+            }
+            Ok(_) => {}
         }
     }
 }
@@ -1030,6 +1124,9 @@ fn apply_queue_load(shared: &Shared, load: QueueLoad) -> bool {
         // hears about), so it must not undo where the listener has been — doing
         // that made Previous land on the wrong row after a re-sync.
         let same = *queue == load.paths;
+        if !same || *idx != load.index {
+            shared.source_opened.store(false, Ordering::SeqCst);
+        }
         *queue = load.paths;
         *idx = load.index;
         if !same {
@@ -1271,6 +1368,8 @@ enum Flow {
     Stopped,
     /// A load already replaced the queue and selected its exact cursor.
     Reload,
+    /// Previous selected a visited occurrence whose source is being reopened.
+    Previous,
     /// A failed hardware Pause/Resume parked a seek; close this PCM handle
     /// before letting the outer loop reopen the same selection.
     Reopen,
@@ -1286,6 +1385,264 @@ fn select_index(shared: &Shared, index: usize) {
         .unwrap_or_else(|e| e.into_inner())
         .jump(*idx, index, len);
     *idx = index;
+    shared.source_opened.store(false, Ordering::SeqCst);
+    drop(idx);
+    *shared.source.lock().unwrap_or_else(|e| e.into_inner()) = None;
+}
+
+fn queued_position(queue: &[PathBuf], plan: &[usize], row: usize, uri: &str) -> Option<usize> {
+    let matches = |index: &usize| {
+        queue.get(*index).is_some_and(|path| {
+            let key = path.to_string_lossy();
+            key == uri || track_uri(&key) == uri
+        })
+    };
+    // Prefer the exact occurrence; only repair a shifted row by URI.
+    if plan.get(row).is_some_and(matches) {
+        Some(row)
+    } else {
+        plan.iter().position(matches)
+    }
+}
+
+fn queued_selection_valid(shared: &Shared, row: usize, uri: &str) -> bool {
+    let idx = shared.idx.lock().unwrap_or_else(|e| e.into_inner());
+    let queue = shared.queue.lock().unwrap_or_else(|e| e.into_inner());
+    let plan = shared
+        .order
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .preview(
+            *idx,
+            queue.len(),
+            shared.shuffle.load(Ordering::SeqCst),
+            shared.repeat.load(Ordering::SeqCst),
+        );
+    queued_position(&queue, &plan, row, uri).is_some()
+}
+
+/// Resolve a clicked occurrence against the daemon-owned plan. Only the final
+/// source is opened by the outer playback loop; neither queue nor shuffle tail
+/// is rebuilt. Cursor writers and metadata readers use idx → queue → order.
+fn select_queued(shared: &Shared, row: usize, uri: &str) -> bool {
+    {
+        let mut idx = shared.idx.lock().unwrap_or_else(|e| e.into_inner());
+        let queue = shared.queue.lock().unwrap_or_else(|e| e.into_inner());
+        let mut order = shared.order.lock().unwrap_or_else(|e| e.into_inner());
+        let shuffle = shared.shuffle.load(Ordering::SeqCst);
+        let repeat = shared.repeat.load(Ordering::SeqCst);
+        let plan = order.preview(*idx, queue.len(), shuffle, repeat);
+        let position = queued_position(&queue, &plan, row, uri);
+        let Some(position) = position else {
+            crate::diag::warn("queue_selection_stale", &[("row", &row.to_string())]);
+            return false;
+        };
+        *idx = order
+            .select_upcoming(
+                *idx,
+                queue.len(),
+                shuffle,
+                repeat,
+                position,
+                shared.source_opened.load(Ordering::SeqCst),
+            )
+            .expect("the selected row belongs to the current plan");
+    }
+    *shared.pending_idx.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    *shared
+        .pending_seek
+        .lock()
+        .unwrap_or_else(|e| e.into_inner()) = None;
+    shared.start_paused.store(false, Ordering::SeqCst);
+    shared.pos_ms.store(0, Ordering::SeqCst);
+    shared.source_opened.store(false, Ordering::SeqCst);
+    *shared.source.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    persist_queue(shared);
+    true
+}
+
+fn stop_selection(shared: &Shared) {
+    shared.set_state(PlayState::Stopped);
+    shared.pos_ms.store(0, Ordering::SeqCst);
+    shared.start_paused.store(false, Ordering::SeqCst);
+    *shared
+        .pending_seek
+        .lock()
+        .unwrap_or_else(|e| e.into_inner()) = None;
+    *shared.pending_idx.lock().unwrap_or_else(|e| e.into_inner()) = None;
+}
+
+/// Apply controls before publishing a prepared source. Ingress has already
+/// interrupted its I/O; cancellation is not a source failure or preview fallback.
+fn source_commands(
+    shared: &Arc<Shared>,
+    rx: &Commands,
+    backwards: &mut bool,
+    stream: &Option<(alsa::pcm::PCM, Granted)>,
+    stopped: &mut bool,
+) -> bool {
+    loop {
+        match rx.try_recv() {
+            Ok(Cmd::Quit) | Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                shared.quit.store(true, Ordering::SeqCst);
+                return true;
+            }
+            Err(std::sync::mpsc::TryRecvError::Empty) => {
+                return melba_cdm::operation::current()
+                    .is_some_and(|operation| operation.is_cancelled());
+            }
+            Ok(Cmd::Stop) => {
+                if let Some((pcm, _)) = stream {
+                    let _ = pcm.drop();
+                }
+                stop_selection(shared);
+                *stopped = true;
+                return true;
+            }
+
+            Ok(Cmd::PlayQueued { row, uri }) => {
+                if select_queued(shared, row, &uri) {
+                    if let Some((pcm, _)) = stream {
+                        let _ = pcm.drop();
+                    }
+                    *backwards = false;
+                    return true;
+                }
+            }
+            Ok(Cmd::LoadTrack(index)) => {
+                if goto_valid(shared, index) {
+                    if let Some((pcm, _)) = stream {
+                        let _ = pcm.drop();
+                    }
+                    select_index(shared, index);
+                    shared.pos_ms.store(0, Ordering::SeqCst);
+                    shared.start_paused.store(false, Ordering::SeqCst);
+                    *backwards = false;
+                    persist_queue(shared);
+                    return true;
+                }
+            }
+            Ok(Cmd::LoadQueue(load)) => {
+                if apply_queue_load(shared, load) {
+                    if let Some((pcm, _)) = stream {
+                        let _ = pcm.drop();
+                    }
+                    *backwards = false;
+                    return true;
+                }
+            }
+            Ok(Cmd::OpenUri(path)) => {
+                let index = {
+                    let mut queue = shared.queue.lock().unwrap_or_else(|e| e.into_inner());
+                    queue.push(path);
+                    queue.len() - 1
+                };
+                if let Some((pcm, _)) = stream {
+                    let _ = pcm.drop();
+                }
+                select_index(shared, index);
+                shared.pos_ms.store(0, Ordering::SeqCst);
+                shared.start_paused.store(false, Ordering::SeqCst);
+                *backwards = false;
+                persist_queue(shared);
+                return true;
+            }
+            Ok(Cmd::Pause) => shared.start_paused.store(true, Ordering::SeqCst),
+            Ok(Cmd::Play) | Ok(Cmd::Resume) => {
+                shared.start_paused.store(false, Ordering::SeqCst);
+                *backwards = false;
+            }
+            Ok(Cmd::Seek(ms)) => {
+                let index = *shared.idx.lock().unwrap_or_else(|e| e.into_inner());
+                *shared
+                    .pending_seek
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner()) = Some((index, ms));
+                shared.pos_ms.store(ms, Ordering::SeqCst);
+            }
+            Ok(Cmd::Enqueue(paths)) => {
+                shared
+                    .queue
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .extend(paths);
+                persist_queue(shared);
+            }
+            Ok(Cmd::Shuffle(on)) => shared.shuffle.store(on, Ordering::SeqCst),
+            Ok(Cmd::SetLoop(mode)) => shared.repeat.store(mode, Ordering::SeqCst),
+            Ok(Cmd::Reorder { from, to }) => reorder_queue(shared, from, to),
+            Ok(Cmd::Clear) => clear_queue(shared),
+            Ok(Cmd::SetDevice(device)) => {
+                *shared.device.lock().unwrap_or_else(|e| e.into_inner()) = device
+            }
+            Ok(command @ (Cmd::Next | Cmd::Prev)) => {
+                return drain_skips(
+                    shared,
+                    rx,
+                    backwards,
+                    stream.as_ref().map(|(pcm, _)| pcm),
+                    SkipDirection::of(&command),
+                );
+            }
+        }
+    }
+}
+
+/// Consume already queued skips before doing more blocking source work. No
+/// debounce delay and no loader threads: commands retain their FIFO barriers.
+/// Ingress cancels the old operation's sockets/readers independently of this
+/// loop; stale results cannot start another skipped source or its fallback.
+fn drain_skips(
+    shared: &Arc<Shared>,
+    rx: &Commands,
+    backwards: &mut bool,
+    pcm: Option<&alsa::pcm::PCM>,
+    first: Option<SkipDirection>,
+) -> bool {
+    let mut skipped = false;
+    let mut direction = first.or_else(|| rx.take_skip());
+    while let Some(skip) = direction {
+        if !skipped {
+            if let Some(pcm) = pcm {
+                // Explicit navigation discards the old buffered tail in either direction.
+                let _ = pcm.drop();
+            }
+        }
+        *shared
+            .pending_seek
+            .lock()
+            .unwrap_or_else(|e| e.into_inner()) = None;
+        match skip {
+            SkipDirection::Forward => {
+                advance(shared);
+                *backwards = false;
+            }
+            SkipDirection::Backward => {
+                // Only the visited selection has a playback position. A newly
+                // loading candidate must not inherit the prior track's >3s rule.
+                let restart = shared.source_opened.load(Ordering::SeqCst)
+                    && shared.play_state() != PlayState::Stopped
+                    && shared.pos_ms.load(Ordering::SeqCst) > 3000;
+                if !restart {
+                    previous_index(shared);
+                }
+                *backwards = !restart;
+                persist_queue(shared);
+            }
+        }
+        shared.pos_ms.store(0, Ordering::SeqCst);
+        skipped = true;
+        direction = rx.take_skip();
+    }
+    if skipped {
+        // Cold-paused selections never reach the output-start counter. Give
+        // the final selection an identity so a controller can confirm it,
+        // including Next received while Previous is still being prepared.
+        if shared.start_paused.load(Ordering::SeqCst) {
+            shared.play_seq.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+    skipped
 }
 
 /// Move to the next entry in the direction the user asked for. A source that
@@ -1317,6 +1674,9 @@ fn previous_index(shared: &Shared) {
             shared.shuffle.load(Ordering::SeqCst),
             shared.repeat.load(Ordering::SeqCst),
         );
+    shared.source_opened.store(true, Ordering::SeqCst);
+    drop(idx);
+    *shared.source.lock().unwrap_or_else(|e| e.into_inner()) = None;
 }
 
 fn planned_indices(shared: &Shared) -> Vec<u32> {
@@ -1340,17 +1700,8 @@ fn planned_indices(shared: &Shared) -> Vec<u32> {
 fn advance(shared: &Arc<Shared>) {
     {
         let mut idx = shared.idx.lock().unwrap_or_else(|e| e.into_inner());
-        let (len, opened) = {
-            let queue = shared.queue.lock().unwrap_or_else(|e| e.into_inner());
-            let source = shared.source.lock().unwrap_or_else(|e| e.into_inner());
-            let opened = source
-                .as_ref()
-                .zip(queue.get(*idx))
-                .is_some_and(|(source, path)| {
-                    source.path.as_str() == path.to_string_lossy().as_ref()
-                });
-            (queue.len(), opened)
-        };
+        let len = shared.queue.lock().unwrap_or_else(|e| e.into_inner()).len();
+        let opened = shared.source_opened.swap(false, Ordering::SeqCst);
         let mut order = shared.order.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(index) = shared
             .pending_idx
@@ -1370,6 +1721,13 @@ fn advance(shared: &Arc<Shared>) {
             );
         }
     }
+    // Advancing chooses another occurrence, even when its URI is identical.
+    // Keep the old format from falsely marking skipped copies as opened.
+    *shared.source.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    *shared
+        .pending_seek
+        .lock()
+        .unwrap_or_else(|e| e.into_inner()) = None;
     persist_queue(shared);
 }
 
@@ -1478,7 +1836,7 @@ fn play_controlled(
     src: &SourceFormat,
     mut probed: audio::ProbedFile,
     shared: &Arc<Shared>,
-    rx: &Receiver<Cmd>,
+    rx: &Commands,
 ) -> Flow {
     use std::sync::mpsc::TryRecvError;
     let track_id = probed.track_id;
@@ -1565,22 +1923,21 @@ fn play_controlled(
                             let _ = pcm.drop();
                             return Flow::Stopped;
                         }
-                        Ok(Cmd::Next) => {
+                        Ok(command @ (Cmd::Next | Cmd::Prev)) => {
                             shared.start_paused.store(true, Ordering::SeqCst);
-                            let _ = pcm.drop();
-                            return Flow::Ended;
-                        }
-                        Ok(Cmd::Prev) => {
-                            // Apple Music semantics: >3s in rewinds to the
-                            // track start, a press near the start goes back
-                            if shared.pos_ms.load(Ordering::SeqCst) > 3000 {
-                                return park_for_reopen(shared, pcm, Ok(0), true);
-                            }
-                            let _ = pcm.drop();
-                            shared.start_paused.store(true, Ordering::SeqCst);
-                            previous_index(shared);
-                            persist_queue(shared);
-                            return Flow::Reload;
+                            let mut backwards = false;
+                            drain_skips(
+                                shared,
+                                rx,
+                                &mut backwards,
+                                Some(pcm),
+                                SkipDirection::of(&command),
+                            );
+                            return if backwards {
+                                Flow::Previous
+                            } else {
+                                Flow::Reload
+                            };
                         }
                         Ok(Cmd::SetDevice(d)) => {
                             *shared.device.lock().unwrap_or_else(|e| e.into_inner()) = d;
@@ -1622,6 +1979,12 @@ fn play_controlled(
                                 return Flow::Reload;
                             }
                         }
+                        Ok(Cmd::PlayQueued { row, uri }) => {
+                            if select_queued(shared, row, &uri) {
+                                let _ = pcm.drop();
+                                return Flow::Reload;
+                            }
+                        }
                         Ok(Cmd::LoadTrack(i)) => {
                             if goto_valid(shared, i) {
                                 *shared.pending_idx.lock().unwrap_or_else(|e| e.into_inner()) =
@@ -1641,28 +2004,20 @@ fn play_controlled(
                 let _ = pcm.drop();
                 return Flow::Stopped;
             }
-            Ok(Cmd::Next) => {
-                let _ = pcm.drop();
-                return Flow::Ended;
-            }
-            Ok(Cmd::Prev) => {
-                // same >3s rule while playing: rewind to 0 and keep playing
-                if shared.pos_ms.load(Ordering::SeqCst) > 3000 {
-                    seek_to(
-                        &mut *probed.format,
-                        &mut *dec,
-                        track_id,
-                        sr,
-                        0,
-                        shared,
-                        &mut position_remainder,
-                    );
-                    continue;
-                }
-                let _ = pcm.drop();
-                previous_index(shared);
-                persist_queue(shared);
-                return Flow::Reload;
+            Ok(command @ (Cmd::Next | Cmd::Prev)) => {
+                let mut backwards = false;
+                drain_skips(
+                    shared,
+                    rx,
+                    &mut backwards,
+                    Some(pcm),
+                    SkipDirection::of(&command),
+                );
+                return if backwards {
+                    Flow::Previous
+                } else {
+                    Flow::Reload
+                };
             }
             Ok(Cmd::SetDevice(d)) => {
                 *shared.device.lock().unwrap_or_else(|e| e.into_inner()) = d;
@@ -1711,6 +2066,12 @@ fn play_controlled(
                     return Flow::Reload;
                 }
             }
+            Ok(Cmd::PlayQueued { row, uri }) => {
+                if select_queued(shared, row, &uri) {
+                    let _ = pcm.drop();
+                    return Flow::Reload;
+                }
+            }
             Ok(Cmd::LoadTrack(i)) if goto_valid(shared, i) => {
                 *shared.pending_idx.lock().unwrap_or_else(|e| e.into_inner()) = Some(i);
                 let _ = pcm.drop();
@@ -1719,7 +2080,28 @@ fn play_controlled(
             _ => {}
         }
 
-        let packet = match probed.format.next_packet() {
+        let packet_result = probed.format.next_packet();
+        if melba_cdm::operation::current().is_some_and(|operation| operation.is_cancelled()) {
+            if rx.has_pending() {
+                continue;
+            }
+            // A selection can become stale while queued (e.g. a reorder before
+            // it). Reopen the unchanged selection using existing buffer accounting,
+            // rather than spinning on a cancelled reader or treating it as EOF.
+            let position = pcm
+                .delay()
+                .map_err(|e| format!("running delay: {e}"))
+                .map(|queued| {
+                    position_without_buffer(
+                        shared.pos_ms.load(Ordering::SeqCst),
+                        position_remainder,
+                        queued.max(0) as u64,
+                        sr,
+                    )
+                });
+            return park_for_reopen(shared, pcm, position, false);
+        }
+        let packet = match packet_result {
             Ok(p) => p,
             Err(e) => {
                 crate::diag::debug("next_packet_failed", &[("reason", &e.to_string())]);
@@ -1736,6 +2118,9 @@ fn play_controlled(
                 continue;
             }
         };
+        if melba_cdm::operation::current().is_some_and(|operation| operation.is_cancelled()) {
+            continue;
+        }
         let gain = f64::from_bits(shared.volume.load(Ordering::Relaxed));
         let graph = shared
             .graph
@@ -2347,6 +2732,22 @@ pub fn serve(
         );
         let txp = tx.clone();
         b.method(
+            "MelbaPlayQueued",
+            ("row", "uri"),
+            (),
+            move |_, _: &mut St, (row, uri): (u32, String)| {
+                txp.lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .send(Cmd::PlayQueued {
+                        row: row as usize,
+                        uri,
+                    })
+                    .map_err(|_| dbus::MethodErr::failed("playback worker unavailable"))?;
+                Ok(())
+            },
+        );
+        let txp = tx.clone();
+        b.method(
             "MelbaGoTo",
             ("u",),
             (),
@@ -2726,6 +3127,7 @@ mod title_from_key_tests {
 #[cfg(test)]
 mod tests {
     use super::reorder_idx;
+    use std::{path::PathBuf, sync::atomic::Ordering};
 
     /// A failing queue advances in a tight loop; each advance used to rewrite
     /// the state file. One machine ended up with 14 GB of it.
@@ -2748,6 +3150,292 @@ mod tests {
         assert!(
             crate::player::persist_due(Some(just_now), now, true),
             "quitting writes whatever is pending"
+        );
+    }
+
+    #[test]
+    fn pending_skips_keep_the_plan_history_and_command_barriers() {
+        const CHILD: &str = "MELBA_PENDING_SKIP_NULL_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            // Never resolve "null" through the user's ALSA configuration.
+            let root = std::env::temp_dir().join(format!("melba-skip-null-{}", std::process::id()));
+            std::fs::create_dir(&root).unwrap();
+            let config = root.join("alsa.conf");
+            std::fs::write(&config, "pcm.null { type null }\n").unwrap();
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "player::tests::pending_skips_keep_the_plan_history_and_command_barriers",
+                    "--nocapture",
+                ])
+                .env(CHILD, "1")
+                .env("ALSA_CONFIG_PATH", config)
+                .output()
+                .unwrap();
+            std::fs::remove_dir_all(root).unwrap();
+            assert!(
+                output.status.success(),
+                "{}\n{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+            assert!(String::from_utf8_lossy(&output.stdout).contains("1 passed; 0 failed"));
+            return;
+        }
+        for shuffle in [false, true] {
+            let shared = super::Shared::new();
+            // Equal URIs are distinct occurrences. A source opened for the
+            // first one is not evidence that later copies were opened too.
+            *shared.queue.lock().unwrap() = vec![PathBuf::from("track-0"); 7];
+            shared.source_opened.store(true, Ordering::SeqCst);
+            *shared.source.lock().unwrap() = Some(crate::audio::SourceFormat {
+                path: "track-0".into(),
+                codec: "pcm".into(),
+                rate: 48000,
+                bits: 16,
+                channels: 2,
+                dur_ms: 45000,
+            });
+            shared.shuffle.store(shuffle, Ordering::SeqCst);
+            let plan = super::planned_indices(&shared);
+            let (tx, receiver) = std::sync::mpsc::channel();
+            let commands = super::Commands::new(receiver);
+            for _ in 0..3 {
+                tx.send(super::Cmd::Next).unwrap();
+            }
+            tx.send(super::Cmd::Stop).unwrap();
+            tx.send(super::Cmd::Next).unwrap();
+            let mut backwards = true;
+            let stream = Some(
+                crate::audio::open_exact("null", shared.source.lock().unwrap().as_ref().unwrap())
+                    .unwrap(),
+            );
+            assert_eq!(
+                stream.as_ref().unwrap().0.state(),
+                alsa::pcm::State::Prepared
+            );
+            assert!(super::drain_skips(
+                &shared,
+                &commands,
+                &mut backwards,
+                stream.as_ref().map(|(pcm, _)| pcm),
+                None
+            ));
+            assert_eq!(
+                stream.as_ref().unwrap().0.state(),
+                alsa::pcm::State::Setup,
+                "an explicit skip must drop the retained output tail"
+            );
+            assert!(!backwards);
+            assert_eq!(*shared.idx.lock().unwrap(), plan[2] as usize);
+            assert_eq!(super::planned_indices(&shared), plan[3..]);
+            assert!(!super::drain_skips(
+                &shared,
+                &commands,
+                &mut backwards,
+                None,
+                None
+            ));
+            assert!(matches!(
+                commands.recv_timeout(std::time::Duration::ZERO),
+                Ok(super::Cmd::Stop)
+            ));
+            assert!(matches!(commands.try_recv(), Ok(super::Cmd::Next)));
+            super::previous_index(&shared);
+            assert_eq!(
+                *shared.idx.lock().unwrap(),
+                0,
+                "loading candidates never enter playback history"
+            );
+            drop(tx);
+            assert!(commands.recv().is_err());
+        }
+    }
+
+    #[test]
+    fn next_while_previous_is_loading_keeps_history_and_paused_identity() {
+        let shared = super::Shared::new();
+        *shared.queue.lock().unwrap() = (0..5).map(|n| format!("track-{n}").into()).collect();
+        shared.shuffle.store(true, Ordering::SeqCst);
+        let visited = shared.order.lock().unwrap().next(4, 5, true, 0, true);
+        *shared.idx.lock().unwrap() = visited;
+        super::previous_index(&shared);
+        assert_eq!(*shared.idx.lock().unwrap(), 4);
+        assert!(
+            shared.source.lock().unwrap().is_none(),
+            "Previous is still preparing its source"
+        );
+        shared.start_paused.store(true, Ordering::SeqCst);
+        let before = shared.play_seq.load(Ordering::SeqCst);
+        let (tx, receiver) = std::sync::mpsc::channel();
+        tx.send(super::Cmd::Next).unwrap();
+        let mut backwards = true;
+        assert!(super::drain_skips(
+            &shared,
+            &super::Commands::new(receiver),
+            &mut backwards,
+            None,
+            None
+        ));
+        assert_eq!(*shared.idx.lock().unwrap(), visited);
+        assert_eq!(shared.play_seq.load(Ordering::SeqCst), before + 1);
+        super::previous_index(&shared);
+        assert_eq!(
+            *shared.idx.lock().unwrap(),
+            4,
+            "returning to a visited occurrence must remain reversible"
+        );
+    }
+
+    #[test]
+    fn mixed_pending_skips_share_one_plan_and_keep_the_stop_barrier() {
+        let shared = super::Shared::new();
+        *shared.queue.lock().unwrap() = (0..6).map(|n| format!("track-{n}").into()).collect();
+        shared.order.lock().unwrap().next(0, 6, false, 0, true);
+        shared.order.lock().unwrap().next(1, 6, false, 0, true);
+        *shared.idx.lock().unwrap() = 2;
+        shared.source_opened.store(true, Ordering::SeqCst);
+        shared.start_paused.store(true, Ordering::SeqCst);
+        let (sender, receiver) = std::sync::mpsc::channel();
+        for command in [
+            super::Cmd::Next,
+            super::Cmd::Prev,
+            super::Cmd::Next,
+            super::Cmd::Prev,
+            super::Cmd::Stop,
+            super::Cmd::Prev,
+        ] {
+            sender.send(command).unwrap();
+        }
+        let commands = super::Commands::new(receiver);
+        let mut backwards = false;
+        assert!(super::drain_skips(
+            &shared,
+            &commands,
+            &mut backwards,
+            None,
+            None
+        ));
+        assert_eq!(*shared.idx.lock().unwrap(), 2);
+        assert!(backwards);
+        assert_eq!(shared.play_seq.load(Ordering::SeqCst), 1);
+        assert!(matches!(commands.recv().unwrap(), super::Cmd::Stop));
+        assert_eq!(commands.take_skip(), Some(super::SkipDirection::Backward));
+        assert_eq!(super::planned_indices(&shared)[0], 3);
+        super::previous_index(&shared);
+        assert_eq!(
+            *shared.idx.lock().unwrap(),
+            1,
+            "intermediate candidate 3 never played"
+        );
+    }
+
+    #[test]
+    fn back_skip_restarts_only_the_visited_selection_then_goes_back() {
+        for opened in [false, true] {
+            let shared = super::Shared::new();
+            *shared.queue.lock().unwrap() = (0..4).map(|n| format!("track-{n}").into()).collect();
+            shared.order.lock().unwrap().next(0, 4, false, 0, true);
+            shared.order.lock().unwrap().next(1, 4, false, 0, true);
+            *shared.idx.lock().unwrap() = 2;
+            shared.source_opened.store(opened, Ordering::SeqCst);
+            shared.set_state(super::PlayState::Paused);
+            shared.start_paused.store(true, Ordering::SeqCst);
+            shared.pos_ms.store(4000, Ordering::SeqCst);
+            *shared.pending_seek.lock().unwrap() = Some((2, 4000));
+            let (sender, receiver) = std::sync::mpsc::channel();
+            sender.send(super::Cmd::Prev).unwrap();
+            let commands = super::Commands::new(receiver);
+            let mut backwards = false;
+            assert!(super::drain_skips(
+                &shared,
+                &commands,
+                &mut backwards,
+                None,
+                None
+            ));
+            assert_eq!(*shared.idx.lock().unwrap(), if opened { 2 } else { 1 });
+            assert_eq!(shared.pos_ms.load(Ordering::SeqCst), 0);
+            assert!(shared.pending_seek.lock().unwrap().is_none());
+            sender.send(super::Cmd::Prev).unwrap();
+            assert!(super::drain_skips(
+                &shared,
+                &commands,
+                &mut backwards,
+                None,
+                None
+            ));
+            assert_eq!(*shared.idx.lock().unwrap(), if opened { 1 } else { 0 });
+        }
+    }
+
+    #[test]
+    fn reopening_keeps_visit_proof_without_a_format_receipt() {
+        let shared = super::Shared::new();
+        *shared.queue.lock().unwrap() = (0..4).map(|n| format!("track-{n}").into()).collect();
+        *shared.idx.lock().unwrap() = 1;
+        shared.order.lock().unwrap().next(0, 4, false, 0, true);
+        shared.source_opened.store(true, Ordering::SeqCst);
+        assert!(shared.source.lock().unwrap().is_none());
+        super::advance(&shared);
+        super::previous_index(&shared);
+        assert_eq!(
+            *shared.idx.lock().unwrap(),
+            1,
+            "reopening must not erase the played occurrence"
+        );
+    }
+
+    #[test]
+    fn next_discards_a_parked_seek_even_when_repeat_keeps_the_same_row() {
+        let shared = super::Shared::new();
+        *shared.queue.lock().unwrap() = vec!["track".into()];
+        shared.repeat.store(2, Ordering::SeqCst);
+        *shared.pending_seek.lock().unwrap() = Some((0, 4000));
+        super::advance(&shared);
+        assert_eq!(*shared.idx.lock().unwrap(), 0);
+        assert!(shared.pending_seek.lock().unwrap().is_none());
+    }
+
+    #[test]
+    fn queued_selection_preserves_occurrences_and_rejects_missing_songs() {
+        let shared = super::Shared::new();
+        let original: Vec<PathBuf> = ["stream:a", "stream:b", "stream:b", "stream:c"]
+            .into_iter()
+            .map(Into::into)
+            .collect();
+        *shared.queue.lock().unwrap() = original.clone();
+        shared.source_opened.store(true, Ordering::SeqCst);
+        shared.start_paused.store(true, Ordering::SeqCst);
+        *shared.pending_seek.lock().unwrap() = Some((0, 4000));
+        *shared.pending_idx.lock().unwrap() = Some(1);
+        assert!(super::select_queued(&shared, 1, "stream:b"));
+        assert_eq!(
+            *shared.idx.lock().unwrap(),
+            2,
+            "the clicked duplicate, not the first copy"
+        );
+        assert_eq!(*shared.queue.lock().unwrap(), original);
+        assert_eq!(super::planned_indices(&shared), [3]);
+        assert!(!shared.start_paused.load(Ordering::SeqCst));
+        assert!(shared.pending_seek.lock().unwrap().is_none());
+        assert!(shared.pending_idx.lock().unwrap().is_none());
+        // Simulate playback of the selected duplicate before the next click.
+        shared.source_opened.store(true, Ordering::SeqCst);
+        shared.pos_ms.store(123, Ordering::SeqCst);
+        assert!(!super::select_queued(&shared, 0, "stream:gone"));
+        assert_eq!(*shared.idx.lock().unwrap(), 2);
+        assert_eq!(shared.pos_ms.load(Ordering::SeqCst), 123);
+        // The UI's row number can become stale after a natural transition.
+        assert!(super::select_queued(&shared, 99, "stream:c"));
+        assert_eq!(*shared.idx.lock().unwrap(), 3);
+        super::previous_index(&shared);
+        assert_eq!(*shared.idx.lock().unwrap(), 2);
+        super::previous_index(&shared);
+        assert_eq!(
+            *shared.idx.lock().unwrap(),
+            0,
+            "the skipped copy never played"
         );
     }
 
@@ -2897,6 +3585,7 @@ mod tests {
             .bitperfect_blocked
             .load(std::sync::atomic::Ordering::SeqCst));
         let (tx, rx) = mpsc::channel();
+        let rx = super::Commands::new(rx);
         tx.send(super::Cmd::SetDevice("hw:3,3".into())).unwrap();
         assert!(super::wait_bitperfect(&shared, &rx));
         assert_eq!(

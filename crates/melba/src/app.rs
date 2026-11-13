@@ -5702,11 +5702,9 @@ impl App {
         });
     }
 
-    /// A chosen row of Next up plays at once, and the rows above it go
-    /// with it: skips consume the queue, so the playing context and the
-    /// songs queued after the chosen one stay intact. Loading the queue's
-    /// rows as a fresh list instead used to take seconds, threw the
-    /// context away, and left the service's copy of the queue to reappear.
+    /// Select one row of Next up in a single playback command. Consume the
+    /// shown prefix optimistically; the daemon keeps the context and shuffle
+    /// tail without opening any of the intervening songs.
     fn play_queue_item(&mut self, index: usize, uri: String) {
         if self.resume_only() {
             // Nothing is playing anywhere, so there is no live queue to
@@ -5729,7 +5727,7 @@ impl App {
             self.play_request(PlayRequest::tracks(uris).starting_at_index(index), false);
             return;
         }
-        let mut skips = index + 1;
+        let mut selected_index = index;
         let mut consumed: Vec<String> = Vec::new();
         if let Loadable::Loaded(queue) = &mut self.queue {
             // The click names a song; if the rows shifted under the
@@ -5742,7 +5740,7 @@ impl App {
                 self.refresh_queue(true);
                 return;
             };
-            skips = position + 1;
+            selected_index = position;
             let mut items: Vec<_> = queue.queue.drain(..=position).collect();
             let chosen = items.pop().expect("the chosen row was just drained");
             consumed = items.iter().map(|item| item.uri().to_string()).collect();
@@ -5756,13 +5754,14 @@ impl App {
         }
         self.expect_track(uri.clone(), 0);
         self.queue_start_pending = Some(self.target());
-        self.set_play_pending(vec![uri]);
+        self.set_play_pending(vec![uri.clone()]);
         self.optimistic_playing = Some((true, Instant::now()));
         match self.target() {
             Target::Local => {
-                for _ in 0..skips {
-                    self.backend.player(PlayerCommand::Next);
-                }
+                self.backend.player(PlayerCommand::PlayQueued {
+                    index: selected_index,
+                    uri,
+                });
             }
             Target::Remote => {
                 // With nothing to act on, one call earns the "pick
@@ -13343,6 +13342,107 @@ mod tests {
             "hand-queued songs consumed by the jump are let go"
         );
         assert!(app.play_pending("melba:track:c"));
+        #[cfg(target_os = "linux")]
+        {
+            // A queue selection must not start every intervening song.
+            let commands = app.backend.take_player_commands();
+            assert_eq!(
+                commands.len(),
+                1,
+                "one selection, one playback command: {commands:?}"
+            );
+            assert_eq!(
+                commands,
+                [PlayerCommand::PlayQueued {
+                    index: 1,
+                    uri: "melba:track:c".into()
+                }]
+            );
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn queue_jump_cost_is_one_command_regardless_of_distance() {
+        let uris: Vec<String> = (0..100)
+            .map(|i| format!("melba:track:{}", i % 10))
+            .collect();
+        let rows: Vec<&str> = uris.iter().map(String::as_str).collect();
+        for index in [0usize, 1, 48, 99] {
+            let mut app = headless_app();
+            app.local.track = Some(crate::player::LocalTrack {
+                uri: "melba:track:old".into(),
+                ..Default::default()
+            });
+            app.local.playback = Playback::Playing;
+            app.queue = loaded_queue("melba:track:old", &rows);
+            app.play_queue_item(index, uris[index].clone());
+            assert_eq!(
+                app.backend.take_player_commands(),
+                [PlayerCommand::PlayQueued {
+                    index,
+                    uri: uris[index].clone()
+                }]
+            );
+            assert_eq!(queue_uris(&app).1, uris[index + 1..]);
+            app.backend.shutdown();
+        }
+    }
+
+    #[test]
+    fn a_skip_burst_needs_only_the_final_daemon_confirmation() {
+        let ctx = egui::Context::default();
+        let mut app = headless_app();
+        app.local.connected = true;
+        app.local.track = Some(crate::player::LocalTrack {
+            uri: "melba:track:a".into(),
+            ..Default::default()
+        });
+        app.local.playback = Playback::Playing;
+        app.on_now_playing_changed();
+        app.manual_queue = [
+            "melba:track:b",
+            "melba:track:c",
+            "melba:track:d",
+            "melba:track:d",
+        ]
+        .into_iter()
+        .map(String::from)
+        .collect();
+        app.queue = loaded_queue(
+            "melba:track:a",
+            &[
+                "melba:track:b",
+                "melba:track:c",
+                "melba:track:d",
+                "melba:track:d",
+                "melba:track:context",
+            ],
+        );
+        for _ in 0..3 {
+            app.apply(Action::Next, &ctx);
+        }
+        assert_eq!(app.current_track_uri().as_deref(), Some("melba:track:d"));
+        let mut final_state = app.local.clone();
+        final_state.track = Some(crate::player::LocalTrack {
+            uri: "melba:track:d".into(),
+            ..Default::default()
+        });
+        final_state.track_sequence += 1;
+        app.handle_local(final_state);
+        assert_eq!(
+            app.manual_queue,
+            ["melba:track:d"],
+            "the later duplicate is not consumed a second time"
+        );
+        assert_eq!(
+            queue_uris(&app),
+            (
+                Some("melba:track:d".into()),
+                vec!["melba:track:d".into(), "melba:track:context".into()]
+            )
+        );
+        app.backend.shutdown();
     }
 
     /// The click names a song: when the rows have shifted under the

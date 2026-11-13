@@ -630,7 +630,7 @@ pub struct Backend {
     #[cfg(test)]
     queued_tracks: std::sync::Mutex<Vec<String>>,
     #[cfg(all(test, target_os = "linux"))]
-    player_loads: std::sync::Mutex<Vec<crate::player::LoadSpec>>,
+    player_commands: std::sync::Mutex<Vec<PlayerCommand>>,
     #[cfg(test)]
     #[cfg(test)]
     #[cfg(test)]
@@ -716,7 +716,7 @@ impl Backend {
             #[cfg(test)]
             queued_tracks: std::sync::Mutex::new(Vec::new()),
             #[cfg(all(test, target_os = "linux"))]
-            player_loads: std::sync::Mutex::new(Vec::new()),
+            player_commands: std::sync::Mutex::new(Vec::new()),
             #[cfg(test)]
             #[cfg(test)]
             #[cfg(test)]
@@ -741,8 +741,8 @@ impl Backend {
     pub fn send(&self, command: Command) {
         use std::sync::atomic::Ordering;
         #[cfg(all(test, target_os = "linux"))]
-        if let Command::Player(PlayerCommand::Load(spec)) = &command {
-            self.player_loads.lock().unwrap().push(spec.clone());
+        if let Command::Player(player) = &command {
+            self.player_commands.lock().unwrap().push(player.clone());
         }
         // Invalidate at the UI boundary, not later when the worker happens to
         // drain its queue. This also rejects terminal events already queued.
@@ -910,7 +910,18 @@ impl Backend {
 
     #[cfg(all(test, target_os = "linux"))]
     pub(crate) fn take_player_loads(&self) -> Vec<crate::player::LoadSpec> {
-        std::mem::take(&mut *self.player_loads.lock().unwrap())
+        self.take_player_commands()
+            .into_iter()
+            .filter_map(|command| match command {
+                PlayerCommand::Load(spec) => Some(spec),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[cfg(all(test, target_os = "linux"))]
+    pub(crate) fn take_player_commands(&self) -> Vec<PlayerCommand> {
+        std::mem::take(&mut *self.player_commands.lock().unwrap())
     }
 
     pub fn player(&self, command: PlayerCommand) {
