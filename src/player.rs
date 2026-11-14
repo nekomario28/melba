@@ -1710,6 +1710,18 @@ fn planned_indices(shared: &Shared) -> Vec<u32> {
         .collect()
 }
 
+fn can_go_next(shared: &Shared) -> bool {
+    !planned_indices(shared).is_empty()
+}
+
+fn can_go_previous(shared: &Shared) -> bool {
+    !shared
+        .queue
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .is_empty()
+}
+
 fn advance(shared: &Arc<Shared>) {
     {
         let mut idx = shared.idx.lock().unwrap_or_else(|e| e.into_inner());
@@ -2969,15 +2981,11 @@ pub fn serve(
         b.property("CanPause").get(|_, _: &mut St| Ok(true));
         // Capabilities and transport consult the same navigation plan.
         b.property("CanGoNext")
-            .get(|_, s: &mut St| Ok(!planned_indices(&s.shared).is_empty()));
-        b.property("CanGoPrevious").get(|_, s: &mut St| {
-            Ok(!s
-                .shared
-                .queue
-                .lock()
-                .unwrap_or_else(|e| e.into_inner())
-                .is_empty())
-        });
+            .emits_changed_true()
+            .get(|_, s: &mut St| Ok(can_go_next(&s.shared)));
+        b.property("CanGoPrevious")
+            .emits_changed_true()
+            .get(|_, s: &mut St| Ok(can_go_previous(&s.shared)));
         b.property("CanControl").get(|_, _: &mut St| Ok(true));
         b.property("Volume")
             .emits_changed_true()
@@ -3060,8 +3068,8 @@ pub fn serve(
     // PropertiesChanged publishing: track/state changes driven by the playback
     // thread (auto-advance, ctl verbs) never pass through a method handler, so
     // the receive loop polls them and emits the signal itself — media widgets
-    // depend on these to notice track changes without polling.
-    let mut last_sig_state: Option<(u8, u64, u64)> = None;
+    // depend on these to notice track and capability changes without polling.
+    let mut last_sig_state: Option<(u8, u64, u64, bool, bool)> = None;
     loop {
         if conn.process(Duration::from_millis(400)).is_err() {
             break;
@@ -3069,6 +3077,8 @@ pub fn serve(
         if shared.quit.load(Ordering::SeqCst) {
             break;
         }
+        let can_next = can_go_next(&shared);
+        let can_prev = can_go_previous(&shared);
         // verdict/device/sink mutate on the playback thread without
         // bumping play_seq — fold them into the watch tuple so e.g. a
         // BITPERFECT verdict reaching the controller isn't silent
@@ -3095,6 +3105,8 @@ pub fn serve(
                     .hash(&mut h);
                 h.finish()
             },
+            can_next,
+            can_prev,
         );
         if last_sig_state != Some(cur) {
             last_sig_state = Some(cur);
@@ -3106,6 +3118,11 @@ pub fn serve(
             changed.insert(
                 "Metadata".into(),
                 dbus::arg::Variant(Box::new(metadata_map(&shared))),
+            );
+            changed.insert("CanGoNext".into(), dbus::arg::Variant(Box::new(can_next)));
+            changed.insert(
+                "CanGoPrevious".into(),
+                dbus::arg::Variant(Box::new(can_prev)),
             );
             if let Ok(sig) = dbus::Message::new_signal(
                 "/org/mpris/MediaPlayer2",
