@@ -1194,3 +1194,114 @@ fn failed_native_resume_reopens_and_progresses() {
         false,
     );
 }
+
+/// Media controllers cache CanGoNext/CanGoPrevious from initial GetAll and
+/// refuse to invoke Next/Previous until PropertiesChanged updates them.
+#[test]
+fn navigation_capabilities_emit_properties_changed() {
+    if !private_case("navigation_capabilities_emit_properties_changed") {
+        return;
+    }
+    use dbus::blocking::stdintf::org_freedesktop_dbus::PropertiesPropertiesChanged;
+    use std::sync::{Arc, Mutex};
+
+    let _daemon = Daemon(
+        Command::new(env!("CARGO_BIN_EXE_melbad"))
+            .args(["serve", "--device", "null"])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap(),
+    );
+    let conn = Connection::new_session().unwrap();
+    wait(&conn, |s| s.status == "Stopped");
+
+    let proxy = conn.with_proxy(BUS, "/org/mpris/MediaPlayer2", Duration::from_secs(2));
+    assert!(!proxy.get::<bool>(IFACE, "CanGoNext").unwrap());
+    assert!(!proxy.get::<bool>(IFACE, "CanGoPrevious").unwrap());
+
+    let seen = Arc::new(Mutex::new(Vec::<(Option<bool>, Option<bool>)>::new()));
+    let seen_cb = Arc::clone(&seen);
+    let _token = proxy
+        .match_signal(
+            move |signal: PropertiesPropertiesChanged, _: &Connection, _: &dbus::Message| {
+                if signal.interface_name == IFACE {
+                    let next = signal
+                        .changed_properties
+                        .get("CanGoNext")
+                        .and_then(|v| v.0.as_u64())
+                        .map(|n| n != 0);
+                    let prev = signal
+                        .changed_properties
+                        .get("CanGoPrevious")
+                        .and_then(|v| v.0.as_u64())
+                        .map(|n| n != 0);
+                    if next.is_some() || prev.is_some() {
+                        seen_cb.lock().unwrap().push((next, prev));
+                    }
+                }
+                true
+            },
+        )
+        .unwrap();
+
+    let wait_signal = |expected: (Option<bool>, Option<bool>)| {
+        let deadline = Instant::now() + Duration::from_secs(3);
+        loop {
+            if seen.lock().unwrap().contains(&expected) {
+                return;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "missing PropertiesChanged {expected:?}; got {:?}",
+                *seen.lock().unwrap()
+            );
+            conn.process(Duration::from_millis(50)).unwrap();
+        }
+    };
+
+    let fixtures = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures");
+    let track_a = format!("file://{}", fixtures.join("44k-16bit-art.m4a").display());
+    let track_b = format!("file://{}", fixtures.join("96k-24bit.m4a").display());
+
+    // 1. Single-track paused load: CanGoPrevious flips true, CanGoNext stays false.
+    proxy
+        .method_call::<(), _, _, _>(
+            IFACE,
+            "MelbaLoadQueue",
+            (vec![track_a.clone()], 0u32, 0u32, false),
+        )
+        .unwrap();
+    wait(&conn, |s| s.status == "Paused" && s.queue.len() == 1);
+    wait_signal((Some(false), Some(true)));
+
+    // 2. Appending a second track enables CanGoNext without changing state/play_seq.
+    seen.lock().unwrap().clear();
+    proxy
+        .method_call::<(), _, _, _>(IFACE, "MelbaEnqueue", (vec![track_b],))
+        .unwrap();
+    wait_signal((Some(true), Some(true)));
+    assert!(proxy.get::<bool>(IFACE, "CanGoNext").unwrap());
+
+    // 3. Clearing the whole queue drops both capabilities back to false.
+    seen.lock().unwrap().clear();
+    proxy
+        .method_call::<(), _, _, _>(IFACE, "MelbaQueueEmpty", ())
+        .unwrap();
+    wait(&conn, |s| s.status == "Stopped" && s.queue.is_empty());
+    wait_signal((Some(false), Some(false)));
+
+    // 4. Toggling LoopStatus on a single-track queue also updates CanGoNext.
+    proxy
+        .method_call::<(), _, _, _>(IFACE, "MelbaLoadQueue", (vec![track_a], 0u32, 0u32, false))
+        .unwrap();
+    wait(&conn, |s| s.status == "Paused" && s.queue.len() == 1);
+    wait_signal((Some(false), Some(true)));
+
+    seen.lock().unwrap().clear();
+    proxy
+        .set(IFACE, "LoopStatus", "Playlist".to_owned())
+        .unwrap();
+    wait_signal((Some(true), Some(true)));
+}
