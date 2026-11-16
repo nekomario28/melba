@@ -17,8 +17,8 @@ The maintainer authorized the 0.4.0 preparation and release sequence after accep
 
 - [ ] Version metadata, candidate notes and local package/upgrade checks.
 - [ ] Matching-source workspace and default/all-features GUI verification.
-- [ ] Authentication: fresh sign-in, saved-session restore, rejection/expiry and sign-out. Record exact coverage and any user-only blocker; do not invent acceptance.
-- [ ] Full catalog AAC playback beyond 30 seconds in an isolated null-output session, distinguished from preview playback.
+- [x] Authentication scope decision (2026-11-16): the maintainer authorized release without repeating fresh sign-in, real-session expiry recovery or GUI sign-out/re-login. The authentication core and GUI sign-in/restore/sign-out bodies match v0.3.30; shared HTTP cancellation and test-backend D-Bus isolation were reviewed separately. This is accepted residual risk, not live-account test acceptance. Offline alpha.2 checks cover synthetic credential storage/rejection/clear and the existing seven password-input regressions only.
+- [x] Playback scope decision (2026-11-16): the maintainer reported stable playback on alpha.2 and authorized the stable release on that basis. A new isolated full-catalog AAC measurement beyond 30 seconds is not claimed or required for this release. Keep that broader account/playback acceptance outstanding in the roadmap.
 - [ ] Release PR and current-head CI; accepted visual scope is unchanged from the maintainer's installed review.
 - [ ] Merge only after release-critical checks, then use the existing publisher-signed workflow for v0.4.0.
 - [ ] Independently verify published archives, checksum signature and installer, then update release docs and Nix hashes in a follow-up PR.
