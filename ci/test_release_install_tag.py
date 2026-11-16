@@ -78,6 +78,20 @@ class ReleaseInstallTag(unittest.TestCase):
                     seen = [i for i in seen if i < indent]
                     seen.append(indent)
 
+    def test_desktop_toolchains_match_the_release_pin(self):
+        # A stale nested override selected a different compiler after cd.
+        pinned = (ROOT / "rust-toolchain.toml").read_text()
+        release = re.search(r'channel\s*=\s*"([0-9.]+)"', pinned)
+        self.assertIsNotNone(release)
+        for path, key in (
+            ("crates/melba/rust-toolchain.toml", "channel"),
+            ("crates/melba/mise.toml", "version"),
+        ):
+            with self.subTest(path=path):
+                actual = re.search(rf'{key}\s*=\s*"([0-9.]+)"', (ROOT / path).read_text())
+                self.assertIsNotNone(actual, path)
+                self.assertEqual(actual.group(1), release.group(1), path)
+
     def test_the_release_toolchain_is_pinned(self):
         """A rebuilt tag must produce the same binaries, so the toolchain cannot float."""
         pinned = (ROOT / "rust-toolchain.toml").read_text()
