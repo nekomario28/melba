@@ -48,6 +48,7 @@ class ReadmeDocs(unittest.TestCase):
             'docs/integrations.md', 'docs/development.md',
             'docs/security.md', 'docs/environment.md', 'SECURITY.md',
             'crates/melba/PACKAGING.md', 'crates/melba/CONTRIBUTING.md',
+            'crates/melba/AGENTS.md',
         )
         for name in documents:
             for link in re.findall(r'\]\(([^)]+)\)', read(name)):
@@ -58,6 +59,28 @@ class ReadmeDocs(unittest.TestCase):
                     ((ROOT / name).parent / target).exists(),
                     f'{name}: broken local link to {link}',
                 )
+
+    def test_agent_release_guidance_uses_the_signed_publisher(self):
+        # The inherited source-only instructions bypassed the signed workflow.
+        name = 'crates/melba/AGENTS.md'
+        releases = read(name).split('## Releases\n', 1)[1]
+        targets = {
+            ((ROOT / name).parent / link.split('#', 1)[0]).resolve()
+            for link in re.findall(r'\]\(([^)]+)\)', releases)
+            if not link.startswith(('https://', 'http://'))
+        }
+        for owner in ('docs/updates.md', '.github/workflows/release-publish.yml'):
+            self.assertIn((ROOT / owner).resolve(), targets)
+        self.assertNotRegex(releases, r'\bgh\s+release\s+create\b')
+
+    def test_agent_branch_guidance_matches_the_publisher_branch(self):
+        workflow = read('.github/workflows/release-publish.yml')
+        branches = set(re.findall(r"github\.ref == 'refs/heads/([^']+)'", workflow))
+        self.assertEqual(len(branches), 1)
+        branch = next(iter(branches))
+        guidance = read('crates/melba/AGENTS.md').split('## Branches\n', 1)[1].split('\n## ', 1)[0]
+        self.assertIn(f'`{branch}`', guidance)
+        self.assertNotIn('`master`', guidance)
 
     def test_first_play_guides_and_optional_runtime_consent(self):
         self.assertIn('(docs/first-run.md)', read('README.md'))

@@ -2,8 +2,9 @@
 
 Melba is a native Apple Music client for Linux. This crate is the desktop
 app; the `melbad` playback daemon lives at the repository root. Changes
-should improve the app without adding a browser engine, fallback audio
-services, or another backend beside `melbad`.
+should improve the native app without replacing it with a web frontend,
+fallback audio services, or another backend beside `melbad`. The daemon has an
+existing sign-in-only webview; that is not the application UI or playback engine.
 
 ## Before opening an issue
 
@@ -24,8 +25,9 @@ Some boundaries are deliberate:
   Apple Music's DRM or impersonate another client are out of scope.
 - Apple Music tracks must come from Apple Music. Substituting audio from
   YouTube, Piped, `yt-dlp`, or another catalogue is out of scope.
-- Melba will not embed a browser engine, add telemetry, or introduce a
-  Melba-operated service.
+- Keep the application UI native. Do not expand the sign-in-only webview into
+  a browser or playback frontend, add telemetry, or introduce a Melba-operated
+  service.
 
 Apple's MusicKit and `/v1/me` library API define what a client can do;
 playlist rename, reorder, and cover upload are not available to web-origin
@@ -67,12 +69,13 @@ Keep each pull request to one change. Explain why it belongs in Melba,
 what changed, and how you tested it. Avoid unrelated formatting, refactors,
 generated prose, and large mechanical rewrites.
 
-`main` has a linear history. Outside pull requests are squash-merged
-into one focused commit with contributor credit; merge commits are not
-accepted. Maintainer work is committed directly on `main`, one topic per
-commit. Use fast-forward-only pulls and rebase unpublished local commits
-when needed. Do not rewrite published history without explicit maintainer
-approval.
+`main` is the default branch and has a linear history. Pull requests are
+squash-merged into focused commits with contributor credit; merge commits are
+not accepted. For authorized agent publication, use a topic branch and PR
+unless the maintainer explicitly requests a different flow. A request for a
+local edit does not authorize pushing, posting, merging or releasing. Use
+fast-forward-only pulls and rebase unpublished local commits when needed.
+Do not rewrite published history without explicit maintainer approval.
 
 The same rules apply to hand-written and AI-assisted changes. The author
 must understand every line and answer review comments with specific
@@ -84,14 +87,19 @@ the pull request, not in the repository, and should use demo mode where
 possible. User-visible behaviour, settings, files, or network access must
 be documented in the same pull request.
 
-Dependencies come from crates.io or from repositories the maintainer owns
-under `github.com/crmne/` (the `egui`, `winit`, and `fastframe` forks the
-app already builds on). A `git` dependency or `[patch]` entry may point
-only at such a repository, and adding or changing one needs the
-maintainer's explicit approval. Never point a dependency at your own fork
-or any other source. If a dependency needs a fix, send it upstream and
-link it from the pull request; the maintainer can carry it in a `crmne`
-fork until a release includes it.
+### Dependencies
+
+Prefer crates.io and preserve the upstream revisions already pinned in
+`Cargo.toml`. The `crmne/egui`, `crmne/winit` and `crmne/fastframe` sources
+belong to the upstream desktop author, not to the `nekomario28` maintainer of
+this repository. The checked-in `vendor/fastframe-update` is an existing local
+path dependency with provenance; do not replace or remove it merely to match
+an inherited no-vendoring instruction.
+
+Adding or changing a Git source, patch, fork or vendored dependency requires
+explicit maintainer approval. Do not assume access to upstream repositories or
+introduce a contributor fork silently. Send reusable fixes upstream where
+appropriate and retain their attribution and licenses.
 
 ### Settings
 

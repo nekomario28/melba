@@ -6,7 +6,12 @@ Full-track subscription playback requires an eligible Apple Music account and a 
 
 ## Normal sign-in
 
-From `melba` choose **Sign in with Apple Music**. The browser flow opens `music.apple.com`, where saved passwords and multifactor authentication can be used. An embedded sign-in webview is also available. The daemon CLI exposes:
+From `melba` choose **Sign in with Apple Music**. The GUI starts the daemon's private `auth gui` protocol, which selects its path from the installed configuration:
+
+- On x86_64, a managed wrapper, or an installed local wrapper with no external `wrapper_url`, selects the experimental native SDK path described below.
+- Otherwise, the GUI opens `music.apple.com` in the browser and watches for a validated session. Saved browser passwords and multifactor authentication can be used there.
+
+`auth gui` is a private-pipe protocol endpoint for the GUI, not an interactive browser-only CLI command. For an explicitly chosen embedded or browser session, the daemon CLI exposes:
 
 ```sh
 melbad auth status   # saved-token status and live validation; never displays the token
@@ -35,7 +40,7 @@ When an already-installed compatible decrypt service supplies a native SDK promp
 
 The SDK provides the prompt text, offered verification methods and labels; Melba relays the selected choice. Selecting SMS/voice verification does not itself prove delivery. The C bridge is pinned to the ABI of the inspected payload, and a changed build fails with `unsupported native authentication ABI`.
 
-This path is **experimental and not part of the supported public configuration**. Prefer browser/embedded sign-in (`melbad auth gui` or `melbad auth open`, as supported by the current build), which avoids passing credentials into a separate runtime. Following failed native enrolment, a marker blocks continued native-path use until a valid sign-in; `auth clear` removes that marker and the saved token.
+This path is **experimental**; its selection by the GUI does not establish credentialed end-to-end acceptance. To explicitly use the embedded or browser capture path, use `melbad auth open` or `melbad auth open --browser`, not `auth gui`. Browser token capture does not itself prove native wrapper enrolment. Following failed native enrolment, a marker blocks continued native-path use until a valid native binding is established; `auth clear` removes that marker and the saved token.
 
 ## Verification boundary
 

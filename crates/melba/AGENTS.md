@@ -1,13 +1,15 @@
 # Melba agent guide
 
-Follow `CONTRIBUTING.md`; it is the canonical product and contribution policy.
-These instructions add implementation constraints for coding agents.
+Follow [CONTRIBUTING.md](CONTRIBUTING.md) for product and contribution policy.
+These instructions add implementation constraints for coding agents. Paths in
+this file are relative to this desktop crate unless marked repository-root.
 
 ## Product boundaries
 
 - Keep Melba a small native Apple Music client on the `melbad` daemon. Do not
-  add a browser engine, telemetry, a hosted backend, or alternate sources
-  for Apple Music audio.
+  replace the native interface with a web app, add telemetry, a hosted backend,
+  or alternate sources for Apple Music audio. The daemon's existing sign-in-only
+  webview is not a general browser or a playback frontend.
 - Playback capabilities come from the `melbad` daemon. Do not advertise or
   implement a capability merely because its name appears in an API response
   or enum. In particular, do not pursue DRM circumvention.
@@ -32,12 +34,11 @@ These instructions add implementation constraints for coding agents.
   atomically written. Never log credentials or authorization responses.
 - Prefer existing dependencies. Explain any new crate in `Cargo.toml` next to
   the dependency when the reason is not obvious.
-- For dependency fixes, use a fork under `github.com/crmne/` pinned to a
-  commit and contribute the fix upstream. Only the maintainer creates those
-  forks; in a contributor's pull request, send the fix upstream and ask for it
-  to be carried. Use the fork until a release includes the fix; do not copy
-  dependency source into this repository. Never point a dependency at any other
-  fork or source (see Pull requests below).
+- Follow the [dependency policy](CONTRIBUTING.md#dependencies). The existing
+  `crmne` sources are pinned upstream dependencies, not repositories owned by
+  this project's maintainer. Preserve the checked-in `vendor/fastframe-update`
+  path dependency and its provenance; do not add forks or vendor more code
+  without explicit approval.
 - egui and winit come from forks shared with ZapFast, RekordFlash and TonePush
   (crmne/egui apps-0.36, crmne/winit apps-0.30); move all their crates to a
   new revision together. On Wayland, eframe from that fork paces frames by
@@ -56,9 +57,10 @@ before changing a state machine or API fallback.
 
 Playback capability claims belong to the daemon, not the UI: what `melbad`
 can play (local files, `preview:`, `stream:` AAC via `melba-cdm`, `stream:`
-ALAC via a user-supplied wrapper) is defined in the repository root README
-and `specs/README.md`. Do not advertise a capability merely because an Apple
-Music API field names it.
+ALAC via a user-supplied wrapper) is described in the repository-root
+[README](../../README.md) and [audio documentation](../../docs/audio.md).
+Dated specs are not current capability acceptance. Do not advertise a capability
+merely because an Apple Music API field names it.
 
 The interface is optimistic, always. A control shows its result the
 moment it is used: a double-clicked song is the playing song, Next pops
@@ -80,6 +82,9 @@ user just did. Nothing the user did may ever flicker away and come back.
 
 ## Issue communication
 
+- Read/check is not permission to post, edit, close or upload. External actions
+  require explicit authorization for the current request. Do not send an
+  unsolicited reply merely because a comment was inspected.
 - Write public replies for the reporter, not as an engineering investigation
   log. Keep them short, direct, and in plain language.
 - A reply should move the issue forward: make the maintainer's decision, say
@@ -88,8 +93,9 @@ user just did. Nothing the user did may ever flicker away and come back.
 - When a valid issue has a clear, bounded fix that can be implemented now,
   implement it instead of posting the proposed design in the issue. Do not use
   public comments as notes to yourself or as a substitute for doing the work.
-- Close a bug once its fix is on `master` and the relevant checks pass. State
-  which commit fixes it and whether it is released. Reporter confirmation is
+- When authorized to close a bug, wait until its fix is on `main` and the
+  relevant checks pass. State which commit fixes it and whether it is released.
+  Reporter confirmation is
   welcome, but is not a routine requirement for closure; reopen if the problem
   persists after updating. Keep an issue open when the fix is still uncertain
   or only part of the report has been addressed.
@@ -121,11 +127,20 @@ user just did. Nothing the user did may ever flicker away and come back.
   controls and links to individual comparisons), as a self-contained HTML
   file, or publish it outside the repository, and link it. Never commit
   captures, comparison pages or recordings in this repository.
-- Record approval and requested adjustments by PR number in the triage ledger.
+- Record approval and requested adjustments with the relevant PR or existing
+  decision record. Do not assume an external triage ledger exists.
   Keep visual approval separate from outstanding implementation or test gates.
   Do not ask again for unchanged approved scope after a rebase. A concrete
   requested adjustment is authorization to make that adjustment and update its
   evidence; ask again only for scope beyond the approval or request.
+
+## Melba-specific dependency policy
+
+This repository belongs to `nekomario28`, not `crmne`. The
+[local dependency policy](CONTRIBUTING.md#dependencies) takes precedence over
+ownership assumptions in the inherited automation section below. Existing
+upstream pins and reviewed vendored code are not permission to introduce a new
+source or update a revision without approval.
 
 <!-- github-automation: pull-requests -->
 ## Pull requests
@@ -157,18 +172,17 @@ Reviewers treat either problem in a pull request as a blocker.
 
 ## Branches
 
-Work on `master`. Commit there directly, one topic per commit, each
-compiling and passing the checks on its own. Feature branches and pull
-requests are for outside contributors; the maintainer's own work, and
-work done with the maintainer, does not go through them.
+The default branch is `main`; keep its history linear. Follow the
+[contribution workflow](CONTRIBUTING.md#pull-requests): use a focused topic
+branch and PR for authorized agent publication unless the maintainer explicitly
+requests a different flow. A request to edit locally is not authorization to
+push, create a PR, merge, tag or publish a release.
 
-Keep `master` linear. Squash outside pull requests into one focused commit,
-preserving contributor credit. Never create or push merge commits, including
-local `git merge --no-ff` commits that bypass GitHub's squash-only setting.
-When updating a local checkout, use fast-forward-only pulls; rebase unpublished
-local commits if needed. Before pushing, verify that the commits being added
-contain no merge commits. Rewriting published history requires explicit
-maintainer approval and an exact force-with-lease guard; keep a recovery ref.
+Keep commits focused and preserve contributor credit when squash-merging.
+Do not add assistant-attribution trailers. Never create merge commits to bypass
+the linear history. Use fast-forward-only pulls and rebase unpublished commits
+if needed. Rewriting published history requires explicit approval and an exact
+force-with-lease guard; keep a local recovery ref.
 
 ## Disk use
 
@@ -211,27 +225,20 @@ mise or mbx.
 
 ## Releases
 
-Releases are source-only: an annotated `v*` tag plus a GitHub Release with
-hand-written notes. There is no artifact pipeline, metainfo, or download
-page yet — do not describe one as done.
+Melba publishes paired, publisher-signed Linux executable archives. Follow the
+repository-root [update and publication procedure](../../docs/updates.md) and
+[signed release workflow](../../.github/workflows/release-publish.yml), not a
+manual tag-and-release shortcut. [Publication scope](../../PUBLICATION.md)
+separates the source-export workflow from binary distribution.
 
-1. Bump `Cargo.toml` version and refresh the lockfile with a build. Run the
-   full checks from `CONTRIBUTING.md` on the release commit before tagging.
-2. Create the annotated `vX.Y.Z` tag, push it, then
-   `gh release create vX.Y.Z --notes-file <notes>` or `--generate-notes` is
-   not acceptable: write the notes. `gh` pushes that touch
-   `.github/workflows/` also need a token with the `workflow` scope.
-3. Notes follow the established style: a short plain-language summary, `New`
-   and `Fixed` sections, honest limitations (Linux-only is the only tested
-   platform). Match the previous release's format.
-
-Before writing release notes, read the previous two stable releases and match
-their style. Start with a short plain-language summary, use `New` and `Fixed`
-sections as applicable, lead each item with a bold user-facing result, credit
-contributors and reporters with the relevant issue or pull request numbers,
-include a `Thanks` section, and end with the full changelog link. Do not leave
-the generated notes in place or introduce a different section scheme for
-ordinary improvements.
-
-Skipping an applicable step ships a release that lies somewhere; the dropdown
-was forgotten once already.
+- Publication requires explicit authorization for the current request. Use the
+  existing workflow on `main` after the release PR's exact-head checks pass;
+  preserve the publisher key and historical releases.
+- Update both application manifests and their lockfiles together. Leave
+  independently versioned support crates alone unless their own version changes.
+- Write user-facing notes under repository-root `docs/releases/`, matching the
+  recent stable releases. State verification limits honestly; do not infer live
+  sign-in, physical audio or platform acceptance from synthetic tests or builds.
+- Only advance published-install documentation and Nix hashes after verifying
+  the public archives, signature and installer results. Changing source version
+  metadata does not establish that a release exists.
