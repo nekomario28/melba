@@ -271,6 +271,17 @@ fi
 desktop="${XDG_DATA_HOME:-$HOME/.local/share}/applications/melba.desktop"
 mkdir -p "$(dirname "$desktop")"
 desktop_exec=$(printf '%s' "$root/melba" | sed 's/\\/\\\\/g; s/"/\\"/g; s/%/%%/g')
+if [ -f "$payload/melba.desktop" ]; then
+    # New signed archives carry the canonical entry, so only the lines that
+    # depend on this machine are rewritten here.
+    while IFS= read -r line; do
+        case "$line" in
+            Exec=*) printf 'Exec=/usr/bin/env "%s" %%u\n' "$desktop_exec";;
+            Icon=*) printf 'Icon=%s\n' "$desktop_icon";;
+            *) printf '%s\n' "$line";;
+        esac
+    done <"$payload/melba.desktop" >"$desktop"
+else
 cat >"$desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application
@@ -282,7 +293,9 @@ Icon=$desktop_icon
 Terminal=false
 Categories=AudioVideo;Audio;Music;Player;
 StartupWMClass=melba
+MimeType=x-scheme-handler/itms;x-scheme-handler/itmss;x-scheme-handler/music;x-scheme-handler/musics;x-scheme-handler/apple-music;
 DESKTOP
+fi
 
 echo "Melba $version installed at $root (signed release verified)."
 echo "Launch: $root/melba"

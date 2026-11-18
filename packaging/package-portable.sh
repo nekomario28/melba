@@ -43,6 +43,9 @@ for name in melba melbad; do
         printf 'melba-portable-v1\n' > "$stage/$stem/melba-portable.txt"
         # The desktop icon must travel in the same signed archive as Melba.
         install -m644 "$root/crates/melba/packaging/icons/melba.svg" "$stage/$stem/melba.svg"
+        # The desktop entry travels too: the release installer derives the
+        # installed entry from it instead of keeping a private copy.
+        install -m644 "$root/crates/melba/packaging/melba.desktop" "$stage/$stem/melba.desktop"
     else
         install -m755 "$melbad_bin" "$stage/$stem/melbad"
     fi
