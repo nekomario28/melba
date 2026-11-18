@@ -12,6 +12,13 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 PKGBUILD = ROOT / "packaging/PKGBUILD"
+CANONICAL_DESKTOP = ROOT / "crates/melba/packaging/melba.desktop"
+
+
+def canonical_desktop_mime_line():
+    """The scheme registration every install path must carry."""
+    desktop = CANONICAL_DESKTOP.read_text()
+    return next(line for line in desktop.splitlines() if line.startswith("MimeType="))
 
 
 def notice_tool_stub(work, fakebin, env):
@@ -570,11 +577,10 @@ class ReleaseInstallerTests(unittest.TestCase):
             "OPENSSL_TRACE": str(self.work / "openssl.log"),
             "PATH": f"{self.fakebin}:/usr/bin:/bin",
         }
-        import hashlib
-        import tarfile
         target = "x86_64-unknown-linux-gnu"
         self.archive = f"melba-v0.3.12-{target}.tar.gz"
         folder = self.work / self.archive.removesuffix(".tar.gz")
+        self.folder = folder
         folder.mkdir()
         for name in ("melba", "melbad"):
             binary = folder / name
@@ -583,14 +589,15 @@ class ReleaseInstallerTests(unittest.TestCase):
             )
             binary.chmod(0o755)
         (folder / "melba-portable.txt").write_text("melba-portable-v1\n")
+        # New signed archives carry the icon and the canonical desktop entry;
+        # the installer must derive the installed entry from the payload.
+        shutil.copyfile(ROOT / "crates/melba/packaging/icons/melba.svg", folder / "melba.svg")
+        shutil.copyfile(CANONICAL_DESKTOP, folder / "melba.desktop")
         for notice in ("NOTICE.md", "LICENSE-MIT", "LICENSE-APACHE",
                        "SPOTIFAST-LICENSE", "melba-THIRD-PARTY.txt",
                        "melbad-THIRD-PARTY.txt", "receipt.json"):
             (folder / notice).write_text(f"fixture {notice}\n")
-        with tarfile.open(self.work / self.archive, "w:gz") as tar:
-            tar.add(folder, arcname=folder.name)
-        digest = hashlib.sha256((self.work / self.archive).read_bytes()).hexdigest()
-        (self.work / "checksums.txt").write_text(f"{digest}  {self.archive}\n")
+        self.repack()
         (self.work / "checksums.txt.sig").write_bytes(bytes(64))
         self.env["RELEASE_FIXTURE"] = str(self.work)
         self.stub("curl", '''#!/usr/bin/env python3
@@ -613,6 +620,15 @@ if os.environ.get("OPENSSL_FAIL"):
         p.write_text(body)
         p.chmod(0o755)
 
+    def repack(self):
+        """Rebuild the fixture archive and its signed checksum after an edit."""
+        import hashlib
+        import tarfile
+        with tarfile.open(self.work / self.archive, "w:gz") as tar:
+            tar.add(self.folder, arcname=self.folder.name)
+        digest = hashlib.sha256((self.work / self.archive).read_bytes()).hexdigest()
+        (self.work / "checksums.txt").write_text(f"{digest}  {self.archive}\n")
+
     def install(self, *flags):
         return subprocess.run(
             ["/bin/sh", str(ROOT / "packaging/install-release.sh"), *flags],
@@ -631,6 +647,46 @@ if os.environ.get("OPENSSL_FAIL"):
         self.assertIn("ALAC skipped", result.stdout)
         self.assertTrue((self.work / "data/applications/melba.desktop").is_file())
         self.assertEqual((self.work / "home/.local/bin/melba").resolve(), root / "melba")
+
+    @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
+    def test_release_installs_the_payload_desktop_entry(self):
+        # The installed entry must be the shipped one, not a second copy that
+        # silently loses lines such as the URL scheme registration.
+        root = self.work / "portable"
+        canonical = CANONICAL_DESKTOP.read_text()
+        exec_line = f'Exec=/usr/bin/env "{root}/melba" %u\n'
+        result = self.install("--no-alac")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        installed = (self.work / "data/applications/melba.desktop").read_text()
+        self.assertIn(canonical_desktop_mime_line() + "\n", installed)
+        self.assertIn(exec_line, installed)
+        expected = canonical.replace("Exec=melba %u\n", exec_line)
+        self.assertNotEqual(expected, canonical, "the Exec line must be rewritten")
+        self.assertEqual(installed, expected)
+
+    @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
+    def test_release_derives_the_entry_from_the_payload(self):
+        # Only an entry derived from the shipped file keeps a line the inline
+        # fallback never had; the equality check above cannot tell them apart.
+        entry = self.folder / "melba.desktop"
+        entry.write_text(entry.read_text() + "X-Melba-Fixture=from-payload\n")
+        self.repack()
+        result = self.install("--no-alac")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        installed = (self.work / "data/applications/melba.desktop").read_text()
+        self.assertIn("X-Melba-Fixture=from-payload\n", installed)
+
+    @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
+    def test_release_old_archive_entry_still_registers_schemes(self):
+        # Archives predating melba.desktop keep the inline fallback, which must
+        # register the same schemes as the canonical entry.
+        (self.folder / "melba.desktop").unlink()
+        self.repack()
+        result = self.install("--no-alac")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        installed = (self.work / "data/applications/melba.desktop").read_text()
+        self.assertIn(canonical_desktop_mime_line() + "\n", installed)
+        self.assertIn("StartupWMClass=melba\n", installed)
 
     @unittest.skipUnless(os.uname().machine == "x86_64", "fixture is x86_64")
     def test_release_installs_missing_cachyos_runtime_packages(self):
@@ -727,6 +783,28 @@ if os.environ.get("OPENSSL_FAIL"):
         self.assertEqual(result.returncode, 0, result.stderr)
 
 
+class ReleaseDesktopEntryDriftTests(unittest.TestCase):
+    """The standalone installer runs without a checkout, so it carries its own
+    copy of the entry for old archives; that copy must not drift again."""
+
+    def fallback_heredoc(self):
+        script = (ROOT / "packaging/install-release.sh").read_text()
+        opener = 'cat >"$desktop" <<DESKTOP\n'
+        self.assertIn(opener, script, "the fallback heredoc must stay for old archives")
+        body = script.split(opener, 1)[1]
+        self.assertIn("\nDESKTOP\n", body, "the fallback heredoc must be terminated")
+        return body.split("\nDESKTOP\n", 1)[0].splitlines()
+
+    def test_fallback_entry_matches_the_canonical_file(self):
+        # Only the machine-specific lines may differ; a missing MimeType line
+        # here is what made release installs skip URL scheme registration.
+        def payload(lines):
+            return [line for line in lines if not line.startswith(("Exec=", "Icon="))]
+
+        fallback = payload(self.fallback_heredoc())
+        self.assertEqual(payload(CANONICAL_DESKTOP.read_text().splitlines()), fallback)
+        self.assertIn(canonical_desktop_mime_line(), fallback)
+
 
 class PortableArchiveTests(unittest.TestCase):
     def test_package_portable_always_includes_the_marker(self):
@@ -757,6 +835,7 @@ class PortableArchiveTests(unittest.TestCase):
             stem = "melba-v9.9.9-x86_64-unknown-linux-gnu"
             self.assertIn(f"{stem}/melba-portable.txt", names)
             self.assertIn(f"{stem}/melba.svg", names)
+            self.assertIn(f"{stem}/melba.desktop", names)
             self.assertIn(f"{stem}/melbad", names)
             self.assertIn(f"{stem}/SPOTIFAST-LICENSE", names)
             self.assertIn(f"{stem}/melba-THIRD-PARTY.txt", names)

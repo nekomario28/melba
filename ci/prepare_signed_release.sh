@@ -38,7 +38,7 @@ for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu; do
     done
   done
   test "$(tar -xOf "$gui.tar.gz" "$gui/melba-portable.txt")" = "melba-portable-v1"
-  for file in melba melba-THIRD-PARTY.txt SPOTIFAST-LICENSE; do
+  for file in melba melba-THIRD-PARTY.txt SPOTIFAST-LICENSE melba.desktop; do
     if [[ "$file" = melba ]]; then
       tar -tzf "$gui.tar.gz" | grep -Fx "$gui/$file" >/dev/null
     else
