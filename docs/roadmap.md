@@ -66,10 +66,16 @@ versions are dated records, not the current release.
   `BITPERFECT` receipts in the ALSA digital path; see
   [the evidence](../evidence/hdmi-avr-bitperfect.md). Analog output, volume,
   room correction and other AVR DSP remain outside this claim.
-- [ ] **Authentication and first-play release gate** — verify first sign-in, saved-session
-  restore, rejected/expired sessions, sign-out and full AAC playback past 30 seconds. Keep diagnostic credentials
-  and SDK state isolated from the live account. Fake peers do not establish
-  real SDK acceptance or SMS/voice delivery.
+- [ ] **Authentication and first-play release gate** — measured 2026-11-21 on
+  an isolated daemon with the live credential copied privately:
+  full-track AAC playback past 30 seconds, saved-session restore, sign-out
+  (`auth clear`) and a rejected token reporting INVALID all pass
+  (`evidence/first-play-gate-20261121.md`). Still open: first sign-in
+  (embedded/browser/native-SDK paths), which verification-delivery methods
+  Apple offers, GUI sign-out/re-login on the live install, and real
+  expiry recovery. Keep diagnostic credentials and SDK state isolated from
+  the live account. Fake peers do not establish real SDK acceptance or
+  SMS/voice delivery.
 - [x] **Binary release audit** — the gates run on every release input: the
   daemon, GUI and packaging suites, the license/notice bundle check, the
   secret scan, and a download of the published assets checked against
