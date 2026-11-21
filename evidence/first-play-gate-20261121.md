@@ -21,13 +21,13 @@ with the scratch tree; `cdm_path` pointed at the existing Vivaldi CDM;
 
 - **AAC full-track playback past 30 s — PASS.** `ctl open stream:1679278167`
   (YOASOBI — アイドル, 213 281 ms) on the isolated daemon: metadata resolved,
-  license+probe took ~16 s (the isomp4 probe walks every moof, so all 22
-  segments are fetched+decrypted before the device opens), then
-  `status=Playing`, `codec=mp4a@44100`, `verdict=SHARED` (null is not an
-  exclusive claim, as designed). Position was observed at 13 397 ms then
-  **121 022 ms** before the track completed to `Stopped` — past the 30 s
-  preview boundary. The null sink is unpaced: once prefetched, the whole track
-  writes in ~0.2 s, which is why the Playing window is one poll wide.
+  license+probe took ~16 s, then `status=Playing`, `codec=mp4a@44100`,
+  `verdict=SHARED` (null is not an exclusive claim, as designed). Position was
+  observed at 13 397 ms then **121 022 ms** before the track completed to
+  `Stopped` — past the 30 s preview boundary. The null sink is unpaced: the
+  whole track wrote in a fraction of a second, so segment fetch+decrypt had
+  largely already happened during the open; that is why the Playing window is
+  only a couple of polls wide.
 - **Decrypt pipeline independently verified.** `melba-cdm`'s `e2e` binary
   (manifest → Widevine cert → license → decrypt 3 fragments) ran live:
   `usable_key=true`, 1 290 frames, 995 723 clear bytes.
@@ -45,15 +45,17 @@ with the scratch tree; `cdm_path` pointed at the existing Vivaldi CDM;
 
 - `melbad: level=debug event=next_packet_failed reason="end of stream"` fires
   at normal track end on this sink — it is not a failure signature by itself.
-- `verdict=SHARED` on `null` is correct: only `hw:`/`plughw:`/paths get an
-  exclusivity claim.
+- `verdict=SHARED` on `null` is correct: only a device whose granted name
+  starts with `hw:` can earn `BITPERFECT`; `null`, `plughw:`, `default` and
+  every other name are `SHARED` by construction (`src/audio.rs`).
 - An earlier poll rate (4–5 s) made completed playback look like an instant
   failure: the null sink finishes a prefetched track inside one poll gap.
   Position accounting (pos_ms reaching 121 s mid-flight) is what proves the
   path executed — CV1 applies to this measurement.
-- One 75 s run showed the open wedged inside `open_aac` (no verdict change,
-  `streamOpens` stayed 0) — consistent with a stalled HTTP call without a
-  total timeout; a retry completed normally. Not characterized further here.
+- One 75 s run showed the open call wedged somewhere in the source-open path
+  (no verdict change, `streamOpens` stayed 0) — consistent with a stalled
+  HTTP call without a total timeout; a retry completed normally. Not
+  characterized further here.
 
 ## Still open (needs the maintainer or a consenting test account)
 
