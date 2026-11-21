@@ -74,8 +74,8 @@ versions are dated records, not the current release.
   daemon, GUI and packaging suites, the license/notice bundle check, the
   secret scan, and a download of the published assets checked against
   `checksums.txt` and its Ed25519 signature. Test isolation was the last
-  piece (v0.3.12). Still open: a native-package pipeline
-  (`packaging/native-packages.yaml`, untested).
+  piece (v0.3.12). Still open: a native-package pipeline (not yet built,
+  untested).
 
 Keep requested quality, opened-source format and output-path properties
 separate. Do not expose controls for processing the daemon does not implement,
@@ -117,7 +117,7 @@ or infer bit-perfect playback from an ALAC label.
   `checksums.txt`, the publisher public key as a release asset and a download
   page on the release. `packaging/package-portable.sh` fails closed when the
   generated notices are missing. Still open: a native-package pipeline
-  (`packaging/native-packages.yaml`, untested) if the maintenance is worth it.
+  (not yet built, untested) if the maintenance is worth it.
 
 ### Shared-output verification
 
