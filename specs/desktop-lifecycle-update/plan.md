@@ -16,7 +16,7 @@
 
 ## Distribution boundary
 
-The configured release channel is currently source-only. The upstream updater replaces one executable; it does not provide a paired melba/melbad transaction. A complete client self-update must not leave incompatible daemon and frontend binaries. Do not weaken signatures or invent a successful update to paper over missing distribution assets. Signed paired-package publication/rollback remains a separately gated release step unless a compatible existing installer can be reused. No release uploads or signing-key disclosure are authorized by this implementation plan.
+The release channel publishes signed paired archives (`melba` + `melbad` together), and the update helper stages and swaps the pair, restoring the previous pair if the new GUI fails to start — a client self-update must not leave incompatible daemon and frontend binaries. Do not weaken signatures or invent a successful update to paper over missing distribution assets. No release uploads or signing-key disclosure are authorized by this implementation plan.
 
 ## Non-goals
 

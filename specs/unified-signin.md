@@ -1,9 +1,10 @@
 # Unified GUI and managed-wrapper sign-in
 
-Status: **candidate implementation complete and locally verified against fake
-native backends; not installed, not committed, live acceptance not started**.
+Status: **candidate implementation committed and shipped in this tree since the
+source export, and locally verified against fake native backends; live
+credentialed acceptance not started**.
 
-Implemented (uncommitted) in this tree: `melbad auth gui [--restore]`, a small
+Implemented in this tree: `melbad auth gui [--restore]`, a small
 presentation bridge (`packaging/wrapper-auth.c`) loaded into the wrapper
 process, a typed bounded protocol (`crates/melba-auth/`), attempt correlation
 in `melbad` and the GUI, a private session lock, tombstone bindings, and one
@@ -196,8 +197,9 @@ acceptance of the real prompts, or an installed feature.
   the user is never stranded without a way back.
 - Staging refuses a symlinked ancestor only for artifacts this code stages; the
   user's own XDG path components are not otherwise rewritten.
-- The curated managed wrapper is still the only supported native backend, and
-  the release package predates these changes.
+- The curated managed wrapper is still the only supported native backend. The
+  daemon-side code ships in current releases; the managed wrapper itself is
+  still provisioned explicitly by the user.
 
 The REA ELF-layout operation was unavailable because its pwntools provider was
 not configured. GNU `nm`/`objdump` were used for limited static symbol/code
