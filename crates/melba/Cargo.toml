@@ -112,7 +112,7 @@ sha1 = "0.10"
 sha2 = "0.11"
 base64 = "0.22"
 # Native asynchronous file selection on macOS, Windows and Linux desktop portals.
-rfd = "0.17.2"
+rfd = "0.18.0"
 rand = "0.10"
 open = "5"
 percent-encoding = "2"
