@@ -78,20 +78,23 @@ fn config_file_for_user() -> Option<std::path::PathBuf> {
     Some(base.join("melba/config.json"))
 }
 
-fn read_stream_quality_for_user() -> StreamQuality {
-    let Some(path) = config_file_for_user() else {
-        return StreamQuality::Auto;
-    };
+fn read_stream_quality(path: &std::path::Path) -> StreamQuality {
     let parsed = std::fs::read(path)
         .ok()
         .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok());
     StreamQuality::from_config(parsed.as_ref())
 }
 
+fn read_stream_quality_for_user() -> StreamQuality {
+    let Some(path) = config_file_for_user() else {
+        return StreamQuality::Auto;
+    };
+    read_stream_quality(&path)
+}
+
 /// Write the preference, keeping every other key in the file.
-fn write_stream_quality_for_user(quality: StreamQuality) -> Result<(), String> {
-    let path = config_file_for_user().ok_or("no XDG_CONFIG_HOME or HOME")?;
-    let mut doc = std::fs::read(&path)
+fn write_stream_quality(path: &std::path::Path, quality: StreamQuality) -> Result<(), String> {
+    let mut doc = std::fs::read(path)
         .ok()
         .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
         .unwrap_or_else(|| serde_json::json!({}));
@@ -110,7 +113,12 @@ fn write_stream_quality_for_user(quality: StreamQuality) -> Result<(), String> {
     let body = serde_json::to_vec_pretty(&doc).map_err(|e| e.to_string())?;
     let tmp = path.with_extension("json.tmp");
     std::fs::write(&tmp, body).map_err(|e| e.to_string())?;
-    std::fs::rename(&tmp, &path).map_err(|e| e.to_string())
+    std::fs::rename(&tmp, path).map_err(|e| e.to_string())
+}
+
+fn write_stream_quality_for_user(quality: StreamQuality) -> Result<(), String> {
+    let path = config_file_for_user().ok_or("no XDG_CONFIG_HOME or HOME")?;
+    write_stream_quality(&path, quality)
 }
 
 fn alac_service_configured_for_user() -> bool {
@@ -1322,39 +1330,45 @@ mod stream_quality_tests {
     /// and `auto` is the absence of the key rather than a value meaning default.
     #[test]
     fn writing_the_preference_keeps_the_other_keys() {
-        let dir = std::env::temp_dir().join(format!("melba-quality-{}", std::process::id()));
+        // An absolute path keeps the test independent of TMPDIR's form; the
+        // path-taking IO below can never reach the real user config.
+        let tmp = std::env::temp_dir();
+        let tmp = if tmp.is_absolute() {
+            tmp
+        } else {
+            std::env::current_dir().unwrap().join(tmp)
+        };
+        let dir = tmp.join(format!("melba-quality-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("melba")).unwrap();
+        let file = dir.join("melba/config.json");
         std::fs::write(
-            dir.join("melba/config.json"),
+            &file,
             r#"{"wrapper_url":"tcp://127.0.0.1:10020","crossfade_seconds":3}"#,
         )
         .unwrap();
-        // SAFETY: this module's tests run in one thread per test and the process
-        // has no other writer for this variable at this point.
-        unsafe { std::env::set_var("XDG_CONFIG_HOME", &dir) };
 
-        assert_eq!(read_stream_quality_for_user(), StreamQuality::Auto);
-        write_stream_quality_for_user(StreamQuality::Aac).unwrap();
-        assert_eq!(read_stream_quality_for_user(), StreamQuality::Aac);
+        assert_eq!(read_stream_quality(&file), StreamQuality::Auto);
+        write_stream_quality(&file, StreamQuality::Aac).unwrap();
+        assert_eq!(read_stream_quality(&file), StreamQuality::Aac);
         let saved: serde_json::Value =
-            serde_json::from_slice(&std::fs::read(dir.join("melba/config.json")).unwrap()).unwrap();
+            serde_json::from_slice(&std::fs::read(&file).unwrap()).unwrap();
         assert_eq!(saved["wrapper_url"], "tcp://127.0.0.1:10020");
         assert_eq!(saved["crossfade_seconds"], 3);
         assert_eq!(saved["audio_quality"], "aac");
 
-        write_stream_quality_for_user(StreamQuality::Auto).unwrap();
+        write_stream_quality(&file, StreamQuality::Auto).unwrap();
         let saved: serde_json::Value =
-            serde_json::from_slice(&std::fs::read(dir.join("melba/config.json")).unwrap()).unwrap();
+            serde_json::from_slice(&std::fs::read(&file).unwrap()).unwrap();
         assert!(saved.get("audio_quality").is_none(), "{saved}");
 
         // The hi-res option reaches the file as the word the daemon reads, so the
         // choice survives the trip through the GUI and back.
-        write_stream_quality_for_user(StreamQuality::HiRes).unwrap();
+        write_stream_quality(&file, StreamQuality::HiRes).unwrap();
         let saved: serde_json::Value =
-            serde_json::from_slice(&std::fs::read(dir.join("melba/config.json")).unwrap()).unwrap();
+            serde_json::from_slice(&std::fs::read(&file).unwrap()).unwrap();
         assert_eq!(saved["audio_quality"], "hi-res");
-        assert_eq!(read_stream_quality_for_user(), StreamQuality::HiRes);
+        assert_eq!(read_stream_quality(&file), StreamQuality::HiRes);
         assert_eq!(StreamQuality::HiRes.key(), Some("hi-res"));
 
         // A value this build does not know reads as Auto rather than breaking.
